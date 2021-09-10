@@ -18,6 +18,7 @@
 #include "ScriptMgr.h"
 #include "AreaTrigger.h"
 #include "AreaTriggerAI.h"
+#include "BattlePayMgr.h"
 #include "Chat.h"
 #include "Conversation.h"
 #include "Creature.h"
@@ -1621,6 +1622,16 @@ AreaTriggerAI* ScriptMgr::GetAreaTriggerAI(AreaTrigger* areatrigger)
 
     GET_SCRIPT_RET(AreaTriggerEntityScript, areatrigger->GetScriptId(), tmpscript, nullptr);
     return tmpscript->GetAI(areatrigger);
+}
+
+void ScriptMgr::OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type)
+{
+    FOREACH_SCRIPT(WorldStateScript)->OnCreate(variableID, value, type);
+}
+
+void ScriptMgr::OnWorldStateDelete(uint32 variableID, uint8 type)
+{
+    FOREACH_SCRIPT(WorldStateScript)->OnDelete(variableID, type);
 }
 
 bool ScriptMgr::OnAreaTrigger(Player* player, AreaTriggerEntry const* trigger, bool entered)

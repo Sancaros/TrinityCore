@@ -33,6 +33,8 @@
 #include "BattlegroundPackets.h"
 #include "BattlenetPackets.h"
 #include "BattlePetPackets.h"
+#include "BattlePayPackets.h"
+#include "BattlePayMgr.h"
 #include "BlackMarketPackets.h"
 #include "CalendarPackets.h"
 #include "ChannelPackets.h"

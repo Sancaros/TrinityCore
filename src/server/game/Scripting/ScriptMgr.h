@@ -867,6 +867,17 @@ class TC_GAME_API QuestScript : public ScriptObject
         virtual void OnQuestObjectiveChange(Player* /*player*/, Quest const* /*quest*/, QuestObjective const& /*objective*/, int32 /*oldAmount*/, int32 /*newAmount*/) { }
 };
 
+class TC_GAME_API WorldStateScript : public ScriptObject
+{
+protected:
+    WorldStateScript(const char* name);
+
+public:
+
+    virtual void OnCreate(uint32 /*variableID*/, uint32 /*value*/, uint8 /*type*/) { }
+    virtual void OnDelete(uint32 /*variableID*/, uint8 /*type*/) { }
+};
+
 // Manages registration, loading, and execution of scripts.
 class TC_GAME_API ScriptMgr
 {
@@ -1145,6 +1156,11 @@ class TC_GAME_API ScriptMgr
         void OnQuestStatusChange(Player* player, Quest const* quest, QuestStatus oldStatus, QuestStatus newStatus);
         void OnQuestAcknowledgeAutoAccept(Player* player, Quest const* quest);
         void OnQuestObjectiveChange(Player* player, Quest const* quest, QuestObjective const& objective, int32 oldAmount, int32 newAmount);
+public: /* ZoneScript */
+
+    public: /* WorldStateScript */
+        void OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type);
+        void OnWorldStateDelete(uint32 variableID, uint8 type);
 
     private:
         uint32 _scriptCount;
