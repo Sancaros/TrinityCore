@@ -114,6 +114,13 @@ void CombatAI::SpellInterrupted(uint32 spellId, uint32 unTimeMs)
     events.RescheduleEvent(spellId, unTimeMs);
 }
 
+void CombatAI::MoveCombat(Position destination)
+{
+    me->GetMotionMaster()->MovePoint(POINT_ID_COMBAT_MOVEMENT, destination);
+    combatMoveDest = destination;
+}
+
+
 /////////////////
 // CasterAI
 /////////////////
@@ -351,4 +358,40 @@ int32 VehicleAI::Permissible(Creature const* creature)
         return PERMIT_BASE_SPECIAL;
 
     return PERMIT_BASE_NO;
+}
+
+int BattlePetAI::Permissible(const Creature* creature)
+{
+    return PERMIT_BASE_NO;
+}
+
+void BattlePetAI::InitializeAI()
+{
+}
+
+void BattlePetAI::UpdateAI(uint32 diff)
+{
+    if (!me->IsInWorld() || !me->IsAlive())
+        return;
+
+    Unit* owner = me->GetCharmerOrOwner();
+    if (owner && !me->HasUnitState(UNIT_STATE_FOLLOW))
+        me->GetMotionMaster()->MoveFollow(owner, me->GetFollowDistance(), me->GetFollowAngle());
+}
+
+void BattlePetAI::MovementInform(uint32 moveType, uint32 data)
+{
+    switch (moveType)
+    {
+    case POINT_MOTION_TYPE:
+    {
+        me->GetMotionMaster()->Clear();
+        me->GetMotionMaster()->MoveIdle();
+        if (me->GetCharmerOrOwner())
+            me->GetMotionMaster()->MoveFollow(me->GetCharmerOrOwner(), me->GetFollowDistance(), me->GetFollowAngle());
+        break;
+    }
+    default:
+        break;
+    }
 }

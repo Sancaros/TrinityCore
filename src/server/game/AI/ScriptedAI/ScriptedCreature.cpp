@@ -133,6 +133,17 @@ void ScriptedAI::AttackStartNoMove(Unit* who)
         DoStartNoMovement(who);
 }
 
+void ScriptedAI::ApplyDefaultBossImmuneMask()
+{
+    static uint32 const placeholderSpellId = std::numeric_limits<uint32>::max();
+
+    for (uint32 i = MECHANIC_NONE + 1; i < MAX_MECHANIC; ++i)
+    {
+        if (IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK & (1 << (i - 1)))
+            me->ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, i, true);
+    }
+}
+
 void ScriptedAI::AttackStart(Unit* who)
 {
     if (IsCombatMovementAllowed())

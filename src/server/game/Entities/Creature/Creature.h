@@ -25,6 +25,7 @@
 #include "Duration.h"
 #include "Loot.h"
 #include "MapObject.h"
+#include "TaskScheduler.h"
 
 #include <list>
 
@@ -336,6 +337,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         bool m_isTempWorldObject; //true when possessed
 
+        float GetFollowDistance() const { return m_followDistance; }
+        void SetFollowDistance(float dist) { m_followDistance = dist; }
         // Handling caster facing during spellcast
         void SetTarget(ObjectGuid const& guid) override;
         void MustReacquireTarget() { m_shouldReacquireTarget = true; } // flags the Creature for forced (client displayed) target reacquisition in the next ::Update call
@@ -360,6 +363,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         uint32 disableAffix;
         bool IsAffixDisabled(uint8 affixe) const { return (disableAffix & (1 << affixe)) != 0; }
+
+        TaskScheduler& GetScheduler() { return _scheduler; }
 
         void AtEnterCombat() override;
         void AtExitCombat() override;
@@ -417,6 +422,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool IsInvisibleDueToDespawn() const override;
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
+
+        float m_followDistance = 1.0f;
     private:
         bool CheckNoGrayAggroConfig(uint32 playerLevel, uint32 creatureLevel) const; // No aggro from gray creatures
 
@@ -438,6 +445,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         time_t _lastDamagedTime; // Part of Evade mechanics
         CreatureTextRepeatGroup m_textRepeat;
+
+        TaskScheduler _scheduler;
 
         // Regenerate health
         bool _regenerateHealth; // Set on creation

@@ -1989,6 +1989,25 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
     return creature;
 }
 
+
+std::list<Creature*> WorldObject::FindAllCreaturesInRange(float range)
+{
+    std::list<Creature*> templist;
+    float x, y, z;
+    GetPosition(x, y, z);
+
+    CellCoord pair(Trinity::ComputeCellCoord(x, y));
+    Cell cell(pair);
+    cell.SetNoCreate();
+
+    Trinity::AllCreaturesInRange check(this, range);
+    Trinity::CreatureListSearcher<Trinity::AllCreaturesInRange> searcher(this, templist, check);
+    TypeContainerVisitor<Trinity::CreatureListSearcher<Trinity::AllCreaturesInRange>, GridTypeMapContainer> cSearcher(searcher);
+    cell.Visit(pair, cSearcher, *(GetMap()), *this, this->GetGridActivationRange());
+
+    return templist;
+}
+
 GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range) const
 {
     GameObject* go = nullptr;

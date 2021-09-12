@@ -23,6 +23,10 @@
 class AreaTrigger;
 class Unit;
 
+#define VALIDATE_CASTER()   Unit* caster = at->GetCaster(); \
+                            if (!caster) \
+                                return;
+
 class TC_GAME_API AreaTriggerAI
 {
     protected:
@@ -40,6 +44,9 @@ class TC_GAME_API AreaTriggerAI
         // Called on each AreaTrigger update
         virtual void OnUpdate(uint32 /*diff*/) { }
 
+        // Called on each AreaTrigger proc, timer defined by at->SetPeriodicProcTimer(uint32)
+        virtual void OnPeriodicProc() { }
+
         // Called when the AreaTrigger reach splineIndex
         virtual void OnSplineIndexReached(int /*splineIndex*/) { }
 
@@ -54,6 +61,9 @@ class TC_GAME_API AreaTriggerAI
 
         // Called when the AreaTrigger is removed
         virtual void OnRemove() { }
+
+        // Pass parameters between AI
+        virtual void DoAction(int32 /*param*/) { }
 };
 
 class NullAreaTriggerAI : public AreaTriggerAI

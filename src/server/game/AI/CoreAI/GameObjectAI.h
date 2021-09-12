@@ -83,6 +83,7 @@ class TC_GAME_API GameObjectAI
         virtual void SetData(uint32 /*id*/, uint32 /*value*/) { }
 
         virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) { }
+        virtual void OnStateChanged(uint32 /*state*/, Unit* /*unit*/) { }
         virtual void OnLootStateChanged(uint32 /*state*/, Unit* /*unit*/) { }
         virtual void OnStateChanged(uint32 /*state*/) { }
         virtual void EventInform(uint32 /*eventId*/) { }

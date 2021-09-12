@@ -163,6 +163,8 @@ class TC_GAME_API UnitAI
         // - Has aura with ID <aura> (if aura > 0)
         // - Does not have aura with ID -<aura> (if aura < 0)
         Unit* SelectTarget(SelectAggroTarget targetType, uint32 offset = 0, float dist = 0.0f, bool playerOnly = false, bool withTank = true, int32 aura = 0);
+        void SetBaseAttackSpell(uint32 spellId) { _baseAttackSpell = spellId; }
+        uint32 GetBaseAttackSpell() { return _baseAttackSpell; }
         // Select the best target (in <targetType> order) satisfying <predicate> from the threat list.
         // If <offset> is nonzero, the first <offset> entries in <targetType> order (or MAXTHREAT order, if <targetType> is RANDOM) are skipped.
         template<class PREDICATE>
@@ -308,6 +310,8 @@ class TC_GAME_API UnitAI
         void DoCastSelf(uint32 spellId, CastSpellExtraArgs const& args = {}) { DoCast(me, spellId, args); }
         void DoCastVictim(uint32 spellId, CastSpellExtraArgs const& args = {});
         void DoCastAOE(uint32 spellId, CastSpellExtraArgs const& args = {}) { DoCast(nullptr, spellId, args); }
+        void DoCastRandom(uint32 spellId, float dist, bool triggered = false, int32 aura = 0, uint32 position = 0);
+        void DoCastRandomFriendlyCreature(uint32 spellId, float dist = 50.f, bool triggered = false);
 
         virtual bool ShouldSparWith(Unit const* /*target*/) const { return false; }
 
@@ -320,12 +324,35 @@ class TC_GAME_API UnitAI
         // Called when a game event starts or ends
         virtual void OnGameEvent(bool /*start*/, uint16 /*eventId*/) { }
 
+        /// Add timed delayed operation
+        /// @p_Timeout  : Delay time
+        /// @p_Function : Callback function
+        void AddTimedDelayedOperation(uint32 p_Timeout, std::function<void()>&& p_Function)
+        {
+            m_EmptyWarned = false;
+            m_TimedDelayedOperations.push_back(std::pair<uint32, std::function<void()>>(p_Timeout, p_Function));
+        }
+
+        /// Called after last delayed operation was deleted
+        /// Do whatever you want
+        virtual void LastOperationCalled() { }
+
+        void ClearDelayedOperations()
+        {
+            m_TimedDelayedOperations.clear();
+            m_EmptyWarned = false;
+        }
+
+        std::vector<std::pair<int32, std::function<void()>>>    m_TimedDelayedOperations;   ///< Delayed operations
+        bool                                                    m_EmptyWarned;              ///< Warning when there are no more delayed operations
+
     private:
         UnitAI(UnitAI const& right) = delete;
         UnitAI& operator=(UnitAI const& right) = delete;
+        uint32 _baseAttackSpell = 0;
 
         ThreatManager& GetThreatManager();
         void SortByDistance(std::list<Unit*> list, bool ascending = true);
 };
-
+  
 #endif

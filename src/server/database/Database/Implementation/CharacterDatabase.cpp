@@ -804,6 +804,11 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_DEL_SCENARIO_INSTANCE_CRITERIA_FOR_INSTANCE, "DELETE FROM instance_scenario_progress WHERE id = ?", CONNECTION_ASYNC);
 
 
+    // World Quests
+    PrepareStatement(CHAR_SEL_WORLD_QUEST, "SELECT id, rewardid, starttime FROM world_quest", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_DEL_WORLD_QUEST, "DELETE FROM world_quest WHERE id = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_REP_WORLD_QUEST, "REPLACE INTO world_quest (id, rewardid, starttime) VALUES (?, ?, ?)", CONNECTION_ASYNC);
+
     //World states
     PrepareStatement(CHAR_DEL_WORLD_STATE_BY_STATE_INSTANCE, "DELETE FROM worldstate_data WHERE VariableID = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_INS_WORLD_STAT, "INSERT INTO `worldstate_data` (`VariableID`, `Type`, `ConditionID`, `Flags`, `Value`) VALUES (?, ?, ?, ?, ?)", CONNECTION_ASYNC);
