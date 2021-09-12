@@ -87,6 +87,12 @@ void Scenario::CompleteScenario()
     return SendPacket(WorldPackets::Scenario::ScenarioCompleted(_data->Entry->ID).Write());
 }
 
+void Scenario::CompleteCurrStep()
+{
+    if (ScenarioStepEntry const* step = GetStep())
+        CompleteStep(step);
+}
+
 void Scenario::SetStep(ScenarioStepEntry const* step)
 {
     _currentstep = step;
@@ -331,4 +337,111 @@ void Scenario::SendBootPlayer(Player* player)
     WorldPackets::Scenario::ScenarioVacate scenarioBoot;
     scenarioBoot.ScenarioID = _data->Entry->ID;
     player->SendDirectMessage(scenarioBoot.Write());
+}
+
+void Scenario::SendScenarioEvent(Player* player, uint32 eventId)
+{
+    UpdateCriteria(CriteriaType::AnyoneTriggerGameEventScenario, eventId, 0, 0, nullptr, player);
+}
+
+void Scenario::SendScenarioEventToPlayers(uint32 eventId)
+{
+    for (ObjectGuid guid : _players)
+        if (Player* player = ObjectAccessor::FindPlayer(guid))
+            CriteriaHandler::UpdateCriteria(CriteriaType::AnyoneTriggerGameEventScenario, eventId, 0, 0, nullptr, player);
+}
+
+Challenge* Scenario::GetChallenge()
+{
+    return _challenge;
+}
+
+uint32 Scenario::GetScenarioId() const
+{
+    return scenarioId;
+}
+
+uint32 Scenario::GetCurrentStep() const
+{
+    return currentStep;
+}
+
+bool Scenario::IsCompleted(bool bonus) const
+{
+    return currentStep == GetStepCount(bonus);
+}
+
+uint8 Scenario::GetStepCount(bool withBonus) const
+{
+    if (withBonus)
+        return steps.size();
+
+    uint8 count = 0;
+    for (auto const& v : steps)
+        if (!v->IsBonusObjective())
+            ++count;
+
+    return count;
+}
+
+void Scenario::SendStepUpdate(Player* player, bool full)
+{
+    WorldPackets::Scenario::ScenarioState state;
+    state.BonusObjectives = GetBonusObjectivesData();
+    state.ScenarioID = GetScenarioId();
+    state.CurrentStep = currentStep < steps.size() ? steps[currentStep]->ID : -1;
+    state.ScenarioComplete = IsCompleted(false);
+    state.PickedSteps = ActiveSteps;
+
+    std::vector<ScenarioSpellData> const* scSpells = sObjectMgr->GetScenarioSpells(GetScenarioId());
+    if (scSpells)
+    {
+        for (std::vector<ScenarioSpellData>::const_iterator itr = scSpells->begin(); itr != scSpells->end(); ++itr)
+        {
+            // if ((*itr).StepId == state.ActiveSteps)
+            if ((*itr).StepId == GetCurrentStep())
+            {
+                WorldPackets::Scenario::ScenarioState::ScenarioSpellUpdate spellUpdate;
+                spellUpdate.Usable = true;
+                spellUpdate.SpellID = (*itr).Spells;
+                state.Spells.emplace_back(spellUpdate);
+            }
+        }
+    }
+
+   /* if (full)
+   /* {
+      //  CriteriaProgressMap const* progressMap = GetAchievementMgr().GetCriteriaProgressMap();
+      //  if (!progressMap->empty())
+        {
+            for (CriteriaProgressMap::const_iterator itr = progressMap->begin(); itr != progressMap->end(); ++itr)
+            {
+                CriteriaProgress const& treeProgress = itr->second;
+                CriteriaTreeEntry const* criteriaTreeEntry = sCriteriaTreeStore.LookupEntry(itr->first);
+                if (!criteriaTreeEntry)
+                    continue;
+
+                WorldPackets::Achievement::CriteriaTreeProgress progress;
+                progress.Id = criteriaTreeEntry->CriteriaID;
+                progress.Quantity = treeProgress.Counter;
+                progress.Player = ObjectGuid::Create<HighGuid::Scenario>(0, GetScenarioId(), 1); // whats the fuck ?
+                progress.Flags = 0;
+                progress.Date = time(nullptr) - treeProgress.date;
+                progress.TimeFromStart = time(nullptr) - treeProgress.date;
+                progress.TimeFromCreate = time(nullptr) - treeProgress.date;
+                state.Progress.push_back(progress);
+            }*/
+      //  }
+  //  }
+
+    if (player)
+        player->SendDirectMessage(state.Write());
+  //  else
+  //      BroadCastPacket(state.Write());
+
+    if (full && _challenge)
+    {
+        _challenge->SendChallengeModeStart(player);
+        _challenge->SendStartElapsedTimer(player);
+    }
 }

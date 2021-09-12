@@ -206,6 +206,7 @@ DB2Storage<LiquidTypeEntry>                     sLiquidTypeStore("LiquidType.db2
 DB2Storage<LockEntry>                           sLockStore("Lock.db2", LockLoadInfo::Instance());
 DB2Storage<MailTemplateEntry>                   sMailTemplateStore("MailTemplate.db2", MailTemplateLoadInfo::Instance());
 DB2Storage<MapEntry>                            sMapStore("Map.db2", MapLoadInfo::Instance());
+DB2Storage<MapChallengeModeEntry>               sMapChallengeModeStore("MapChallengeMode.db2", MapChallengeModeLoadInfo::Instance());
 DB2Storage<MapDifficultyEntry>                  sMapDifficultyStore("MapDifficulty.db2", MapDifficultyLoadInfo::Instance());
 DB2Storage<MapDifficultyXConditionEntry>        sMapDifficultyXConditionStore("MapDifficultyXCondition.db2", MapDifficultyXConditionLoadInfo::Instance());
 DB2Storage<ModifierTreeEntry>                   sModifierTreeStore("ModifierTree.db2", ModifierTreeLoadInfo::Instance());
@@ -361,6 +362,9 @@ typedef std::unordered_map<uint32, std::vector<ItemSetSpellEntry const*>> ItemSe
 typedef std::unordered_map<uint32, std::vector<ItemSpecOverrideEntry const*>> ItemSpecOverridesContainer;
 typedef std::unordered_map<uint32, DB2Manager::MountTypeXCapabilitySet> MountCapabilitiesByTypeContainer;
 typedef std::unordered_map<uint32, DB2Manager::MountXDisplayContainer> MountDisplaysCointainer;
+typedef std::unordered_map<uint32, MapChallengeModeEntry const*> MapChallengeModeEntryContainer;
+typedef std::vector<uint32 /*MapID*/> MapChallengeModeListContainer;
+typedef std::vector<double> MapChallengeWeightListContainer;
 typedef std::unordered_map<uint32, std::array<std::vector<NameGenEntry const*>, 2>> NameGenContainer;
 typedef std::array<std::vector<Trinity::wregex>, TOTAL_LOCALES + 1> NameValidationRegexContainer;
 typedef std::unordered_map<uint32, std::vector<uint32>> PhaseGroupContainer;
@@ -458,6 +462,9 @@ namespace
     std::unordered_set<std::pair<int32, uint32>> _specsBySpecSet;
     std::unordered_set<uint8> _spellFamilyNames;
     SpellProcsPerMinuteModContainer _spellProcsPerMinuteMods;
+    MapChallengeModeEntryContainer _mapChallengeModeEntrybyMap;
+    MapChallengeModeListContainer _challengeModeMaps;
+    MapChallengeWeightListContainer _challengeWeightMaps;
     TalentsByPosition _talentsByPosition;
     ToyItemIdsContainer _toys;
     std::unordered_map<uint32, std::vector<TransmogSetEntry const*>> _transmogSetsByItemModifiedAppearance;
@@ -756,6 +763,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sLockStore);
     LOAD_DB2(sMailTemplateStore);
     LOAD_DB2(sMapStore);
+    LOAD_DB2(sMapChallengeModeStore);
     LOAD_DB2(sMapDifficultyStore);
     LOAD_DB2(sMapDifficultyXConditionStore);
     LOAD_DB2(sModifierTreeStore);
@@ -934,6 +942,16 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
                 _azeriteItemMilestonePowerByEssenceSlot[azeriteEssenceSlot] = azeriteItemMilestonePower;
                 ++azeriteEssenceSlot;
             }
+        }
+    }
+
+    for (MapChallengeModeEntry const* entry : sMapChallengeModeStore)
+    {
+        _mapChallengeModeEntrybyMap[entry->MapID] = entry;
+        if (entry->Flags != 2)
+        {
+            _challengeModeMaps.emplace_back(entry->ID);
+            _challengeWeightMaps.emplace_back(GetChallengeWeight(entry->MapID));
         }
     }
 
@@ -3020,6 +3038,109 @@ static bool operator<(UiMapAssignmentStatus const& left, UiMapAssignmentStatus c
     }
 
     return true;
+}
+
+std::vector<uint32> DB2Manager::GetChallngeMaps()
+{
+    return _challengeModeMaps;
+}
+
+std::vector<double> DB2Manager::GetChallngesWeight()
+{
+    return _challengeWeightMaps;
+}
+
+
+MapChallengeModeEntry const* DB2Manager::GetChallengeModeByMapID(uint32 mapID)
+{
+    return Trinity::Containers::MapGetValuePtr(_mapChallengeModeEntrybyMap, mapID);
+}
+
+double DB2Manager::GetChallengeWeight(uint32 mapID)
+{
+ //   if (sWorld->getBoolConfig(CONFIG_ARGUSWOW_ENABLE))
+   // {
+     /*   switch (sWorld->getIntConfig(CONFIG_DUNGEON_ACTIVE_STEP))
+        {
+        case 0: // Disable all dungeons
+        case 1: // step 7.0.3
+            switch (mapID)
+            {
+            case 1651: // Upper and Lower Karazhan
+            case 1571: // Court of Stars
+            case 1516: // The Arcway
+            case 1677: // Cathedral of Eternal Night
+            case 1753: // Seat of the Triumvirate
+                return 0.0;
+            }
+            break;
+        case 2: // step 7.1.0
+            switch (mapID)
+            {
+            case 1571: // Court of Stars
+            case 1516: // The Arcway
+            case 1677: // Cathedral of Eternal Night
+            case 1753: // Seat of the Triumvirate
+                return 0.0;
+            }
+            break;
+        case 3: // step 7.1.5
+            switch (mapID)
+            {
+            case 1677: // Cathedral of Eternal Night
+            case 1753: // Seat of the Triumvirate
+                return 0.0;
+            }
+            break;
+        case 4: // step 7.2.5
+            switch (mapID)
+            {
+            case 1753: // Seat of the Triumvirate
+                return 0.0;
+            }
+            break;
+        case 5: // step 8.3
+            switch (mapID)
+            {
+            case 1763: // Atal'Dazar
+            case 1771: // tol dagor
+            case 1841: // Underrot
+            case 1762: // kings rest 
+            case 1754: // freehold
+            case 2097: // op mechagon
+            case 1864: // shrine of the storm 
+            case 1822: // siege of boralus
+            case 1877: // temple of serthraliss
+            case 1594: // the motherlode!!
+            case 1862: // waycrest manor
+                return 0.0;
+            }
+            break;
+        default:
+            break;
+        }*/
+ //   }
+
+    switch (mapID)
+    {
+    case 1492: // Maw of Souls
+        return 10.0;
+    case 1651: // Upper and Lower Karazhan
+    case 1677: // Cathedral of Eternal Night
+    case 1753: // Seat of the Triumvirate
+        return 8.5;
+    case 1493: // Vault of the Wardens
+    case 1458: // Neltharion's Lair
+    case 1516: // The Arcway
+    case 1477: // Halls of Valor
+        return 7.5;
+    case 1571: // Court of Stars
+    case 1501: // Black Rook Hold
+    case 1466: // Darkheart Thicket
+    case 1456: // Eye of Azshara
+        return 6.5;
+    }
+    return 0.0;
 }
 
 static bool CheckUiMapAssignmentStatus(float x, float y, float z, int32 mapId, int32 areaId, int32 wmoDoodadPlacementId, int32 wmoGroupId,

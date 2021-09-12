@@ -669,6 +669,57 @@ namespace WorldPackets
             ObjectGuid MoverGUID;
             std::vector<MoveStateChange> StateChanges;
         };
+
+        class AbortNewWorld final : public ServerPacket
+        {
+        public:
+            AbortNewWorld() : ServerPacket(SMSG_ABORT_NEW_WORLD, 0) { }
+
+            WorldPacket const* Write() override { return &_worldPacket; }
+        };
+
+        class AdjustSplineDuration final : public ServerPacket
+        {
+        public:
+            AdjustSplineDuration() : ServerPacket(SMSG_ADJUST_SPLINE_DURATION, 16 + 4) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid Unit;
+            float Scale = 0.0f;
+        };
+
+        class MoveSkipTime final : public ServerPacket
+        {
+        public:
+            MoveSkipTime() : ServerPacket(SMSG_MOVE_SKIP_TIME, 16 + 4) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid MoverGUID;
+            uint32 SkippedTime = 0;
+        };
+
+        class TimeSyncResponseFailed final : public ClientPacket
+        {
+        public:
+            TimeSyncResponseFailed(WorldPacket&& packet) : ClientPacket(CMSG_TIME_SYNC_RESPONSE_FAILED, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 SequenceIndex = 0;
+        };
+
+        class TimeSyncResponseDropped final : public ClientPacket
+        {
+        public:
+            TimeSyncResponseDropped(WorldPacket&& packet) : ClientPacket(CMSG_TIME_SYNC_RESPONSE_DROPPED, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 SequenceIndexFirst = 0;
+            uint32 SequenceIndexLast = 0;
+        };
     }
 
     ByteBuffer& operator<<(ByteBuffer& data, Movement::MonsterSplineFilterKey const& monsterSplineFilterKey);

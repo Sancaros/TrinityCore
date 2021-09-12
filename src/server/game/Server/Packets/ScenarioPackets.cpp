@@ -59,8 +59,8 @@ WorldPacket const* WorldPackets::Scenario::ScenarioState::Write()
    for (WorldPackets::Scenario::BonusObjectiveData const& bonusObjective : BonusObjectives)
        _worldPacket << bonusObjective;
 
-   for (WorldPackets::Scenario::ScenarioSpellUpdate const& spell : Spells)
-       _worldPacket << spell;
+   /*for (WorldPackets::Scenario::ScenarioSpellUpdate const& spell : Spells)
+       _worldPacket << spell;*/
 
     return &_worldPacket;
 }

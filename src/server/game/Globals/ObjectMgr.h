@@ -798,6 +798,13 @@ struct SceneTemplate
 
 typedef std::unordered_map<uint32, SceneTemplate> SceneTemplateContainer;
 
+struct ScenarioSpellData
+{
+    uint32 StepId;
+    uint32 Spells;
+};
+typedef std::vector<std::vector<ScenarioSpellData>> ScenarioDataSpellsStep;
+
 struct PlayerChoiceResponseRewardItem
 {
     PlayerChoiceResponseRewardItem() : Id(0), Quantity(0) { }
@@ -1230,6 +1237,13 @@ class TC_GAME_API ObjectMgr
         ExclusiveQuestGroupsBounds GetExclusiveQuestGroupBounds(int32 exclusiveGroupId) const
         {
             return _exclusiveQuestGroups.equal_range(exclusiveGroupId);
+        }
+
+        std::vector<ScenarioSpellData> const* GetScenarioSpells(int32 ScenarioId) const
+        {
+            if (_scenarioDataSpellStep.size() <= ScenarioId)
+                return nullptr;
+            return &_scenarioDataSpellStep[ScenarioId];
         }
 
         bool LoadTrinityStrings();
@@ -1840,6 +1854,7 @@ class TC_GAME_API ObjectMgr
         RealmNameContainer _realmNameStore;
 
         SceneTemplateContainer _sceneTemplateStore;
+        ScenarioDataSpellsStep _scenarioDataSpellStep;
 
         std::set<uint32> _transportMaps; // Helper container storing map ids that are for transports only, loaded from gameobject_template
 };

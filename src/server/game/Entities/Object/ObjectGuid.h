@@ -264,6 +264,7 @@ class TC_GAME_API ObjectGuid
         void SetRawValue(std::vector<uint8> const& guid);
         void SetRawValue(uint64 high, uint64 low) { _data[0] = low; _data[1] = high; }
         void Clear() { std::fill(std::begin(_data), std::end(_data), UI64LIT(0)); }
+        uint32 GetGUIDLow() const;
 
         HighGuid GetHigh() const { return HighGuid((_data[1] >> 58) & 0x3F); }
         uint32 GetRealmId() const { return uint32((_data[1] >> 42) & 0xFFFF); }

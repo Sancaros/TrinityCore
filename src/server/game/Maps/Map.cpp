@@ -4210,6 +4210,11 @@ void InstanceMap::SetResetSchedule(bool on)
     }
 }
 
+uint8 Map::GetSpawnMode() const
+{
+    return uint8(i_spawnMode);
+}
+
 MapDifficultyEntry const* Map::GetMapDifficulty() const
 {
     return sDB2Manager.GetMapDifficultyData(GetId(), GetDifficultyID());
@@ -4262,6 +4267,11 @@ bool Map::IsHeroic() const
     if (DifficultyEntry const* difficulty = sDifficultyStore.LookupEntry(i_spawnMode))
         return difficulty->Flags & DIFFICULTY_FLAG_HEROIC;
     return false;
+}
+
+bool Map::IsMythic() const
+{
+    return i_spawnMode == DIFFICULTY_MYTHIC || i_spawnMode == DIFFICULTY_MYTHIC_KEYSTONE || i_spawnMode == DIFFICULTY_MYTHIC_RAID;
 }
 
 bool Map::Is25ManRaid() const

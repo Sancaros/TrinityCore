@@ -64,10 +64,12 @@ enum LFGMgrEnum
 
 enum LfgFlags
 {
-    LFG_FLAG_UNK1                                = 0x1,
-    LFG_FLAG_UNK2                                = 0x2,
-    LFG_FLAG_SEASONAL                            = 0x4,
-    LFG_FLAG_UNK3                                = 0x8
+    LFG_FLAG_UNK1                           = 0x0001,
+    LFG_FLAG_UNK2                           = 0x0002,
+    LFG_FLAG_SEASONAL                       = 0x0004,
+    LFG_FLAG_USER_TELEPORT_NOT_ALLOWED      = 0x0800,
+    LFG_FLAG_NON_BACKFILLABLE               = 0x1000,
+    LFG_FLAG_TIMEWALKER                     = 0x2000,
 };
 
 /// Determines the type of instance
@@ -254,6 +256,7 @@ struct LfgProposal
         group(), leader(), cancelTime(0), encounters(0), isNew(true)
         { }
 
+    LFGDungeonsEntry const* dbc;
     uint32 id;                                             ///< Proposal Id
     uint32 dungeonId;                                      ///< Dungeon to join
     LfgProposalState state;                                ///< State of the proposal
@@ -411,11 +414,20 @@ class TC_GAME_API LFGMgr
         /// Sets player lfg roles
         void SetRoles(ObjectGuid guid, uint8 roles);
         /// Join Lfg with selected roles, dungeons and comment
+        void JoinLfg(Player* player, uint32 dungeonId, uint8 roles = PLAYER_ROLE_DAMAGE);
         void JoinLfg(Player* player, uint8 roles, LfgDungeonSet& dungeons);
         /// Leaves lfg
         void LeaveLfg(ObjectGuid guid, bool disconnected = false);
+        void KickPlayer(Player* player);
         /// Gets unique join queue data
         WorldPackets::LFG::RideTicket const* GetTicket(ObjectGuid guid) const;
+
+        /// Toggle LFG in debug mode
+        void ToggleTesting();
+        /// Check if debug mode
+        bool IsTesting() const { return m_isTesting; }
+        /// Personal LFG
+        void JoinPersonalLfg(Player* player, uint32 dungeonId);
 
         // LfgQueue
         /// Get last lfg state (NONE, DUNGEON or FINISHED_DUNGEON)
@@ -438,6 +450,10 @@ class TC_GAME_API LFGMgr
         static bool HasIgnore(ObjectGuid guid1, ObjectGuid guid2);
         /// Sends queue status to player
         static void SendLfgQueueStatus(ObjectGuid guid, LfgQueueStatusData const& data);
+        static LfgQueueRoleCount GetRoleCountByQueueId(uint32 queueId);
+
+        LFGDungeonData const* GetPlayerLFGDungeon(ObjectGuid guid);
+        LFGDungeonsEntry const* GetPlayerLFGDungeonEntry(ObjectGuid guid);
 
     private:
         uint8 GetTeam(ObjectGuid guid);
@@ -477,6 +493,7 @@ class TC_GAME_API LFGMgr
         uint32 m_QueueTimer;                               ///< used to check interval of update
         uint32 m_lfgProposalId;                            ///< used as internal counter for proposals
         uint32 m_options;                                  ///< Stores config options
+        bool m_isTesting;
 
         LfgQueueContainer QueuesStore;                     ///< Queues
         LfgCachedDungeonContainer CachedDungeonMapStore;   ///< Stores all dungeons by groupType

@@ -13241,3 +13241,34 @@ float Unit::GetCollisionHeight() const
     float const collisionHeight = scaleMod * modelData->CollisionHeight * modelData->ModelScale * displayInfo->CreatureModelScale;
     return collisionHeight == 0.0f ? DEFAULT_COLLISION_HEIGHT : collisionHeight;
 }
+
+void Unit::SendDisplayToast(uint32 entry, ToastType type, bool isBonusRoll, uint32 count, DisplayToastMethod method, uint32 questID, Item* item /*= nullptr*/)
+{
+    if (!IsPlayer())
+        return;
+
+    WorldPackets::Loot::DisplayToast data;
+    data.QuestID = questID;
+    data.Quantity = count;
+    data.ToastMethod = uint8(method);
+    data.ToastType = uint32(type);
+    data.IsBonusRoll = isBonusRoll;
+
+    switch (type)
+    {
+    case ToastType::CURRENCY:
+        data.CurrencyID = entry;
+        break;
+    case ToastType::ITEM:
+        if (!item)
+            return;
+        data.Loot.Initialize(item);
+        data.SpecID = 0;
+        data.Quantity = 0;
+        break;
+    default:
+        break;
+    }
+
+    ToPlayer()->SendDirectMessage(data.Write());
+}

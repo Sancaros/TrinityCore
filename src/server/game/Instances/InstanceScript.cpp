@@ -20,6 +20,8 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "CreatureAIImpl.h"
+#include "ChallengeMgr.h"
+#include "Challenge.h"
 #include "DatabaseEnv.h"
 #include "GameObject.h"
 #include "Group.h"
@@ -56,6 +58,19 @@ _entranceId(0), _temporaryEntranceId(0), _combatResurrectionTimer(0), _combatRes
     ASSERT(!scriptname.empty());
    // Acquire a strong reference from the script module
    // to keep it loaded until this object is destroyed.
+    module_reference = sScriptMgr->AcquireModuleReferenceOfScriptName(scriptname);
+#endif // #ifndef TRINITY_API_USE_DYNAMIC_LINKING
+}
+
+InstanceScript::InstanceScript(Map* map) : completedEncounters(0), _instanceSpawnGroups(sObjectMgr->GetSpawnGroupsForInstance(map->GetId())),
+_entranceId(0), _temporaryEntranceId(0), _combatResurrectionTimer(0), _combatResurrectionCharges(0), _combatResurrectionTimerStarted(false)
+{
+#ifdef TRINITY_API_USE_DYNAMIC_LINKING
+    uint32 scriptId = sObjectMgr->GetInstanceTemplate(map->GetId())->ScriptId;
+    auto const scriptname = sObjectMgr->GetScriptName(scriptId);
+    ASSERT(!scriptname.empty());
+    // Acquire a strong reference from the script module
+    // to keep it loaded until this object is destroyed.
     module_reference = sScriptMgr->AcquireModuleReferenceOfScriptName(scriptname);
 #endif // #ifndef TRINITY_API_USE_DYNAMIC_LINKING
 }
@@ -131,6 +146,11 @@ Creature* InstanceScript::GetCreature(uint32 type)
 GameObject* InstanceScript::GetGameObject(uint32 type)
 {
     return instance->GetGameObject(GetObjectGuid(type));
+}
+
+void InstanceScript::GetPlayersCount()
+{
+    uint64 playersCount = instance->GetPlayers().getSize();
 }
 
 void InstanceScript::SetHeaders(std::string const& dataHeaders)
@@ -907,3 +927,111 @@ bool InstanceHasScript(WorldObject const* obj, char const* scriptName)
 
     return false;
 }
+
+void InstanceScript::OnPlayerEnterForScript(Player* player)
+{
+    if (_challenge)
+        _challenge->OnPlayerEnterForScript(player);
+}
+
+void InstanceScript::OnPlayerLeaveForScript(Player* player)
+{
+    if (_challenge)
+        _challenge->OnPlayerLeaveForScript(player);
+}
+
+void InstanceScript::OnPlayerDiesForScript(Player* player)
+{
+    if (_challenge)
+        _challenge->OnPlayerDiesForScript(player);
+
+   // if (_logData.Encounter.is_initialized() && _logData.Encounter->EncounterStarded)
+     //   ++_logData.Encounter->DeadCount;
+}
+
+// Redirect query to challenge
+void InstanceScript::OnCreatureCreateForScript(Creature* creature)
+{
+    if (_challenge)
+        _challenge->OnCreatureCreateForScript(creature);
+}
+
+void InstanceScript::OnCreatureRemoveForScript(Creature* creature)
+{
+    if (_challenge)
+        _challenge->OnCreatureRemoveForScript(creature);
+}
+
+void InstanceScript::OnCreatureUpdateDifficulty(Creature* creature)
+{
+    if (_challenge)
+        _challenge->OnCreatureUpdateDifficulty(creature);
+}
+
+void InstanceScript::EnterCombatForScript(Creature* creature, Unit* enemy)
+{
+    if (_challenge)
+        _challenge->EnterCombatForScript(creature, enemy);
+}
+
+void InstanceScript::CreatureDiesForScript(Creature* creature, Unit* killer)
+{
+    if (_challenge)
+        _challenge->CreatureDiesForScript(creature, killer);
+}
+
+void InstanceScript::OnGameObjectCreateForScript(GameObject* go)
+{
+    if (_challenge)
+        _challenge->OnGameObjectCreateForScript(go);
+
+    // TC_LOG_DEBUG(LOG_FILTER_CHALLENGE, "OnGameObjectCreateForScript GetEntry %u GetGUID %s", go->GetEntry(), go->GetGUID().ToString().c_str());
+
+    if (sChallengeMgr->IsChest(go->GetEntry()))
+        _challengeChest = go->GetGUID();
+
+    if (sChallengeMgr->IsDoor(go->GetEntry()))
+        AddChallengeModeDoor(go->GetGUID());
+
+    if (go->GetEntry() == ChallengeModeOrb)
+        AddChallengeModeOrb(go->GetGUID());
+}
+
+void InstanceScript::OnGameObjectRemoveForScript(GameObject* go)
+{
+    if (_challenge)
+        _challenge->OnGameObjectRemoveForScript(go);
+}
+
+void InstanceScript::AddChallengeModeOrb(ObjectGuid orbGuid)
+{
+    _challengeOrbGuid = orbGuid;
+}
+
+void InstanceScript::SetChallenge(Challenge* challenge)
+{
+    _challenge = challenge;
+
+    _combatResurrectionTimer = 1;
+    _combatResurrectionCharges = 5;
+    _combatResurrectionTimerStarted = 10 * MINUTE * IN_MILLISECONDS;
+    _combatResurrectionTimer = 10 * MINUTE * IN_MILLISECONDS;
+}
+
+void InstanceScript::AddChallengeModeDoor(ObjectGuid doorGuid)
+{
+    _challengeDoorGuids.push_back(doorGuid);
+}
+
+void InstanceScript::OnUnitCharmed(Unit* unit, Unit* charmer)
+{
+    if (_challenge)
+        _challenge->OnUnitCharmed(unit, charmer);
+}
+
+void InstanceScript::OnUnitRemoveCharmed(Unit* unit, Unit* charmer)
+{
+    if (_challenge)
+        _challenge->OnUnitRemoveCharmed(unit, charmer);
+}
+

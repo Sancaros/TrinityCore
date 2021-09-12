@@ -385,16 +385,19 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         // have meaning only for instanced map (that have set real difficulty)
         Difficulty GetDifficultyID() const { return Difficulty(i_spawnMode); }
+        uint8 GetSpawnMode() const;
         MapDifficultyEntry const* GetMapDifficulty() const;
         ItemContext GetDifficultyLootItemContext() const;
 
         uint32 GetId() const;
         bool Instanceable() const;
         bool IsDungeon() const;
+        bool isChallenge() const { return i_spawnMode == DIFFICULTY_MYTHIC_KEYSTONE; }
         bool IsNonRaidDungeon() const;
         bool IsRaid() const;
         bool IsRaidOrHeroicDungeon() const;
         bool IsHeroic() const;
+        bool IsMythic() const;
         bool Is25ManRaid() const;
         bool IsBattleground() const;
         bool IsBattleArena() const;
@@ -421,6 +424,10 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         typedef MapRefManager PlayerList;
         PlayerList const& GetPlayers() const { return m_mapRefManager; }
+
+        void ApplyOnEveryPlayer(std::function<void(Player*)> function);
+
+        uint32 GetPlayerCount() const { return m_mapRefManager.getSize(); }
 
         //per-map script storage
         void ScriptsStart(std::map<uint32, std::multimap<uint32, ScriptInfo>> const& scripts, uint32 id, Object* source, Object* target);

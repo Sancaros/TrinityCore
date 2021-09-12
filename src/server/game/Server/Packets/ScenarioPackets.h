@@ -49,6 +49,12 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
+            struct ScenarioSpellUpdate
+            {
+                uint32 SpellID = 0;
+                bool Usable = false;
+            };
+
             int32 ScenarioID = 0;
             int32 CurrentStep = -1;
             uint32 DifficultyID = 0;

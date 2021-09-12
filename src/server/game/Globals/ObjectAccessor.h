@@ -78,13 +78,18 @@ namespace ObjectAccessor
     TC_GAME_API Pet* GetPet(WorldObject const&, ObjectGuid const& guid);
     TC_GAME_API Player* GetPlayer(Map const*, ObjectGuid const& guid);
     TC_GAME_API Player* GetPlayer(WorldObject const&, ObjectGuid const& guid);
+    TC_GAME_API Player* GetObjectInWorld(ObjectGuid guid, Player* /*typeSpecifier*/);
     TC_GAME_API Creature* GetCreatureOrPetOrVehicle(WorldObject const&, ObjectGuid const&);
+    TC_GAME_API Unit* FindUnit(ObjectGuid const& g);
 
     // these functions return objects if found in whole world
     // ACCESS LIKE THAT IS NOT THREAD SAFE
     TC_GAME_API Player* FindPlayer(ObjectGuid const&);
     TC_GAME_API Player* FindPlayerByName(std::string const& name);
     TC_GAME_API Player* FindPlayerByLowGUID(ObjectGuid::LowType lowguid);
+
+    TC_GAME_API GameObject* FindGameObject(ObjectGuid const& guid);
+    TC_GAME_API Creature* FindCreature(ObjectGuid const& guid);
 
     // this returns Player even if he is not in world, for example teleporting
     TC_GAME_API Player* FindConnectedPlayer(ObjectGuid const&);

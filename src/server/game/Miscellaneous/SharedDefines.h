@@ -23,6 +23,12 @@
 
 float const GROUND_HEIGHT_TOLERANCE = 0.05f; // Extra tolerance to z position to check if it is in air or on ground.
 
+enum ZoneType : uint32
+{
+    ZONE_STORMWIND_CITY = 1519,
+    ZONE_ORGRIMMAR = 1637,
+};
+
 enum SpellEffIndex : uint8
 {
     EFFECT_0 = 0,
@@ -62,6 +68,14 @@ enum SpellEffIndex : uint8
 // used in script definitions
 #define EFFECT_FIRST_FOUND 254
 #define EFFECT_ALL 255
+
+enum Roles
+{
+    ROLE_TANK     = 0,
+    ROLE_HEALER   = 1,
+    ROLE_DAMAGE   = 2,
+    ROLES_DEFAULT = 3
+};
 
 // loot modes for creatures and gameobjects, bitmask!
 enum LootModes
@@ -259,6 +273,29 @@ enum Stats : uint16
 };
 
 #define MAX_STATS                        4
+
+enum ObjectDBState
+{
+    DB_STATE_UNCHANGED = 0,
+    DB_STATE_CHANGED = 1,
+    DB_STATE_NEW = 2,
+    DB_STATE_REMOVED = 3
+};
+
+enum class ChangeDifficultyResult : uint8
+{
+    DIFFICULTY_CHANGE_COOLDOWN_S = 0, // ERR_DIFFICULTY_CHANGE_COMBAT_COOLDOWN_S
+    DIFFICULTY_CHANGE_WORLDSTATE = 1,
+    DIFFICULTY_CHANGE_ENCOUNTER = 2,
+    DIFFICULTY_CHANGE_COMBAT = 3,
+    DIFFICULTY_CHANGE_PLAYER_BUSY = 4,
+    DIFFICULTY_CHANGE_SET_COOLDOWN_S = 5,
+    DIFFICULTY_CHANGE_ALREADY_STARTED = 6,
+    DIFFICULTY_CHANGE_OTHER_HEROIC_S = 8,
+    DIFFICULTY_CHANGE_HEROIC_INSTANCE_ALREADY_RUNNING = 9,
+    DIFFICULTY_DISABLED_IN_LFG = 10,
+    DIFFICULTY_CHANGE_BY_PARTY_LEADER = 11
+};
 
 enum Powers : int8
 {
@@ -4232,7 +4269,8 @@ enum LockKeyType
 {
     LOCK_KEY_NONE  = 0,
     LOCK_KEY_ITEM  = 1,
-    LOCK_KEY_SKILL = 2
+    LOCK_KEY_SKILL = 2,
+    LOCK_KEY_SPELL = 3 // BFA
 };
 
 // LockType.dbc (9.0.2.37176)
@@ -4293,6 +4331,22 @@ enum LockType
     LOCKTYPE_COVENANT_NECROLORD         = 160,
     LOCKTYPE_PROFESSION_ENGINEERING     = 161
 };
+
+enum ChallengeMode
+{
+    CHALLENGE_NOT_IN_TIMER  = 0,
+    CHALLENGE_TIMER_LEVEL_1 = 1,
+    CHALLENGE_TIMER_LEVEL_2 = 2,
+    CHALLENGE_TIMER_LEVEL_3 = 3
+};
+
+enum TimerType : uint32
+{
+    WORLD_TIMER_TYPE_PVP = 0,
+    WORLD_TIMER_TYPE_CHALLENGE_MODE = 1,
+    WORLD_TIMER_TIMER_TYPE_PROVING_GROUND = 2,
+};
+
 
 // this is important type for npcs!
 enum TrainerType

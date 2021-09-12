@@ -1024,3 +1024,30 @@ WorldPacket const* WorldPackets::Movement::MoveSetCompoundState::Write()
 
     return &_worldPacket;
 }
+
+WorldPacket const* WorldPackets::Movement::AdjustSplineDuration::Write()
+{
+    _worldPacket << Unit;
+    _worldPacket << Scale;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Movement::MoveSkipTime::Write()
+{
+    _worldPacket << MoverGUID;
+    _worldPacket << SkippedTime;
+
+    return &_worldPacket;
+}
+
+void WorldPackets::Movement::TimeSyncResponseFailed::Read()
+{
+    _worldPacket >> SequenceIndex;
+}
+
+void WorldPackets::Movement::TimeSyncResponseDropped::Read()
+{
+    _worldPacket >> SequenceIndexFirst;
+    _worldPacket >> SequenceIndexLast;
+}

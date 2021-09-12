@@ -71,6 +71,17 @@ void Map::ScriptsStart(std::map<uint32, std::multimap<uint32, ScriptInfo>> const
     }
 }
 
+void Map::ApplyOnEveryPlayer(std::function<void(Player*)> function)
+{
+    auto const& players = GetPlayers();
+    if (players.isEmpty())
+        return;
+
+    for (auto const& itr : players)
+        if (auto player = itr.GetSource())
+            function(player);
+}
+
 void Map::ScriptCommandStart(ScriptInfo const& script, uint32 delay, Object* source, Object* target)
 {
     // NOTE: script record _must_ exist until command executed

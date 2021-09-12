@@ -19,11 +19,15 @@
 #define Scenario_h__
 
 #include "CriteriaHandler.h"
+#include "Challenge.h"
 #include <unordered_set>
 
 struct ScenarioData;
 struct ScenarioEntry;
 struct ScenarioStepEntry;
+class Challenge;
+
+typedef std::vector<ScenarioStepEntry const*> ScenarioSteps;
 
 namespace WorldPackets
 {
@@ -58,6 +62,7 @@ class TC_GAME_API Scenario : public CriteriaHandler
 
         virtual void CompleteStep(ScenarioStepEntry const* step);
         virtual void CompleteScenario();
+        void CompleteCurrStep();
 
         virtual void OnPlayerEnter(Player* player);
         virtual void OnPlayerExit(Player* player);
@@ -69,13 +74,27 @@ class TC_GAME_API Scenario : public CriteriaHandler
         ScenarioStepState GetStepState(ScenarioStepEntry const* step);
         ScenarioStepEntry const* GetStep() const { return _currentstep; }
         ScenarioStepEntry const* GetFirstStep() const;
+        uint32 GetScenarioId() const;
+        uint32 GetCurrentStep() const;
         ScenarioStepEntry const* GetLastStep() const;
 
+        uint8 GetStepCount(bool withBonus) const;
+        bool IsCompleted(bool bonus) const;
+        void SendStepUpdate(Player* player = nullptr, bool full = false);
         void SendScenarioState(Player* player);
         void SendBootPlayer(Player* player);
+        void SendScenarioEvent(Player* player, uint32 eventId);
+        void SendScenarioEventToPlayers(uint32 eventId);
+        Challenge* GetChallenge();
 
     protected:
+        Challenge* _challenge;
         GuidUnorderedSet _players;
+        uint32 instanceId;
+        uint32 scenarioId;
+        uint8 currentStep;
+        ScenarioSteps steps;
+        std::vector<uint32> ActiveSteps;
 
         void SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, Seconds timeElapsed, bool timedCompleted) const override;
         void SendCriteriaProgressRemoved(uint32 /*criteriaId*/) override { }

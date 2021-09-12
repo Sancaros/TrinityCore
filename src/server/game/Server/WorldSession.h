@@ -101,6 +101,7 @@ namespace WorldPackets
 
     namespace AdventureJournal
     {
+        class AdventureJournalStartQuest;
         class AdventureJournalOpenQuest;
         class AdventureJournalUpdateSuggestions;
     }
@@ -158,8 +159,11 @@ namespace WorldPackets
     namespace Bank
     {
         class AutoBankItem;
+        class AutoBankReagent;
         class AutoStoreBankItem;
+        class AutoStoreBankReagent;
         class BuyBankSlot;
+        class DepositReagentBank;
     }
 
     namespace Battlefield
@@ -228,6 +232,14 @@ namespace WorldPackets
         class BlackMarketOutbid;
     }
 
+    namespace ChallengeMode
+    {
+        class Misc;
+        class RequestLeaders;
+        class StartChallengeMode;
+        class ResetChallengeMode;
+    }
+
     namespace Calendar
     {
         class CalendarAddEvent;
@@ -289,6 +301,7 @@ namespace WorldPackets
         class RequestAccountData;
         class UserClientUpdateAccountData;
         class SetAdvancedCombatLogging;
+        class SaveClientVariables;
     }
 
     namespace Channel
@@ -538,6 +551,12 @@ namespace WorldPackets
         class SetTaxiBenchmarkMode;
         class MountSetFavorite;
         class CloseInteraction;
+        class ChromieTimeSelectExpansion;
+        class DiscardedTimeSyncAcks;
+        class IslandOpenNpc;
+        class IslandAzeriteXpGain;
+        class IslandCompleted;
+        class IslandOnQueue;
     }
 
     namespace Movement
@@ -554,6 +573,8 @@ namespace WorldPackets
         class SummonResponse;
         class MoveSplineDone;
         class SuspendTokenResponse;
+        class TimeSyncResponseFailed;
+        class TimeSyncResponseDropped;
         class MoveApplyMovementForceAck;
         class MoveRemoveMovementForceAck;
     }
@@ -1282,6 +1303,7 @@ class TC_GAME_API WorldSession
         void HandleRequestAccountData(WorldPackets::ClientConfig::RequestAccountData& request);
         void HandleSetAdvancedCombatLogging(WorldPackets::ClientConfig::SetAdvancedCombatLogging& setAdvancedCombatLogging);
         void HandleSetActionButtonOpcode(WorldPackets::Spells::SetActionButton& packet);
+        void HandleSaveClientVariables(WorldPackets::ClientConfig::SaveClientVariables& packet);
 
         void HandleGameObjectUseOpcode(WorldPackets::GameObject::GameObjUse& packet);
         void HandleGameobjectReportUse(WorldPackets::GameObject::GameObjReportUse& packet);
@@ -1297,6 +1319,8 @@ class TC_GAME_API WorldSession
         void HandleMoveWorldportAckOpcode(WorldPackets::Movement::WorldPortResponse& packet);
         void HandleMoveWorldportAck();                // for server-side calls
         void HandleSuspendTokenResponse(WorldPackets::Movement::SuspendTokenResponse& suspendTokenResponse);
+        void HandleTimeSyncResponseFailed(WorldPackets::Movement::TimeSyncResponseFailed& packet);
+        void HandleTimeSyncResponseDropped(WorldPackets::Movement::TimeSyncResponseDropped& packet);
 
         void HandleMovementOpcodes(WorldPackets::Movement::ClientPlayerMovement& packet);
         void HandleMovementOpcode(OpcodeClient opcode, MovementInfo& movementInfo);
@@ -1453,8 +1477,12 @@ class TC_GAME_API WorldSession
 
         // Bank
         void HandleAutoBankItemOpcode(WorldPackets::Bank::AutoBankItem& packet);
+        void HandleAutoBankReagentOpcode(WorldPackets::Bank::AutoBankReagent& packet);
         void HandleAutoStoreBankItemOpcode(WorldPackets::Bank::AutoStoreBankItem& packet);
+        void HandleAutoStoreBankReagentOpcode(WorldPackets::Bank::AutoStoreBankReagent& packet);
         void HandleBuyBankSlotOpcode(WorldPackets::Bank::BuyBankSlot& packet);
+        void HandleBuyReagentBankOpcode(WorldPackets::NPC::Hello& packet);
+        void HandleDepositReagentBankOpcode(WorldPackets::Bank::DepositReagentBank& packet);
 
         // Black Market
         void HandleBlackMarketOpen(WorldPackets::BlackMarket::BlackMarketOpen& blackMarketOpen);
@@ -1737,9 +1765,13 @@ class TC_GAME_API WorldSession
         void HandleObjectUpdateRescuedOpcode(WorldPackets::Misc::ObjectUpdateRescued& objectUpdateRescued);
         void HandleRequestCategoryCooldowns(WorldPackets::Spells::RequestCategoryCooldowns& requestCategoryCooldowns);
         void HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& closeInteraction);
+        void HandleChromieTimeSelectExpansionOpcode(WorldPackets::Misc::ChromieTimeSelectExpansion& selectExpansion);
+        void HandleDiscardedTimeSyncAcks(WorldPackets::Misc::DiscardedTimeSyncAcks& packet);
+        void HandleIslandQueue(WorldPackets::Misc::IslandOnQueue& packet);
 
         // Adventure Journal
         void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest& openQuest);
+    //    void HandleAdventureJournalStartQuest(WorldPackets::AdventureJournal::AdventureJournalStartQuest& packet);
         void HandleAdventureJournalUpdateSuggestions(WorldPackets::AdventureJournal::AdventureJournalUpdateSuggestions& updateSuggestions);
 
         // Adventure Map
@@ -1821,6 +1853,13 @@ class TC_GAME_API WorldSession
 
         // Scenario
         void HandleQueryScenarioPOI(WorldPackets::Scenario::QueryScenarioPOI& queryScenarioPOI);
+
+        //Challenge mode
+      //  void HandleGetChallengeModeRewards(WorldPackets::ChallengeMode::Misc& packet);
+      //  void HandleChallengeModeRequestMapStats(WorldPackets::ChallengeMode::Misc& packet);
+        void HandleRequestLeaders(WorldPackets::ChallengeMode::RequestLeaders& packet);
+        void HandleStartChallengeMode(WorldPackets::ChallengeMode::StartChallengeMode& packet);
+      //  void HandleResetChallengeMode(WorldPackets::ChallengeMode::ResetChallengeMode& packet);
 
         // Azerite
         void HandleAzeriteEssenceUnlockMilestone(WorldPackets::Azerite::AzeriteEssenceUnlockMilestone& azeriteEssenceUnlockMilestone);

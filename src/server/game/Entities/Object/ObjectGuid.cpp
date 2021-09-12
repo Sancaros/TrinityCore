@@ -266,6 +266,11 @@ void ObjectGuid::SetRawValue(std::vector<uint8> const& guid)
     memcpy(this, guid.data(), sizeof(*this));
 }
 
+uint32 ObjectGuid::GetGUIDLow() const
+{
+    return uint32();
+}
+
 ObjectGuid ObjectGuidFactory::CreateNull()
 {
     return ObjectGuid();

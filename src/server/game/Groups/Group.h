@@ -232,6 +232,13 @@ class TC_GAME_API Group
         typedef std::list<MemberSlot> MemberSlotList;
         typedef MemberSlotList::const_iterator member_citerator;
 
+        ObjectGuid m_challengeOwner;
+        ObjectGuid m_challengeItem;
+        MapChallengeModeEntry const* m_challengeEntry;
+        uint32 m_challengeLevel;
+        uint32 m_challengeInstanceID;
+        std::array<uint32, 3> m_affixes{};
+
         typedef std::unordered_map<Difficulty, std::unordered_map<uint32 /*mapId*/, InstanceGroupBind>> BoundInstancesMap;
     protected:
         typedef MemberSlotList::iterator member_witerator;

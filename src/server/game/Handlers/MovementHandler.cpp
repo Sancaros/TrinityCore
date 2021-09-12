@@ -245,6 +245,19 @@ void WorldSession::HandleSuspendTokenResponse(WorldPackets::Movement::SuspendTok
         HandleMoveWorldportAck();
 }
 
+void WorldSession::HandleTimeSyncResponseFailed(WorldPackets::Movement::TimeSyncResponseFailed& packet)
+{
+    Player* player = GetPlayer();
+
+    TC_LOG_ERROR("LOG_FILTER_NETWORKIO", "WorldSession::HandleTimeSyncResponseFailed:: what we should do with it?: Player: %s, packet.SequenceIndex: %u, PlayerSequenceIndex: %u ",
+        player->GetName(), packet.SequenceIndex, player->m_sequenceIndex);
+}
+
+void WorldSession::HandleTimeSyncResponseDropped(WorldPackets::Movement::TimeSyncResponseDropped& /*packet*/)
+{
+    //GetPlayer()->m_sequenceIndex = std::min(packet.SequenceIndexFirst, packet.SequenceIndexLast);
+}
+
 void WorldSession::HandleMoveTeleportAck(WorldPackets::Movement::MoveTeleportAck& packet)
 {
     TC_LOG_DEBUG("network", "CMSG_MOVE_TELEPORT_ACK: Guid: %s, Sequence: %u, Time: %u", packet.MoverGUID.ToString().c_str(), packet.AckIndex, packet.MoveTime);

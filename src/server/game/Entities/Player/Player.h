@@ -95,6 +95,7 @@ enum InventoryType : uint8;
 enum ItemClass : uint8;
 enum LootError : uint8;
 enum LootType : uint8;
+enum class DisplayToastMethod : uint8;
 enum PlayerRestState : uint8;
 enum RestTypes : uint8;
 
@@ -171,6 +172,24 @@ enum PlayerSpellState : uint8
     PLAYERSPELL_NEW       = 2,
     PLAYERSPELL_REMOVED   = 3,
     PLAYERSPELL_TEMPORARY = 4
+};
+
+struct ChallengeKeyInfo
+{
+    ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
+
+    bool IsActive() { return ID != 0; }
+
+    uint32 InstanceID;
+    uint32 timeReset;
+    uint16 ID;
+    uint8 Level;
+    uint8 Affix;
+    uint8 Affix1;
+    uint8 Affix2;
+    uint8 KeyIsCharded;
+    bool needSave;
+    bool needUpdate;
 };
 
 struct PlayerSpell
@@ -499,6 +518,14 @@ enum MirrorTimerType
 };
 #define MAX_TIMERS      3
 #define DISABLED_MIRROR_TIMER   -1
+
+enum PlayerAvgItemLevelOffsets
+{
+    PLAYER_AVG_ITEM_LEVEL_EQUIPPED_AND_BAG = 0,
+    PLAYER_AVG_ITEM_LEVEL_EQUIPPED         = 1,
+    PLAYER_AVG_ITEM_LEVEL_NON_PVP          = 2,
+    PLAYER_AVG_ITEM_LEVEL_PVP              = 3
+};
 
 // 2^n values
 enum PlayerExtraFlags
@@ -1074,8 +1101,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetObjectScale(float scale) override;
 
         bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0);
+        bool TeleportTo(uint32 mapid, Position const& pos, uint32 options = 0, uint32 optionParam = 0);
         bool TeleportTo(WorldLocation const& loc, uint32 options = 0);
+        bool SeamlessTeleportToMap(uint32 mapid, uint32 options = 0);
         bool TeleportToBGEntryPoint();
+        void TeleportToChallenge(uint32 mapid, float x, float y, float z, float orientation);
+        bool SafeTeleport(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0, uint32 spellID = 0);
+        bool SafeTeleport(WorldLocation const& loc, uint32 options = 0);
+        bool SafeTeleport(uint32 mapid, Position const* pos, uint32 options = 0, uint32 spellID = 0);
 
         bool HasSummonPending() const;
         void SendSummonRequestFrom(Unit* summoner);
@@ -1115,6 +1148,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         PlayerSocial* GetSocial() const { return m_social; }
         void RemoveSocial();
+
+        bool CanContact();
 
         PlayerTaxi m_taxi;
         void InitTaxiNodesForLevel() { m_taxi.InitTaxiNodesForLevel(getRace(), getClass(), getLevel()); }
@@ -1329,8 +1364,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void EquipChildItem(uint8 parentBag, uint8 parentSlot, Item* parentItem);
         void AutoUnequipChildItem(Item* parentItem);
         bool StoreNewItemInBestSlots(uint32 item_id, uint32 item_count);
-        void AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false);
-        void AutoStoreLoot(uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false) { AutoStoreLoot(NULL_BAG, NULL_SLOT, loot_id, store, context, broadcast); }
+        void AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool specOnly = false, DisplayToastMethod toastMethod = DisplayToastMethod::DISPLAY_TOAST_DEFAULT);
+        void AutoStoreLoot(uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool specOnly = false, DisplayToastMethod toastMethod = DisplayToastMethod::DISPLAY_TOAST_DEFAULT) { AutoStoreLoot(NULL_BAG, NULL_SLOT, loot_id, store, context, broadcast, specOnly, toastMethod); }
         void StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult = nullptr);
 
         InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count = nullptr, uint32* offendingItemId = nullptr) const;
@@ -1338,6 +1373,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void AddRefundReference(ObjectGuid it);
         void DeleteRefundReference(ObjectGuid it);
+
+        //Thordekk Bank
+        void UnlockReagentBank();
+        bool HasUnlockedReagentBank() const;
 
         /// send initialization of new currency for client
         void SendNewCurrency(uint32 id) const;
@@ -1368,7 +1407,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
           * @param  printLog used on SMSG_SET_CURRENCY
           * @param  ignore gain multipliers
         */
-        void ModifyCurrency(uint32 id, int32 count, bool printLog = true, bool ignoreMultipliers = false);
+        void ModifyCurrency(uint32 id, int32 count, bool printLog = true, bool ignoreMultipliers = false, bool sendToast = false);
 
         void SetInvSlot(uint32 slot, ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::InvSlots, slot), guid); }
 
@@ -1754,6 +1793,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint8 GetActiveTalentGroup() const { return _specializationInfo.ActiveGroup; }
         void SetActiveTalentGroup(uint8 group){ _specializationInfo.ActiveGroup = group; }
         uint32 GetDefaultSpecId() const;
+        uint32 GetRoleForGroup() const;
+        static uint32 GetRoleBySpecializationId(uint32 specializationId);
+        TalentSpecialization GetSpecializationId() const { return (TalentSpecialization)GetPrimarySpecialization(); }
 
         bool ResetTalents(bool noCost = false);
         void ResetPvpTalents();
@@ -2104,6 +2146,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         static TeamId TeamIdForRace(uint8 race);
         uint32 GetTeam() const { return m_team; }
         TeamId GetTeamId() const { return m_team == ALLIANCE ? TEAM_ALLIANCE : TEAM_HORDE; }
+        bool IsTeamAlliance() const { return m_team == ALLIANCE; }
+        bool IsTeamHorde() const { return m_team == HORDE; }
+        bool IsInAlliance() const { return m_team == ALLIANCE; }
+        bool IsInHorde() const { return m_team == HORDE; }
         void setFactionForRace(uint8 race);
 
         void InitDisplayIds();
@@ -2403,6 +2449,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         uint32 DoRandomRoll(uint32 minimum, uint32 maximum);
         uint8 GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEntry) const;
+        void ShowNeutralPlayerFactionSelectUI();
 
         void UpdateItemLevelAreaBasedScaling();
         void ActivatePvpItemLevels(bool activate) { _usePvpItemLevels = activate; }
@@ -2570,6 +2617,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         bool MeetPlayerCondition(uint32 conditionId) const;
 
+        bool IsInRestArea() const { return HasPlayerFlag(PLAYER_FLAGS_RESTING); }
         bool HasPlayerFlag(PlayerFlags flags) const { return (*m_playerData->PlayerFlags & flags) != 0; }
         void AddPlayerFlag(PlayerFlags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlags), flags); }
         void RemovePlayerFlag(PlayerFlags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::PlayerFlags), flags); }
@@ -2684,13 +2732,32 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AddAuraVision(PlayerFieldByte2Flags flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
         void RemoveAuraVision(PlayerFieldByte2Flags flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::AuraVision), flags); }
 
+        bool IsAtMaxLevel() const;
         bool IsInFriendlyArea() const;
         bool IsFriendlyArea(AreaTableEntry const* inArea) const;
 
+        bool IsInFactionFriendlyArea() const;
+        bool IsInFactionFriendlyArea(AreaTableEntry const* inArea) const;
+
+        void PlayConversation(uint32 conversationId);
+
+        void SetWarModeDesired(bool enabled);
+        bool IsWarModeDesired() const { return HasPlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED); }
+        bool IsWarModeActive() const { return HasPlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE); }
+        bool IsWarModeLocalActive() const { return HasPlayerLocalFlag(PLAYER_LOCAL_FLAG_WAR_MODE); }
+        void SetWarModeLocal(bool enabled);
         bool CanEnableWarModeInArea() const;
+
 
         UF::UpdateField<UF::PlayerData, 0, TYPEID_PLAYER> m_playerData;
         UF::UpdateField<UF::ActivePlayerData, 0, TYPEID_ACTIVE_PLAYER> m_activePlayerData;
+
+        ChallengeKeyInfo m_challengeKeyInfo;
+        bool InitChallengeKey(Item* item);
+        void UpdateChallengeKey(Item* item);
+        void CreateChallengeKey(Item* item);
+        void ResetChallengeKey();
+        void ChallengeKeyCharded(Item* item, uint32 challengeLevel);
 
     protected:
         // Gamemaster whisper whitelist

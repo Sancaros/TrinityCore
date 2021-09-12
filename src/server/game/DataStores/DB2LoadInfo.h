@@ -3755,6 +3755,26 @@ struct MapLoadInfo
     }
 };
 
+struct MapChallengeModeLoadInfo
+{
+    static DB2LoadInfo const* Instance()
+    {
+        static DB2FieldMeta const fields[] =
+        {
+            { false, FT_STRING, "Name" },
+            { false, FT_INT, "ID" },
+            { false, FT_SHORT, "MapID" },
+            { false, FT_BYTE, "Flags" },
+            { false, FT_INT, "ExpansionLevel" },
+            { true, FT_SHORT, "CriteriaCount1" },
+            { true, FT_SHORT, "CriteriaCount2" },
+            { true, FT_SHORT, "CriteriaCount3" },
+        };
+        static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, MapChallengeModeMeta::Instance(), HOTFIX_SEL_MAP_CHALLENGE_MODE);
+        return &loadInfo;
+    }
+};
+
 struct MapDifficultyLoadInfo
 {
     static DB2LoadInfo const* Instance()

@@ -49,6 +49,29 @@ struct LfgCompatibilityData
     LfgRolesMap roles;
 };
 
+struct LfgQueueRoleCount
+{
+    LfgQueueRoleCount() : minTanks(LFG_TANKS_NEEDED), maxTanks(LFG_TANKS_NEEDED),
+        minHealers(LFG_HEALERS_NEEDED), maxHealers(LFG_HEALERS_NEEDED),
+        minDamages(LFG_DPS_NEEDED), maxDamages(LFG_DPS_NEEDED) { }
+
+    LfgQueueRoleCount(LFGDungeonsEntry const* dungeonEntry) : minTanks(dungeonEntry->MinCountTank), maxTanks(dungeonEntry->CountTank),
+        minHealers(dungeonEntry->MinCountHealer), maxHealers(dungeonEntry->CountHealer),
+        minDamages(dungeonEntry->MinCountDamage), maxDamages(dungeonEntry->CountDamage) { }
+
+    uint8 minTanks;         ///< Minimum Tanks needed
+    uint8 maxTanks;         ///< Maximum Tanks needed
+    uint8 minHealers;       ///< Minimum Healers needed
+    uint8 maxHealers;       ///< Maximum Healers needed
+    uint8 minDamages;       ///< Minimum Damages needed
+    uint8 maxDamages;       ///< Maximum Damages needed
+
+    uint8 GetMinPlayers() { return minTanks + minHealers + minDamages; }
+    uint8 GetMaxPlayers() { return maxTanks + maxHealers + maxDamages; }
+
+    bool IsDamagesOnly() { return !maxTanks && !maxHealers && maxDamages; }
+};
+
 /// Stores player or group queue info
 struct LfgQueueData
 {

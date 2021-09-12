@@ -356,6 +356,10 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool IsEscortNPC(bool onlyIfActive = true);
 
         bool CanGiveExperience() const;
+        void ForcedDespawn(uint32 timeMSToDespawn = 0, Seconds const& forceRespawnTimer = Seconds(0));
+
+        uint32 disableAffix;
+        bool IsAffixDisabled(uint8 affixe) const { return (disableAffix & (1 << affixe)) != 0; }
 
         void AtEnterCombat() override;
         void AtExitCombat() override;
@@ -414,7 +418,6 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
     private:
-        void ForcedDespawn(uint32 timeMSToDespawn = 0, Seconds const& forceRespawnTimer = Seconds(0));
         bool CheckNoGrayAggroConfig(uint32 playerLevel, uint32 creatureLevel) const; // No aggro from gray creatures
 
         // Waypoint path

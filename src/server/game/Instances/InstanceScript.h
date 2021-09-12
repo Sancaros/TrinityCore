@@ -20,6 +20,11 @@
 
 #include "ZoneScript.h"
 #include "Common.h"
+#include "CriteriaHandler.h"
+#include "CreatureGroups.h"
+#include "TemporarySummon.h"
+#include "Optional.h"
+#include "Position.h"
 #include <iosfwd>
 #include <map>
 #include <memory>
@@ -33,6 +38,7 @@
 
 class AreaBoundary;
 class Creature;
+class Challenge;
 class GameObject;
 class InstanceMap;
 class ModuleReference;
@@ -151,11 +157,14 @@ typedef std::pair<DoorInfoMap::const_iterator, DoorInfoMap::const_iterator> Door
 typedef std::map<uint32 /*entry*/, MinionInfo> MinionInfoMap;
 typedef std::map<uint32 /*type*/, ObjectGuid /*guid*/> ObjectGuidMap;
 typedef std::map<uint32 /*entry*/, uint32 /*type*/> ObjectInfoMap;
+static uint32 const ChallengeModeOrb = 246779;
+static uint32 const ChallengeModeDoor = 239323;
 
 class TC_GAME_API InstanceScript : public ZoneScript
 {
     public:
         explicit InstanceScript(InstanceMap* map);
+        explicit InstanceScript(Map* map);
 
         virtual ~InstanceScript() { }
 
@@ -198,8 +207,26 @@ class TC_GAME_API InstanceScript : public ZoneScript
         Creature* GetCreature(uint32 type);
         GameObject* GetGameObject(uint32 type);
 
+        void GetPlayersCount();
         // Called when a player successfully enters the instance.
         virtual void OnPlayerEnter(Player* /*player*/) { }
+
+        // For use in InstanceScript
+        virtual void OnPlayerEnterForScript(Player* player);
+        virtual void OnPlayerLeaveForScript(Player* player);
+        virtual void OnPlayerDiesForScript(Player* player);
+        virtual void OnCreatureCreateForScript(Creature* creature);
+        virtual void OnCreatureRemoveForScript(Creature* creature);
+        virtual void OnCreatureUpdateDifficulty(Creature* creature);
+        virtual void EnterCombatForScript(Creature* creature, Unit* enemy);
+        virtual void CreatureDiesForScript(Creature* creature, Unit* killer);
+        virtual void OnGameObjectCreateForScript(GameObject* go);
+        virtual void OnGameObjectRemoveForScript(GameObject* go);
+    //    void StartEncounterLogging(uint32 encounterId);
+  //      void LogCompletedEncounter(bool success);
+
+        virtual void OnUnitCharmed(Unit* unit, Unit* charmer);
+        virtual void OnUnitRemoveCharmed(Unit* unit, Unit* charmer);
 
         // Handle open / close objects
         // * use HandleGameObject(0, boolen, GO); in OnObjectCreate in instance scripts
@@ -291,6 +318,23 @@ class TC_GAME_API InstanceScript : public ZoneScript
         uint8 GetCombatResurrectionCharges() const { return _combatResurrectionCharges; }
         uint32 GetCombatResurrectionChargeInterval() const;
 
+         /// Challenge
+        void SetChallenge(Challenge* challenge);
+        Challenge* GetChallenge() const;
+        bool IsChallenge() const;
+        void ResetChallengeMode();
+
+        void AddChallengeModeChests(ObjectGuid chestGuid, uint8 chestLevel);
+        ObjectGuid GetChellngeModeChests(uint8 chestLevel);
+        void AddChallengeModeDoor(ObjectGuid doorGuid);
+        void AddChallengeModeOrb(ObjectGuid orbGuid);
+
+        std::vector<ObjectGuid> _challengeDoorGuids;
+        std::vector<ObjectGuid> _challengeChestGuids;
+        ObjectGuid _challengeOrbGuid;
+        ObjectGuid _challengeChest;
+
+
     protected:
         void SetHeaders(std::string const& dataHeaders);
         void SetBossNumber(uint32 number) { bosses.resize(number); }
@@ -344,6 +388,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         uint32 _combatResurrectionTimer;
         uint8 _combatResurrectionCharges; // the counter for available battle resurrections
         bool _combatResurrectionTimerStarted;
+        Challenge* _challenge;
 
     #ifdef TRINITY_API_USE_DYNAMIC_LINKING
         // Strong reference to the associated script module

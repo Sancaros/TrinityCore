@@ -1560,6 +1560,102 @@ bool Player::TeleportToBGEntryPoint()
     return TeleportTo(m_bgData.joinPos);
 }
 
+void Player::TeleportToChallenge(uint32 mapid, float x, float y, float z, float orientation)
+{
+    MapEntry const* mEntry = sMapStore.LookupEntry(mapid);
+    if (!GetSession() || !mEntry)
+        return;
+
+  //  sLog->outDebug(LOG_FILTER_MAPS, "Player %s is being teleported to map %u", GetName(), mapid);
+
+    if (m_vehicle)
+        ExitVehicle();
+
+    if (IsMounted())
+        Dismount();
+
+    Map* oldmap = GetMap();
+
+    SetSelection(ObjectGuid::Empty);
+    CombatStop();
+    ResetContestedPvP();
+
+    UnsummonPetTemporaryIfAny();
+   // UnsummonCurrentBattlePetIfAny(true);
+
+    // remove all dyn objects
+    RemoveAllDynObjects();
+  //  RemoveAllAreaObjects();
+
+    // stop spellcasting
+    // not attempt interrupt teleportation spell at caster teleport
+    if (IsNonMeleeSpellCast(true))
+        InterruptNonMeleeSpells(true);
+
+    //remove auras before removing from map...
+  //  RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags(AURA_INTERRUPT_FLAG_MOVE | AURA_INTERRUPT_FLAG_TURNING));
+    RemoveAurasByType(SPELL_AURA_OVERRIDE_SPELLS);
+    RemoveAurasByType(SPELL_AURA_MOD_NEXT_SPELL);
+    RemoveAurasByType(SPELL_AURA_CLONE_CASTER);
+    // RemoveAurasByType(SPELL_AURA_TRANSFORM);
+
+    WorldSession* sess = sWorld->FindSession(GetSession()->GetAccountId());
+    if (!sess) // https://pastebin.com/6zD9fzyC
+        return;
+
+    UpdateDataMapType update_players;
+    BuildUpdate(update_players);
+    WorldPacket packet;
+    for (UpdateDataMapType::iterator iter = update_players.begin(); iter != update_players.end(); ++iter)
+    {
+        if (iter->second.BuildPacket(&packet))
+            iter->first->SendDirectMessage(&packet);
+        packet.clear();
+    }
+
+    m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
+    m_teleport_options = TELE_TO_SEAMLESS;
+
+    SetSemaphoreTeleportFar(true);
+
+    // remove from old map now
+    if (oldmap)
+        oldmap->RemovePlayerFromMap(this, false);
+
+    if (!sess->PlayerLogout())
+    {
+        if (Map* _map = sMapMgr->CreateMap(mapid, this))
+        {
+          //  sess->SetMap(_map);
+          //  _map->AddSession(sess);
+          //  m_teleport_target_map = _map;
+
+            WorldPackets::Movement::SuspendToken suspendToken;
+            suspendToken.SequenceIndex = m_sequenceIndex; // not incrementing
+            suspendToken.Reason = m_teleport_options & TELE_TO_SEAMLESS ? 2 : 1;
+            SendDirectMessage(suspendToken.Write());
+        }
+    }
+   // SendLfgUpdatePlayer();
+  //  sLFGMgr->StopAllOtherQueue(GetGUID(), 0); TODO
+ //   SendLfgUpdatePlayer();
+}
+
+bool Player::SafeTeleport(uint32 mapid, float x, float y, float z, float orientation, uint32 options, uint32 spellID)
+{
+    return false; // TODO LUIS
+}
+
+bool Player::SafeTeleport(WorldLocation const& loc, uint32 options)
+{
+    return SafeTeleport(loc.GetMapId(), loc.GetPositionX(), loc.GetPositionY(), loc.GetPositionZ(), loc.GetOrientation(), options);
+}
+
+bool Player::SafeTeleport(uint32 mapid, Position const* pos, uint32 options, uint32 spellID)
+{
+    return SafeTeleport(mapid, pos->GetPositionX(), pos->GetPositionY(), pos->GetPositionZ(), pos->GetOrientation(), options, spellID);
+}
+
 void Player::ProcessDelayedOperations()
 {
     if (m_DelayedOperations == 0)
@@ -6880,7 +6976,7 @@ bool Player::HasCurrency(uint32 id, uint32 count) const
     return itr != _currencyStorage.end() && itr->second.Quantity >= count;
 }
 
-void Player::ModifyCurrency(uint32 id, int32 count, bool printLog/* = true*/, bool ignoreMultipliers/* = false*/)
+void Player::ModifyCurrency(uint32 id, int32 count, bool printLog/* = true*/, bool ignoreMultipliers/* = false*/, bool sendToast/* = false*/)
 {
     if (!count)
         return;
@@ -26195,7 +26291,7 @@ void Player::InitRunes()
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenInterruptedFlatModifier, runeIndex), 0.0f);
 }
 
-void Player::AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context, bool broadcast)
+void Player::AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context, bool broadcast, bool specOnly/* = false*/, DisplayToastMethod toastMethod/* = DISPLAY_TOAST_NONE*/)
 {
     Loot loot;
     loot.FillLoot (loot_id, store, this, true, false, LOOT_MODE_DEFAULT, context);
@@ -26216,9 +26312,18 @@ void Player::AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore cons
             SendEquipError(msg, nullptr, nullptr, lootItem->itemid);
             continue;
         }
+        if (msg == EQUIP_ERR_ITEM_INVENTORY_FULL_SATCHEL)
+        {
+            SendEquipError(msg, nullptr, nullptr, lootItem->itemid);
+            SendItemRetrievalMail(lootItem->itemid, lootItem->count, lootItem->context);
+            return;
+        }
 
         Item* pItem = StoreNewItem(dest, lootItem->itemid, true, lootItem->randomBonusListId, GuidSet(), lootItem->context, lootItem->BonusListIDs);
         SendNewItem(pItem, lootItem->count, false, false, broadcast);
+
+        if (toastMethod != DisplayToastMethod::DISPLAY_TOAST_NONE)
+            SendDisplayToast(lootItem->itemid, ToastType::ITEM, false, lootItem->count, toastMethod, 0, pItem);
     }
 }
 
@@ -28603,9 +28708,28 @@ void Player::RemoveSocial()
     m_social = nullptr;
 }
 
+bool Player::CanContact()
+{
+    return IsInWorld() && m_session && !m_session->PlayerLoading() && !m_session->PlayerLogout();
+}
+
 uint32 Player::GetDefaultSpecId() const
 {
     return ASSERT_NOTNULL(sDB2Manager.GetDefaultChrSpecializationForClass(getClass()))->ID;
+}
+
+uint32 Player::GetRoleForGroup() const
+{
+    return GetRoleBySpecializationId(GetSpecializationId());
+}
+
+uint32 Player::GetRoleBySpecializationId(uint32 specializationId)
+{
+    if (specializationId)
+        if (ChrSpecializationEntry const* spec = sChrSpecializationStore.LookupEntry(specializationId))
+            return spec->Role;
+
+    return ROLE_DAMAGE;
 }
 
 void Player::SendSpellCategoryCooldowns() const
@@ -28692,6 +28816,11 @@ uint8 Player::GetItemLimitCategoryQuantity(ItemLimitCategoryEntry const* limitEn
     }
 
     return limit;
+}
+
+bool Player::IsAtMaxLevel() const
+{
+    return getLevel() >= sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
 }
 
 template <typename T>
@@ -28903,6 +29032,57 @@ void Player::SendBattlePayBattlePetDelivered(ObjectGuid petguid, uint32 creature
     TC_LOG_ERROR("", "Send BattlePayBattlePetDelivered guid : %u && creatureID : %u", petguid.GetCounter(), creatureID);
 }
 
+void Player::PlayConversation(uint32 conversationId)
+{
+    Conversation::CreateConversation(conversationId, this, GetPosition(), { GetGUID() });
+}
+
+void Player::ShowNeutralPlayerFactionSelectUI()
+{
+    WorldPackets::Misc::FactionSelectUI packet;
+    SendDirectMessage(packet.Write());
+}
+
+void Player::UnlockReagentBank()
+{
+    AddPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
+}
+
+bool Player::HasUnlockedReagentBank() const
+{
+    return HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
+}
+
+
+bool Player::IsInFactionFriendlyArea() const
+{
+    if (AreaTableEntry const* areaEntry = sAreaTableStore.LookupEntry(GetAreaId()))
+        return IsInFactionFriendlyArea();
+    return false;
+}
+
+bool Player::IsInFactionFriendlyArea(AreaTableEntry const* inArea) const
+{
+    ASSERT(inArea != nullptr);
+
+    FactionTemplateEntry const* factionTemplate = GetFactionTemplateEntry();
+    if (!factionTemplate)
+        return false;
+
+    if (!(factionTemplate->FriendGroup & inArea->FactionGroupMask))
+        return false;
+
+    return true;
+}
+
+void Player::SetWarModeLocal(bool enabled)
+{
+    if (enabled)
+        AddPlayerLocalFlag(PLAYER_LOCAL_FLAG_WAR_MODE);
+    else
+        RemovePlayerLocalFlag(PLAYER_LOCAL_FLAG_WAR_MODE);
+}
+
 bool Player::CanEnableWarModeInArea() const
 {
     AreaTableEntry const* area = sAreaTableStore.LookupEntry(GetAreaId());
@@ -28911,3 +29091,136 @@ bool Player::CanEnableWarModeInArea() const
 
     return area->Flags[1] & AREA_FLAG_2_CAN_ENABLE_WAR_MODE;
 }
+
+void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel)
+{
+    if (challengeLevel > 2)
+        challengeLevel -= 1;
+
+    if (challengeLevel >= 2)
+    {
+        m_challengeKeyInfo.Level = challengeLevel;
+        m_challengeKeyInfo.ID = Trinity::Containers::SelectRandomContainerElement(sDB2Manager.GetChallngeMaps());
+        m_challengeKeyInfo.needUpdate = true;
+        if (item)
+        {
+            item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, challengeLevel);
+            item->SetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID, m_challengeKeyInfo.ID);
+            UpdateChallengeKey(item);
+            item->SetState(ITEM_CHANGED, this);
+        }
+        return;
+    }
+
+    if (!m_challengeKeyInfo.IsActive())
+        return;
+
+    m_challengeKeyInfo.ID = 0;
+    m_challengeKeyInfo.Level = 2;
+    m_challengeKeyInfo.Affix = 0;
+    m_challengeKeyInfo.Affix1 = 0;
+    m_challengeKeyInfo.Affix2 = 0;
+    m_challengeKeyInfo.KeyIsCharded = 1;
+    m_challengeKeyInfo.InstanceID = 0;
+}
+
+bool Player::InitChallengeKey(Item* item)
+{
+    if (item->GetEntry() != 138019)
+        return true;
+
+    if (!m_challengeKeyInfo.IsActive())
+        return false;
+
+  //  m_challengeKeyInfo.Affix = sWorld->getWorldState(WS_CHALLENGE_AFFIXE1_RESET_TIME);
+  //  m_challengeKeyInfo.Affix1 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE2_RESET_TIME);
+  //  m_challengeKeyInfo.Affix2 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE3_RESET_TIME);
+
+    item->SetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID, m_challengeKeyInfo.ID);
+    item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, m_challengeKeyInfo.Level);
+    if (m_challengeKeyInfo.Level > 3)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1, m_challengeKeyInfo.Affix);
+    if (m_challengeKeyInfo.Level > 6)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2, m_challengeKeyInfo.Affix1);
+    if (m_challengeKeyInfo.Level > 9)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3, m_challengeKeyInfo.Affix2);
+
+    return true;
+}
+
+void Player::UpdateChallengeKey(Item* item)
+{
+    m_challengeKeyInfo.ID = item->GetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID);
+    m_challengeKeyInfo.Level = item->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL);
+
+   // m_challengeKeyInfo.Affix = sWorld->getWorldState(WS_CHALLENGE_AFFIXE1_RESET_TIME);
+   // m_challengeKeyInfo.Affix1 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE2_RESET_TIME);
+   // m_challengeKeyInfo.Affix2 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE3_RESET_TIME);
+
+    if (m_challengeKeyInfo.Level > 3)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1, m_challengeKeyInfo.Affix);
+    if (m_challengeKeyInfo.Level > 6)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2, m_challengeKeyInfo.Affix1);
+    if (m_challengeKeyInfo.Level > 9)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3, m_challengeKeyInfo.Affix2);
+
+    m_challengeKeyInfo.InstanceID = 0;
+    m_challengeKeyInfo.needUpdate = true;
+}
+
+void Player::CreateChallengeKey(Item* item)
+{
+    if (!m_challengeKeyInfo.IsActive())
+        m_challengeKeyInfo.needSave = true;
+    else
+        m_challengeKeyInfo.needUpdate = true;
+
+   // if (m_challengeKeyInfo.IsActive() && !InInstance())
+     //   item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, m_challengeKeyInfo.Level);
+  //  else
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, 2);
+
+  //  item->SetUInt32Value(ITEM_FIELD_EXPIRATION, sWorld->getNextChallengeKeyReset() - time(nullptr));
+
+   // item->SetModifier(ITEM_MODIFIER_CHALLENGE_ID, Trinity::Containers::SelectRandomContainerElement(sDB2Manager.GetChallngeMaps()));
+
+   // m_challengeKeyInfo.Affix = sWorld->getWorldState(WS_CHALLENGE_AFFIXE1_RESET_TIME);
+   // m_challengeKeyInfo.Affix1 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE2_RESET_TIME);
+   // m_challengeKeyInfo.Affix2 = sWorld->getWorldState(WS_CHALLENGE_AFFIXE3_RESET_TIME);
+
+    if (m_challengeKeyInfo.Level > 3)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1, m_challengeKeyInfo.Affix);
+    if (m_challengeKeyInfo.Level > 6)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2, m_challengeKeyInfo.Affix1);
+    if (m_challengeKeyInfo.Level > 9)
+        item->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3, m_challengeKeyInfo.Affix2);
+
+    m_challengeKeyInfo.ID = item->GetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID);
+  //  m_challengeKeyInfo.timeReset = sWorld->getNextChallengeKeyReset();
+
+    item->SetState(ITEM_CHANGED, this);
+}
+
+void Player::ResetChallengeKey()
+{
+    DestroyItemCount(138019, 100, true, true);
+
+    if (!m_challengeKeyInfo.IsActive())
+        return;
+
+  /*  if (m_challengeKeyInfo.timeReset >= sWorld->getNextChallengeKeyReset() && m_challengeKeyInfo.Level > 4)
+    {
+        m_challengeKeyInfo.Level = uint32(m_challengeKeyInfo.Level * 0.7f);
+        m_challengeKeyInfo.needUpdate = true;
+        return;
+    }*/
+
+    m_challengeKeyInfo.ID = 0;
+    m_challengeKeyInfo.Level = 0;
+    m_challengeKeyInfo.Affix = 0;
+    m_challengeKeyInfo.Affix1 = 0;
+    m_challengeKeyInfo.Affix2 = 0;
+    m_challengeKeyInfo.KeyIsCharded = 1;
+    m_challengeKeyInfo.InstanceID = 0;
+}
+

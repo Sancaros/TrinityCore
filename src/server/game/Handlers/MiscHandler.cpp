@@ -25,6 +25,7 @@
 #include "CinematicMgr.h"
 #include "ClientConfigPackets.h"
 #include "Common.h"
+#include "Conversation.h"
 #include "Corpse.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
@@ -37,6 +38,7 @@
 #include "InstanceScript.h"
 #include "Language.h"
 #include "Log.h"
+#include "LFGMgr.h"
 #include "MapManager.h"
 #include "MiscPackets.h"
 #include "Object.h"
@@ -725,6 +727,10 @@ void WorldSession::HandleSetActionButtonOpcode(WorldPackets::Spells::SetActionBu
         GetPlayer()->AddActionButton(packet.Index, action, type);
 }
 
+void WorldSession::HandleSaveClientVariables(WorldPackets::ClientConfig::SaveClientVariables& packet)
+{
+}
+
 void WorldSession::HandleCompleteCinematic(WorldPackets::Misc::CompleteCinematic& /*packet*/)
 {
     // If player has sight bound to visual waypoint NPC we should remove it
@@ -1161,3 +1167,73 @@ void WorldSession::HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& 
     if (_player->PlayerTalkClass->GetInteractionData().SourceGuid == closeInteraction.SourceGuid)
         _player->PlayerTalkClass->GetInteractionData().Reset();
 }
+
+void WorldSession::HandleDiscardedTimeSyncAcks(WorldPackets::Misc::DiscardedTimeSyncAcks& packet)
+{
+     GetPlayer()->m_sequenceIndex = packet.MaxSequenceIndex;
+}
+
+void WorldSession::HandleIslandQueue(WorldPackets::Misc::IslandOnQueue& packet)
+{
+    lfg::LfgDungeonSet newDungeons;
+    newDungeons.insert(packet.ActivityID);
+    sLFGMgr->JoinLfg(GetPlayer(), ROLE_DAMAGE, newDungeons);
+
+    //alliance
+    GetPlayer()->KilledMonsterCredit(139310);
+    //horde
+    GetPlayer()->KilledMonsterCredit(139309);
+}
+
+void WorldSession::HandleChromieTimeSelectExpansionOpcode(WorldPackets::Misc::ChromieTimeSelectExpansion& selectExpansion)
+{
+    uint32 questId = 0;
+    uint32 conversationId = 0;
+    switch (selectExpansion.Expansion)
+         {
+    case 5:
+        _player->CastSpell(_player, 325537, true);  //Selected Cataclysm
+        questId = 60891;
+        conversationId = 14405;
+        break;
+    case 6:
+        _player->CastSpell(_player, 325400, true);  //Selected Outland
+        questId = 60120;
+        conversationId = 14304;
+        break;
+    case 7:
+        _player->CastSpell(_player, 325042, true);  //Selected Northrend
+        questId = 60096;
+        conversationId = 14278;
+        break;
+    case 8:
+        _player->CastSpell(_player, 325530, true);  //Selected Pandaria
+        questId = 60965;
+        conversationId = 14303;
+        break;
+    case 9:
+        _player->CastSpell(_player, 325534, true);  //Selected Draenor
+        questId = 34398;
+        conversationId = 14300;
+        break;
+    case 10:
+        _player->CastSpell(_player, 325539, true);  //Selected Legion
+        questId = 40519;
+        conversationId = 14406;
+        break;
+    default:
+        break;
+        }
+    
+        if (questId)
+        if (_player->GetQuestStatus(questId) == QUEST_STATUS_NONE)
+         if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
+         if (Creature* chromie = ObjectAccessor::GetCreature(*_player, selectExpansion.ObjGUID))
+         _player->AddQuest(quest, chromie);
+    
+        if (conversationId)
+        Conversation::CreateConversation(conversationId, _player, *_player, { _player->GetGUID() });
+    
+        WorldPackets::Misc::ChromieTimeSelectExpansionSuccess wExpansion;
+        SendPacket(wExpansion.Write());
+ }
