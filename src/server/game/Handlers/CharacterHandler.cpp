@@ -1994,6 +1994,10 @@ void WorldSession::HandleUseEquipmentSet(WorldPackets::EquipmentSet::UseEquipmen
     SendPacket(result.Write());
 }
 
+void WorldSession::HandleAssignEquipmentSetSpec(WorldPackets::EquipmentSet::AssignEquipmentSetSpec& packet)
+{
+}
+
 void WorldSession::HandleCharRaceOrFactionChangeOpcode(WorldPackets::Character::CharRaceOrFactionChange& packet)
 {
     if (!IsLegitCharacterForAccount(packet.RaceOrFactionChangeInfo->Guid))
@@ -2558,6 +2562,57 @@ void WorldSession::HandleReorderCharacters(WorldPackets::Character::ReorderChara
 
     CharacterDatabase.CommitTransaction(trans);
 }
+
+void WorldSession::HandleEngineSurvey(WorldPackets::Character::EngineSurvey& packet)
+{
+    std::hash<std::string> hash_gen;
+    std::string baseData(
+        "TotalPhysMemory:" + std::to_string(packet.TotalPhysMemory) +
+        "GPUVideoMemory:" + std::to_string(packet.GPUVideoMemory) +
+        "GPUSystemMemory:" + std::to_string(packet.GPUSystemMemory) +
+        "GPUSharedMemory:" + std::to_string(packet.GPUSharedMemory) +
+        "GPUVendorID:" + std::to_string(packet.GPUVendorID) +
+        "GPUModelID:" + std::to_string(packet.GPUModelID) +
+        "ProcessorUnkUnk:" + std::to_string(packet.ProcessorUnkUnk) +
+        "ProcessorFeatures:" + std::to_string(packet.ProcessorFeatures) +
+        "ProcessorVendor:" + std::to_string(packet.ProcessorVendor) +
+        "ProcessorNumberOfProcessors:" + std::to_string(packet.ProcessorNumberOfProcessors) +
+        "ProcessorNumberOfThreads:" + std::to_string(packet.ProcessorNumberOfThreads) +
+        "SystemOSIndex:" + std::to_string(packet.SystemOSIndex) +
+        "Is64BitSystem:" + std::to_string(packet.Is64BitSystem)
+    );
+
+    /*  auto str_hash = hash_gen(baseData);
+      if (_hwid == str_hash) // Not need update
+          return;
+
+      _hwid = str_hash;
+
+      LoginDatabase.PExecute("UPDATE account SET hwid = " UI64FMTD " WHERE id = %u;", _hwid, GetAccountId());
+
+      if (!_hwid)
+          return;
+
+      if (auto result = LoginDatabase.PQuery("SELECT penalties, last_reason from hwid_penalties where hwid = " UI64FMTD, _hwid))
+      {
+          auto fields = result->Fetch();
+          _countPenaltiesHwid = fields[0].GetInt32();
+
+          if ((sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT) && _countPenaltiesHwid >= sWorld->getIntConfig(CONFIG_ANTI_FLOOD_HWID_BANS_COUNT)) || _countPenaltiesHwid < 0)
+          {
+              std::stringstream ss;
+              ss << (fields[1].GetString().empty() ? "Antiflood unknwn" : fields[1].GetCString()) << "*";
+
+              if (sWorld->getBoolConfig(CONFIG_ANTI_FLOOD_HWID_BANS_ALLOW))
+                  sWorld->BanAccount(BAN_ACCOUNT, GetAccountName(), "-1", ss.str(), "Server");
+              else if (sWorld->getBoolConfig(CONFIG_ANTI_FLOOD_HWID_MUTE_ALLOW))
+                  sWorld->MuteAccount(GetAccountId(), -1, ss.str(), "Server", this);
+              else if (sWorld->getBoolConfig(CONFIG_ANTI_FLOOD_HWID_KICK_ALLOW))
+                  KickPlayer();
+          }*/
+          //}
+}
+
 
 void WorldSession::HandleOpeningCinematic(WorldPackets::Misc::OpeningCinematic& /*packet*/)
 {

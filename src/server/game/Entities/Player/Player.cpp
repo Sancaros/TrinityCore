@@ -142,7 +142,7 @@ static uint32 copseReclaimDelay[MAX_DEATH_COUNT] = { 30, 60, 120 };
 
 uint64 const MAX_MONEY_AMOUNT = 99999999999ULL;
 
-Player::Player(WorldSession* session) : Unit(true), m_sceneMgr(this)
+Player::Player(WorldSession* session) : Unit(true), _vignetteMgr(this), m_sceneMgr(this)
 {
     m_speakTime = 0;
     m_speakCount = 0;
@@ -10344,6 +10344,11 @@ bool Player::IsBankPos(uint8 bag, uint8 slot)
     return false;
 }
 
+bool Player::IsReagentBankPos(uint8 bag, uint8 slot)
+{
+    return bag == INVENTORY_SLOT_BAG_0 && (slot >= REAGENT_SLOT_START && slot < REAGENT_SLOT_END);
+}
+
 bool Player::IsBagPos(uint16 pos)
 {
     uint8 bag = pos >> 8;
@@ -14898,8 +14903,24 @@ void Player::OnGossipSelect(WorldObject* source, uint32 optionIndex, uint32 menu
         case GOSSIP_OPTION_TRANSMOGRIFIER:
             GetSession()->SendOpenTransmogrifier(guid);
             break;
+    case GOSSIP_OPTION_ADVENTURE_MAP:
+    {
+        if (source->GetEntry() == 143967)
+        {
+            GetSession()->SendPacket(WorldPackets::Misc::IslandOpenNpc(source->GetGUID()).Write());
+            break;
+        }
+        uint32 uiMapId = sObjectMgr->GetAdventureMapUIByCreature(source->GetEntry());
+        SendDirectMessage(WorldPackets::Garrison::ShowAdventureMap(source->GetGUID(), uiMapId).Write());
+        break;
     }
-
+    case GOSSIP_OPTION_CHOICE:
+        SendPlayerChoice(source->GetGUID(), cost);
+        return;
+    case GOSSIP_OPTION_ALLIED_RACE_DETAILS:
+        GetSession()->SendOpenAlliedRaceDetails(guid, cost);
+        return;
+    }
     ModifyMoney(-cost);
 }
 
@@ -16881,6 +16902,14 @@ void Player::SetQuestCompletedBit(uint32 questBit, bool completed)
         SetUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::QuestCompleted, fieldOffset), flag);
     else
         RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::QuestCompleted, fieldOffset), flag);
+}
+
+bool Player::IsQuestBitFlaged(uint32 questBit) const
+{
+    if (!questBit)
+        return false;
+    else
+        return true;
 }
 
 void Player::AreaExploredOrEventHappens(uint32 questId)
@@ -29066,6 +29095,36 @@ bool Player::HasUnlockedReagentBank() const
 }
 
 
+void Player::SetWarModeDesired(bool enabled)
+{
+    // Only allow to toggle on when in stormwind/orgrimmar, and to toggle off in any rested place.
+    // Also disallow when in combat
+    if ((enabled == IsWarModeDesired()) || IsInCombat() || !IsInRestArea())
+        return;
+
+    if (enabled && CanEnableWarModeInArea())
+        return;
+
+    // Don't allow to chang when aura SPELL_PVP_RULES_ENABLED is on
+    if (HasAura(SPELL_PVP_RULES_ENABLED))
+        return;
+
+    if (enabled)
+    {
+        AddPlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED);
+        TogglePvpTalents(true);
+        SetPvP(true);
+    }
+    else
+    {
+        RemovePlayerFlag(PLAYER_FLAGS_WAR_MODE_DESIRED);
+        TogglePvpTalents(false);
+        SetPvP(false);
+    }
+
+    UpdateWarModeAuras();
+}
+
 bool Player::IsInFactionFriendlyArea() const
 {
     if (AreaTableEntry const* areaEntry = sAreaTableStore.LookupEntry(GetAreaId()))
@@ -29102,6 +29161,45 @@ bool Player::CanEnableWarModeInArea() const
         return false;
 
     return area->Flags[1] & AREA_FLAG_2_CAN_ENABLE_WAR_MODE;
+}
+
+void Player::UpdateWarModeAuras()
+{
+    uint32 auraInside = 282559;
+    uint32 auraOutside = 269083;
+
+    if (IsWarModeDesired())
+    {
+        if (IsInFactionFriendlyArea())
+        {
+            RemovePlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE);
+            RemoveAurasDueToSpell(auraOutside);
+            CastSpell(this, auraInside, true);
+        }
+        else
+        {
+            AddPlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE);
+            RemoveAurasDueToSpell(auraInside);
+            TeamId team = sWorld->GetCurrentFactionBalanceTeam();
+            if (GetTeamId() != team)
+                CastSpell(this, auraOutside, true);
+            else
+            {
+                CustomSpellValues const& values = sWorld->GetCurrentFactionBalanceRewardSpellValues();
+                /*CastCustomSpell(auraOutside, values, this, TRIGGERED_FULL_MASK);*/
+            }
+        }
+        SetWarModeLocal(true);
+        AddPvpFlag(UNIT_BYTE2_FLAG_PVP);
+    }
+    else
+    {
+        SetWarModeLocal(false);
+        RemoveAurasDueToSpell(auraOutside);
+        RemoveAurasDueToSpell(auraInside);
+        RemovePlayerFlag(PLAYER_FLAGS_WAR_MODE_ACTIVE);
+        RemovePvpFlag(UNIT_BYTE2_FLAG_PVP);
+    }
 }
 
 bool Player::HasWorldQuestEnabled(uint8 expansion) const

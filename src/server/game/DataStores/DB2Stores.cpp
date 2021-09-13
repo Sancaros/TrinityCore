@@ -140,6 +140,7 @@ DB2Storage<GarrBuildingPlotInstEntry>           sGarrBuildingPlotInstStore("Garr
 DB2Storage<GarrClassSpecEntry>                  sGarrClassSpecStore("GarrClassSpec.db2", GarrClassSpecLoadInfo::Instance());
 DB2Storage<GarrFollowerEntry>                   sGarrFollowerStore("GarrFollower.db2", GarrFollowerLoadInfo::Instance());
 DB2Storage<GarrFollowerXAbilityEntry>           sGarrFollowerXAbilityStore("GarrFollowerXAbility.db2", GarrFollowerXAbilityLoadInfo::Instance());
+DB2Storage<GarrMissionEntry>                    sGarrMissionStore("GarrMission.db2", GarrMissionLoadInfo::Instance());
 DB2Storage<GarrPlotEntry>                       sGarrPlotStore("GarrPlot.db2", GarrPlotLoadInfo::Instance());
 DB2Storage<GarrPlotBuildingEntry>               sGarrPlotBuildingStore("GarrPlotBuilding.db2", GarrPlotBuildingLoadInfo::Instance());
 DB2Storage<GarrPlotInstanceEntry>               sGarrPlotInstanceStore("GarrPlotInstance.db2", GarrPlotInstanceLoadInfo::Instance());
@@ -177,6 +178,7 @@ DB2Storage<ItemDamageOneHandCasterEntry>        sItemDamageOneHandCasterStore("I
 DB2Storage<ItemDamageTwoHandEntry>              sItemDamageTwoHandStore("ItemDamageTwoHand.db2", ItemDamageTwoHandLoadInfo::Instance());
 DB2Storage<ItemDamageTwoHandCasterEntry>        sItemDamageTwoHandCasterStore("ItemDamageTwoHandCaster.db2", ItemDamageTwoHandCasterLoadInfo::Instance());
 DB2Storage<ItemDisenchantLootEntry>             sItemDisenchantLootStore("ItemDisenchantLoot.db2", ItemDisenchantLootLoadInfo::Instance());
+DB2Storage<ItemDisplayInfoEntry>                sItemDisplayInfoStore("ItemDisplayInfo.db2", ItemDisplayInfoLoadInfo::Instance());
 DB2Storage<ItemEffectEntry>                     sItemEffectStore("ItemEffect.db2", ItemEffectLoadInfo::Instance());
 DB2Storage<ItemEntry>                           sItemStore("Item.db2", ItemLoadInfo::Instance());
 DB2Storage<ItemExtendedCostEntry>               sItemExtendedCostStore("ItemExtendedCost.db2", ItemExtendedCostLoadInfo::Instance());
@@ -314,6 +316,7 @@ DB2Storage<UiMapXMapArtEntry>                   sUiMapXMapArtStore("UiMapXMapArt
 DB2Storage<UnitPowerBarEntry>                   sUnitPowerBarStore("UnitPowerBar.db2", UnitPowerBarLoadInfo::Instance());
 DB2Storage<VehicleEntry>                        sVehicleStore("Vehicle.db2", VehicleLoadInfo::Instance());
 DB2Storage<VehicleSeatEntry>                    sVehicleSeatStore("VehicleSeat.db2", VehicleSeatLoadInfo::Instance());
+DB2Storage<VignetteEntry>                       sVignetteStore("Vignette.db2", VignetteLoadInfo::Instance());
 DB2Storage<WMOAreaTableEntry>                   sWMOAreaTableStore("WMOAreaTable.db2", WmoAreaTableLoadInfo::Instance());
 DB2Storage<WorldEffectEntry>                    sWorldEffectStore("WorldEffect.db2", WorldEffectLoadInfo::Instance());
 DB2Storage<WorldMapOverlayEntry>                sWorldMapOverlayStore("WorldMapOverlay.db2", WorldMapOverlayLoadInfo::Instance());
@@ -697,6 +700,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sGarrClassSpecStore);
     LOAD_DB2(sGarrFollowerStore);
     LOAD_DB2(sGarrFollowerXAbilityStore);
+    LOAD_DB2(sGarrMissionStore);
     LOAD_DB2(sGarrPlotBuildingStore);
     LOAD_DB2(sGarrPlotStore);
     LOAD_DB2(sGarrPlotInstanceStore);
@@ -734,6 +738,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sItemDamageTwoHandStore);
     LOAD_DB2(sItemDamageTwoHandCasterStore);
     LOAD_DB2(sItemDisenchantLootStore);
+    LOAD_DB2(sItemDisplayInfoStore);
     LOAD_DB2(sItemEffectStore);
     LOAD_DB2(sItemStore);
     LOAD_DB2(sItemExtendedCostStore);
@@ -871,6 +876,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sUnitPowerBarStore);
     LOAD_DB2(sVehicleStore);
     LOAD_DB2(sVehicleSeatStore);
+    LOAD_DB2(sVignetteStore);
     LOAD_DB2(sWMOAreaTableStore);
     LOAD_DB2(sWorldEffectStore);
     LOAD_DB2(sWorldMapOverlayStore);

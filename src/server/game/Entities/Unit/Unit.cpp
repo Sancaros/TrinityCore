@@ -412,6 +412,7 @@ Unit::~Unit()
         }
 
     m_Events.KillAllEvents(true);
+    _scheduler.CancelAll();
 
     _DeleteRemovedAuras();
 
@@ -438,6 +439,7 @@ void Unit::Update(uint32 p_time)
     // Spells must be processed with event system BEFORE they go to _UpdateSpells.
     // Or else we may have some SPELL_STATE_FINISHED spells stalled in pointers, that is bad.
     m_Events.Update(p_time);
+    _scheduler.Update(p_time);
 
     if (!IsInWorld())
         return;

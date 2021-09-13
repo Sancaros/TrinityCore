@@ -348,6 +348,8 @@ private:
     ImmunityInfo _immunityInfo;
 };
 
+typedef std::vector<SpellEffectInfo const*> SpellEffectInfoVector;
+
 typedef std::vector<SpellXSpellVisualEntry const*> SpellVisualVector;
 typedef std::unordered_map<uint32, SpellVisualVector> SpellVisualMap;
 

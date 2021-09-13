@@ -32,6 +32,7 @@
 #include "PlayerTaxi.h"
 #include "QuestDef.h"
 #include "SceneMgr.h"
+#include "VignetteMgr.h"
 #include <queue>
 
 struct AccessRequirement;
@@ -1324,6 +1325,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         static bool IsBagPos(uint16 pos);
         static bool IsBankPos(uint16 pos) { return IsBankPos(pos >> 8, pos & 255); }
         static bool IsBankPos(uint8 bag, uint8 slot);
+        static bool IsReagentBankPos(uint16 pos) { return IsReagentBankPos(pos >> 8, pos & 255); }
+        static bool IsReagentBankPos(uint8 bag, uint8 slot);
         static bool IsChildEquipmentPos(uint16 pos) { return IsChildEquipmentPos(pos >> 8, pos & 255); }
         static bool IsChildEquipmentPos(uint8 bag, uint8 slot);
         bool IsValidPos(uint16 pos, bool explicit_pos) const { return IsValidPos(pos >> 8, pos & 255, explicit_pos); }
@@ -1584,6 +1587,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetQuestSlotObjectiveFlag(uint16 slot, int8 objectiveIndex);
         void RemoveQuestSlotObjectiveFlag(uint16 slot, int8 objectiveIndex);
         void SetQuestCompletedBit(uint32 questBit, bool completed);
+        bool IsQuestBitFlaged(uint32 questBit) const;
 
         uint16 GetReqKillOrCastCurrentCount(uint32 quest_id, int32 entry) const;
         void AreaExploredOrEventHappens(uint32 questId);
@@ -2759,6 +2763,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool IsWarModeLocalActive() const { return HasPlayerLocalFlag(PLAYER_LOCAL_FLAG_WAR_MODE); }
         void SetWarModeLocal(bool enabled);
         bool CanEnableWarModeInArea() const;
+        void UpdateWarModeAuras();
 
 
         UF::UpdateField<UF::PlayerData, 0, TYPEID_PLAYER> m_playerData;
@@ -2770,6 +2775,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void CreateChallengeKey(Item* item);
         void ResetChallengeKey();
         void ChallengeKeyCharded(Item* item, uint32 challengeLevel);
+
+        Vignette::Manager& GetVignetteMgr() { return _vignetteMgr; }
 
     protected:
         // Gamemaster whisper whitelist
@@ -3034,6 +3041,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         // last used pet number (for BG's)
         uint32 m_lastpetnumber;
+
+        Vignette::Manager _vignetteMgr;
 
         // Player summoning
         time_t m_summon_expire;

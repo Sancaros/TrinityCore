@@ -213,6 +213,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         Group* GetLootRecipientGroup() const;
         bool hasLootRecipient() const { return !m_lootRecipient.IsEmpty() || !m_lootRecipientGroup.IsEmpty(); }
         bool isTappedBy(Player const* player) const;                          // return true if the creature is tapped by the player or a member of his party.
+        std::vector<Player*> GetLootRecipients() const;
+        std::vector<Group*> GetLootRecipientGroups() const;
 
         void SetLootRecipient (Unit* unit, bool withGroup = true);
         void AllLootRemovedFromCorpse();
@@ -361,6 +363,12 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool CanGiveExperience() const;
         void ForcedDespawn(uint32 timeMSToDespawn = 0, Seconds const& forceRespawnTimer = Seconds(0));
 
+
+        //Thordekk
+        uint32 GetVignetteId() const { return m_creatureInfo ? m_creatureInfo->VignetteID : 0; }
+        uint32 GetTrackingQuestID() const { return m_creatureInfo ? m_creatureInfo->TrackingQuestID : 0; }
+        uint32 GetAffixState() const { return GetCreatureTemplate()->AffixState; }
+
         uint32 disableAffix;
         bool IsAffixDisabled(uint8 affixe) const { return (disableAffix & (1 << affixe)) != 0; }
 
@@ -380,6 +388,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         ObjectGuid m_lootRecipient;
         ObjectGuid m_lootRecipientGroup;
+        std::vector<ObjectGuid> m_lootRecipients;
 
         /// Timers
         time_t _pickpocketLootRestore;
@@ -422,6 +431,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool IsInvisibleDueToDespawn() const override;
         bool CanAlwaysSee(WorldObject const* obj) const override;
 
+        uint16 m_shipmentContainerID;
 
         float m_followDistance = 1.0f;
     private:

@@ -61,6 +61,7 @@
 #include "Vehicle.h"
 #include "VMapFactory.h"
 #include "World.h"
+#include "WorldQuestMgr.h"
 #include <G3D/g3dmath.h>
 #include <numeric>
 
@@ -483,6 +484,9 @@ void ObjectMgr::LoadCreatureTemplate(Field* fields)
     creatureTemplate.SpellSchoolImmuneMask  = fields[79].GetUInt32();
     creatureTemplate.flags_extra            = fields[80].GetUInt32();
     creatureTemplate.ScriptID               = GetScriptId(fields[81].GetString());
+
+    if (VignetteEntry const* vignette = sVignetteStore.LookupEntry(creatureTemplate.VignetteID))
+        creatureTemplate.TrackingQuestID = vignette->VisibleTrackingQuestID;
 }
 
 void ObjectMgr::LoadCreatureTemplateModels()
@@ -9301,6 +9305,15 @@ uint32 ObjectMgr::GetCreatureTrainerForGossipOption(uint32 creatureId, uint32 go
 {
     auto itr = _creatureDefaultTrainers.find(std::make_tuple(creatureId, gossipMenuId, gossipOptionIndex));
     if (itr != _creatureDefaultTrainers.end())
+        return itr->second;
+
+    return 0;
+}
+
+uint32 ObjectMgr::GetAdventureMapUIByCreature(uint32 creatureId) const
+{
+    auto itr = _adventureMapUIByCreature.find(creatureId);
+    if (itr != _adventureMapUIByCreature.end())
         return itr->second;
 
     return 0;

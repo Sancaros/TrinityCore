@@ -26,6 +26,8 @@
 #include "CreatureAIImpl.h"
 #include "Errors.h"
 #include "GameObject.h"
+#include "Garrison.h"
+//#include "GarrisonAI.h"
 #include "GossipDef.h"
 #include "InstanceScript.h"
 #include "Item.h"
@@ -1600,6 +1602,17 @@ bool ScriptMgr::OnCastItemCombatSpell(Player* player, Unit* victim, SpellInfo co
     return tmpscript->OnCastItemCombatSpell(player, victim, spellInfo, item);
 }
 
+
+bool ScriptMgr::OnGossipHello(Player* player, Creature* creature)
+{
+    ASSERT(player);
+    ASSERT(creature);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnGossipHello(player, creature);
+}
+
 CreatureAI* ScriptMgr::GetCreatureAI(Creature* creature)
 {
     ASSERT(creature);
@@ -1632,7 +1645,18 @@ void ScriptMgr::OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type)
 void ScriptMgr::OnWorldStateDelete(uint32 variableID, uint8 type)
 {
     FOREACH_SCRIPT(WorldStateScript)->OnDelete(variableID, type);
+
 }
+bool ScriptMgr::OnGossipHello(Player* player, GameObject* go)
+{
+    ASSERT(player);
+    ASSERT(go);
+
+    GET_SCRIPT_RET(GameObjectScript, go->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnGossipHello(player, go);
+}
+
 
 bool ScriptMgr::OnAreaTrigger(Player* player, AreaTriggerEntry const* trigger, bool entered)
 {

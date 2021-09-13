@@ -182,11 +182,14 @@ void WorldSession::HandleGossipHelloOpcode(WorldPackets::NPC::Hello& packet)
     }
 
     _player->PlayerTalkClass->ClearMenus();
-    if (!unit->AI()->GossipHello(_player))
+    if (!sScriptMgr->OnGossipHello(_player, unit))
     {
-//        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
-        _player->PrepareGossipMenu(unit, unit->GetCreatureTemplate()->GossipMenuId, true);
-        _player->SendPreparedGossip(unit);
+        if (!unit->AI()->GossipHello(_player))
+        {
+            _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
+            _player->PrepareGossipMenu(unit, unit->GetCreatureTemplate()->GossipMenuId, true);
+            _player->SendPreparedGossip(unit);
+        }
     }
 }
 
@@ -744,4 +747,12 @@ void WorldSession::HandleRepairItemOpcode(WorldPackets::Item::RepairItem& packet
         TC_LOG_DEBUG("network", "ITEM: Repair all items at %s", packet.NpcGUID.ToString().c_str());
         _player->DurabilityRepairAll(true, discountMod, packet.UseGuildBank);
     }
+}
+
+void WorldSession::SendOpenAlliedRaceDetails(ObjectGuid const& guid, uint32 RaceID)
+{
+    WorldPackets::NPC::OpenAlliedRaceDetails packet;
+    packet.Guid = guid;
+    packet.RaceId = RaceID;
+    SendPacket(packet.Write());
 }

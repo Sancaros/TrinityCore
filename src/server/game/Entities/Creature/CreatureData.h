@@ -386,6 +386,7 @@ struct TC_GAME_API CreatureTemplate
     int32   HealthScalingExpansion;
     uint32  RequiredExpansion;
     uint32  VignetteID;                                     /// @todo Read Vignette.db2
+    uint32  TrackingQuestID;
     uint32  faction;
     uint64  npcflag;
     float   speed_walk;
@@ -446,6 +447,7 @@ struct TC_GAME_API CreatureTemplate
     std::pair<int16, int16> GetMinMaxLevel() const;
     int32 GetHealthScalingExpansion() const;
     CreatureLevelScaling const* GetLevelScaling(Difficulty difficulty) const;
+    uint32 AffixState = 0;
 
     // helpers
     SkillType GetRequiredLootSkill() const

@@ -488,6 +488,117 @@ namespace WorldPackets
             WorldPackets::Duration<Seconds> Duration;
             Optional<PVPMatchStatistics> LogData;
         };
+
+        class BattlemasterJoinBrawl final : public ClientPacket
+        {
+        public:
+            BattlemasterJoinBrawl(WorldPacket&& packet) : ClientPacket(CMSG_BATTLEMASTER_JOIN_BRAWL, std::move(packet)) { }
+
+            void Read() override;
+
+            uint8 RolesMask = 0;
+        };
+
+        class WargameRequestSuccessfullySentToOpponent final : public ServerPacket
+        {
+        public:
+            WargameRequestSuccessfullySentToOpponent() : ServerPacket(SMSG_WARGAME_REQUEST_SUCCESSFULLY_SENT_TO_OPPONENT, 6) { }
+
+            WorldPacket const* Write() override;
+
+            Optional<uint32> UnkInt2;
+            Optional<uint32> UnkInt3;
+            uint32 UnkInt = 0;
+        };
+
+        class SendRequestScheduledPVPInfoResponse final : public ServerPacket
+        {
+        public:
+            SendRequestScheduledPVPInfoResponse() : ServerPacket(SMSG_REQUEST_SCHEDULED_PVP_INFO_RESPONSE) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 BrawlType = 0;
+            int32 TimeToEnd = 0;
+            bool IsActive = false;
+        };
+
+        class AcceptWargameInvite final : public ClientPacket
+        {
+        public:
+            AcceptWargameInvite(WorldPacket&& packet) : ClientPacket(CMSG_ACCEPT_WARGAME_INVITE, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid OpposingPartyMember;
+            uint64 QueueID = 0;
+            bool Accept = false;
+        };
+
+        class BattlemasterJoinArenaSkirmish final : public ClientPacket
+        {
+        public:
+            BattlemasterJoinArenaSkirmish(WorldPacket&& packet) : ClientPacket(CMSG_BATTLEMASTER_JOIN_SKIRMISH, std::move(packet)) { }
+
+            void Read() override;
+        };
+
+        class MythicPlusSeasonData final : public ServerPacket
+        {
+        public:
+            MythicPlusSeasonData() : ServerPacket(SMSG_MYTHIC_PLUS_SEASON_DATA, 4 + 4 + 4 + 4 + 4 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            int32 MythicPlusSeasonID = 0;
+            int32 PreviousSeason = 0;
+            int32 CurrentSeason = 0;
+            int32 PvpSeasonID = 0;
+            int32 ConquestWeeklyProgressCurrencyID = 0;
+            bool WeeklyRewardChestsEnabled = false;
+        };
+
+
+        struct BattlegroundCapturePointInfoData
+        {
+            ObjectGuid Guid;
+            TaggedPosition<Position::XY> Pos;
+            uint32 CaptureTime = 0;
+            uint32 CaptureTotalDuration = 0;
+            int8 NodeState = NODE_STATE_NONE;
+        };
+
+        class MapObjectivesInit final : public ServerPacket
+        {
+        public:
+            MapObjectivesInit() : ServerPacket(SMSG_MAP_OBJECTIVES_INIT, 25) { }
+
+            WorldPacket const* Write() override;
+
+            std::vector<BattlegroundCapturePointInfoData> CapturePointInfo;
+        };
+
+        class RequestConquestFormulaConstants final : public ClientPacket
+        {
+        public:
+            RequestConquestFormulaConstants(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_CONQUEST_FORMULA_CONSTANTS, std::move(packet)) { }
+
+            void Read() override { }
+        };
+
+        class ConquestFormulaContants final : public ServerPacket
+        {
+        public:
+            ConquestFormulaContants() : ServerPacket(SMSG_CONQUEST_FORMULA_CONSTANTS, 20) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 PvpMinCPPerWeek;
+            uint32 PvpMaxCPPerWeek;
+            float PvpCPBaseCoefficient;
+            float PvpCPExpCoefficient;
+            float PvpCPNumerato;
+        };
     }
 }
 

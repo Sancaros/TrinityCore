@@ -348,6 +348,10 @@ void WorldSession::HandleSetPvP(WorldPackets::Misc::SetPvP& packet)
     }
 }
 
+void WorldSession::HandleSetWarMode(WorldPackets::Character::SetWarMode& packet)
+{
+    _player->SetWarModeDesired(packet.Enable);
+}
 void WorldSession::HandlePortGraveyard(WorldPackets::Misc::PortGraveyard& /*packet*/)
 {
     if (GetPlayer()->IsAlive() || !GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_GHOST))

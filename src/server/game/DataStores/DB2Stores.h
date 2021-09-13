@@ -110,6 +110,7 @@ TC_GAME_API extern DB2Storage<GarrBuildingPlotInstEntry>            sGarrBuildin
 TC_GAME_API extern DB2Storage<GarrClassSpecEntry>                   sGarrClassSpecStore;
 TC_GAME_API extern DB2Storage<GarrFollowerEntry>                    sGarrFollowerStore;
 TC_GAME_API extern DB2Storage<GarrFollowerXAbilityEntry>            sGarrFollowerXAbilityStore;
+TC_GAME_API extern DB2Storage<GarrMissionEntry>                     sGarrMissionStore;
 TC_GAME_API extern DB2Storage<GarrPlotEntry>                        sGarrPlotStore;
 TC_GAME_API extern DB2Storage<GarrPlotBuildingEntry>                sGarrPlotBuildingStore;
 TC_GAME_API extern DB2Storage<GarrPlotInstanceEntry>                sGarrPlotInstanceStore;
@@ -137,6 +138,7 @@ TC_GAME_API extern DB2Storage<ItemDamageOneHandCasterEntry>         sItemDamageO
 TC_GAME_API extern DB2Storage<ItemDamageTwoHandEntry>               sItemDamageTwoHandStore;
 TC_GAME_API extern DB2Storage<ItemDamageTwoHandCasterEntry>         sItemDamageTwoHandCasterStore;
 TC_GAME_API extern DB2Storage<ItemDisenchantLootEntry>              sItemDisenchantLootStore;
+TC_GAME_API extern DB2Storage<ItemDisplayInfoEntry>                 sItemDisplayInfoStore;
 TC_GAME_API extern DB2Storage<ItemEffectEntry>                      sItemEffectStore;
 TC_GAME_API extern DB2Storage<ItemNameDescriptionEntry>             sItemNameDescriptionStore;
 TC_GAME_API extern DB2Storage<ItemEntry>                            sItemStore;
@@ -233,6 +235,7 @@ TC_GAME_API extern DB2Storage<TransportRotationEntry>               sTransportRo
 TC_GAME_API extern DB2Storage<UnitPowerBarEntry>                    sUnitPowerBarStore;
 TC_GAME_API extern DB2Storage<VehicleEntry>                         sVehicleStore;
 TC_GAME_API extern DB2Storage<VehicleSeatEntry>                     sVehicleSeatStore;
+TC_GAME_API extern DB2Storage<VignetteEntry>                        sVignetteStore;
 TC_GAME_API extern DB2Storage<WorldEffectEntry>                     sWorldEffectStore;
 TC_GAME_API extern DB2Storage<WorldMapOverlayEntry>                 sWorldMapOverlayStore;
 TC_GAME_API extern DB2Storage<WorldStateExpressionEntry>            sWorldStateExpressionStore;

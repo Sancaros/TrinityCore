@@ -1637,6 +1637,42 @@ struct GarrFollowerXAbilityEntry
     uint32 GarrFollowerID;
 };
 
+struct GarrMissionEntry
+{
+    LocalizedString Name;
+    LocalizedString Location;
+    LocalizedString Description;
+    float MapPos[2];
+    float WorldPos[2];
+    uint32 ID;
+    uint8  GarrTypeID;
+    uint8  GarrMissionTypeID;
+    uint8  GarrFollowerTypeID;
+    uint8  MaxFollowers;
+    uint32 MissionCost;
+    uint16 MissionCostCurrencyTypesID;
+    uint8 OfferedGarrMissionTextureID;
+    uint16 UiTextureKitID;
+    uint32 EnvGarrMechanicID;
+    int32  EnvGarrMechanicTypeID;
+    uint32 PlayerConditionID;
+    int32 GarrMissionSetID;
+    int8  TargetLevel;
+    uint16 TargetItemLevel;
+    int32 MissionDuration;
+    int32 TravelDuration;
+    uint32 OfferDuration;
+    uint8  BaseCompletionChance;
+    uint32 BaseFollowerXP;
+    uint32 OvermaxRewardPackID;
+    uint8  FollowerDeathChance;
+    uint32 AreaID;
+    uint32 Flags;
+    float AutoMissionScalar;
+    int32 AutoMissionScalarCurveID;
+    int32 AutoCombatantEnvCasterID;
+};
+
 struct GarrPlotEntry
 {
     uint32 ID;
@@ -1983,6 +2019,26 @@ struct ItemDisenchantLootEntry
     uint32 Class;
 };
 
+struct ItemDisplayInfoEntry
+{
+    uint32 ID;
+    int32 ItemVisual;
+    int32 ParticleColorID;
+    uint32 ItemRangedDisplayInfoID;
+    uint32 OverrideSwooshSoundKitID;
+    int32 SheatheTransformMatrixID;
+    int32 StateSpellVisualKitID;
+    int32 SheathedSpellVisualKitID;
+    uint32 UnsheathedSpellVisualKitID;
+    int32 Flags;
+    uint32 ModelResourcesID[2];
+    int32 ModelMaterialResourcesID[2];
+    int32 Field_8_2_0_30080_011[2];
+    int32 GeosetGroup[6];
+    int32 AttachmentGeosetGroup[6];
+    int32 HelmetGeosetVis[2];
+};
+
 struct ItemEffectEntry
 {
     uint32 ID;
@@ -1994,6 +2050,7 @@ struct ItemEffectEntry
     uint16 SpellCategoryID;
     int32 SpellID;
     uint16 ChrSpecializationID;
+    uint32 ParentItemID;
 };
 
 #define MAX_ITEM_EXT_COST_ITEMS         5
@@ -3334,6 +3391,7 @@ struct SpellScalingEntry
 {
     uint32 ID;
     int32 SpellID;
+    int32 Class;
     uint32 MinScalingLevel;
     uint32 MaxScalingLevel;
     int16 ScalesFromItemLevel;
@@ -3744,6 +3802,21 @@ struct VehicleSeatEntry
                 VEHICLE_SEAT_FLAG_B_USABLE_FORCED_3 | VEHICLE_SEAT_FLAG_B_USABLE_FORCED_4));
     }
     inline bool IsEjectable() const { return HasFlag(VEHICLE_SEAT_FLAG_B_EJECTABLE); }
+};
+
+struct VignetteEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    uint32 PlayerConditionID;
+    uint32 VisibleTrackingQuestID;
+    uint32 QuestFeedbackEffectID;
+    uint32 Flags;
+    float MaxHeight;
+    float MinHeight;
+    int8 VignetteType;
+    int32 RewardQuestID;
+    int32 UiWidgetSetID;
 };
 
 struct WMOAreaTableEntry

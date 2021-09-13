@@ -224,5 +224,13 @@ void RequestStabledPets::Read()
 {
     _worldPacket >> StableMaster;
 }
+
+WorldPacket const* OpenAlliedRaceDetails::Write()
+{
+    _worldPacket << Guid;
+    _worldPacket << RaceId;
+
+    return &_worldPacket;
+}
 }
 }

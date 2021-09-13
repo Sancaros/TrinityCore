@@ -638,6 +638,16 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         " FROM garr_follower_x_ability WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_GARR_FOLLOWER_X_ABILITY, "SELECT MAX(ID) + 1 FROM garr_follower_x_ability", CONNECTION_SYNCH);
 
+    // GarrMission.db2
+    PrepareStatement(HOTFIX_SEL_GARR_MISSION, "SELECT Name, Description, Location, MapPos1, MapPos2, WorldPos1, WorldPos2, ID, GarrTypeID, "
+        "GarrMissionTypeID, GarrFollowerTypeID, MaxFollowers, MissionCost, MissionCostCurrencyTypesID, OfferedGarrMissionTextureID, UiTextureKitID, "
+        "EnvGarrMechanicID, EnvGarrMechanicTypeID, PlayerConditionId, GarrMissionSetID, TargetLevel, TargetItemLevel, MissionDuration, TravelDuration, OfferDuration, "
+        "BaseCompletionChance, BaseFollowerXP, OvermaxRewardPackId, FollowerDeathChance, AreaID, Flags, AutoMissionScalar, "
+        "AutoMissionScalarCurveID, AutoCombatantEnvCasterID FROM garr_mission WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_GARR_MISSION, "SELECT MAX(ID) + 1 FROM garr_mission", CONNECTION_SYNCH);
+    PREPARE_LOCALE_STMT(HOTFIX_SEL_GARR_MISSION, "SELECT ID, Name_lang, Description_lang, Location_lang FROM garr_mission_locale"
+        " WHERE (`VerifiedBuild` > 0) = ? AND locale = ?", CONNECTION_SYNCH);
+
     // GarrPlot.db2
     PrepareStatement(HOTFIX_SEL_GARR_PLOT, "SELECT ID, Name, PlotType, HordeConstructObjID, AllianceConstructObjID, Flags, UiCategoryID, "
         "UpgradeRequirement1, UpgradeRequirement2 FROM garr_plot WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
@@ -1605,6 +1615,12 @@ void HotfixDatabaseConnection::DoPrepareStatements()
         "ExitAnimKitID, VehicleEnterAnimKitID, VehicleRideAnimKitID, VehicleExitAnimKitID, CameraModeID FROM vehicle_seat"
         " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_VEHICLE_SEAT, "SELECT MAX(ID) + 1 FROM vehicle_seat", CONNECTION_SYNCH);
+
+    // Vignette.db2
+    PrepareStatement(HOTFIX_SEL_VIGNETTE, "SELECT ID, Name, PlayerConditionID, VisibleTrackingQuestID, QuestFeedbackEffectID, Flags, MaxHeight, "
+        "MinHeight, VignetteType, RewardQuestID, UiWidgetSetID FROM vignette WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_VIGNETTE, "SELECT MAX(ID) + 1 FROM vignette", CONNECTION_SYNCH);
+    PREPARE_LOCALE_STMT(HOTFIX_SEL_VIGNETTE, "SELECT ID, Name_lang FROM vignette_locale WHERE (`VerifiedBuild` > 0) = ? AND locale = ?", CONNECTION_SYNCH);
 
     // WmoAreaTable.db2
     PrepareStatement(HOTFIX_SEL_WMO_AREA_TABLE, "SELECT AreaName, ID, WmoID, NameSetID, WmoGroupID, SoundProviderPref, SoundProviderPrefUnderwater, "

@@ -1402,6 +1402,7 @@ class TC_GAME_API ObjectMgr
         uint64 GenerateVoidStorageItemId();
         ObjectGuid::LowType GenerateCreatureSpawnId();
         ObjectGuid::LowType GenerateGameObjectSpawnId();
+        ObjectGuidGenerator<HighGuid::Vignette> _vignetteGuidGenerator;
 
         SpawnGroupTemplateData const* GetSpawnGroupData(uint32 groupId) const { auto it = _spawnGroupDataStore.find(groupId); return it != _spawnGroupDataStore.end() ? &it->second : nullptr; }
         SpawnGroupTemplateData const* GetDefaultSpawnGroup() const { return &_spawnGroupDataStore.at(0); }
@@ -1594,6 +1595,8 @@ class TC_GAME_API ObjectMgr
             return GetCreatureTrainerForGossipOption(creatureId, 0, 0);
         }
         uint32 GetCreatureTrainerForGossipOption(uint32 creatureId, uint32 gossipMenuId, uint32 gossipOptionIndex) const;
+
+        uint32 GetAdventureMapUIByCreature(uint32 creatureId) const;
 
         VendorItemData const* GetNpcVendorItemList(uint32 entry) const
         {
@@ -1873,6 +1876,14 @@ class TC_GAME_API ObjectMgr
         ScenarioDataSpellsStep _scenarioDataSpellStep;
 
         WorldQuestContainer _worldQuestStore;
+
+        enum CreatureLinkedRespawnType
+        {
+            CREATURE_TO_CREATURE,
+            CREATURE_TO_GO,         // Creature is dependant on GO
+            GO_TO_GO,
+            GO_TO_CREATURE          // GO is dependant on creature
+        };
 
         std::set<uint32> _transportMaps; // Helper container storing map ids that are for transports only, loaded from gameobject_template
 };

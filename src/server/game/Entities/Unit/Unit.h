@@ -49,6 +49,40 @@
 #define MAX_AGGRO_RESET_TIME 10 // in seconds
 #define MAX_AGGRO_RADIUS 45.0f  // yards
 
+class CustomSpellValues
+{
+    typedef std::pair<SpellValueMod, int32> CustomSpellValueMod;
+    typedef std::vector<CustomSpellValueMod> StorageType;
+public:
+    typedef StorageType::const_iterator const_iterator;
+public:
+    void AddSpellMod(SpellValueMod mod, int32 value)
+    {
+        storage_.push_back(CustomSpellValueMod(mod, value));
+    }
+    const_iterator begin() const
+    {
+        return storage_.begin();
+    }
+    const_iterator end() const
+    {
+        return storage_.end();
+    }
+
+    void Reserve(uint32 amount)
+    {
+        storage_.reserve(amount);
+    }
+
+    void Clear()
+    {
+        storage_.clear();
+    }
+
+private:
+    StorageType storage_;
+};
+
 enum VictimState
 {
     VICTIMSTATE_INTACT         = 0, // set when attacker misses
@@ -882,6 +916,7 @@ class TC_GAME_API Unit : public WorldObject
         void SetRace(uint8 race) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Race), race); }
         uint64 getRaceMask() const { return UI64LIT(1) << (getRace() - 1); }
         uint8 getClass() const { return m_unitData->ClassId; }
+        bool IsAlliedRace();
         void SetClass(uint8 classId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::ClassId), classId); }
         uint32 getClassMask() const { return 1 << (getClass()-1); }
         uint8 getGender() const { return m_unitData->Sex; }
@@ -1229,6 +1264,7 @@ class TC_GAME_API Unit : public WorldObject
         bool SetDisableGravity(bool disable);
         bool SetFall(bool enable);
         bool SetSwim(bool enable);
+        bool SetFlying(bool enable);
         bool SetCanFly(bool enable);
         bool SetWaterWalking(bool enable);
         bool SetFeatherFall(bool enable);
@@ -1551,6 +1587,9 @@ class TC_GAME_API Unit : public WorldObject
         uint32 m_baseAttackSpeed[MAX_ATTACK];
         float m_modAttackSpeedPct[MAX_ATTACK];
         uint32 m_attackTimer[MAX_ATTACK];
+
+        // Event handler
+        EventProcessor m_Events;
 
         // stat system
         void HandleStatFlatModifier(UnitMods unitMod, UnitModifierFlatType modifierType, float amount, bool apply);
@@ -2006,6 +2045,7 @@ class TC_GAME_API Unit : public WorldObject
 
         SpellHistory* _spellHistory;
 
+        TaskScheduler _scheduler;
         std::unique_ptr<MovementForces> _movementForces;
 };
 

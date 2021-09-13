@@ -657,6 +657,10 @@ void GameObject::Update(uint32 diff)
                         m_SkillupList.clear();
                         m_usetimes = 0;
 
+                        // If nearby linked trap exists, respawn it
+                        if (GameObject* linkedTrap = GetLinkedTrap())
+                            linkedTrap->SetLootState(GO_READY);
+
                         switch (GetGoType())
                         {
                             case GAMEOBJECT_TYPE_FISHINGNODE:   //  can't fish now
@@ -1541,6 +1545,11 @@ void GameObject::SwitchDoorOrButton(bool activate, bool alternative /* = false *
         SetGoState(GO_STATE_READY);
 }
 
+uint32 GameObject::GetVignetteId() const
+{
+    return m_goInfo ? m_goInfo->GetVignetteId() : 0;
+}
+
 void GameObject::Use(Unit* user)
 {
     // by default spell caster is user
@@ -1554,6 +1563,10 @@ void GameObject::Use(Unit* user)
             playerUser->Dismount();
 
         playerUser->PlayerTalkClass->ClearMenus();
+
+        if (sScriptMgr->OnGossipHello(playerUser, this))
+            return;
+
         if (AI()->GossipHello(playerUser))
             return;
     }

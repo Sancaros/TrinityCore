@@ -609,6 +609,10 @@ void WorldSession::HandleMissileTrajectoryCollision(WorldPackets::Spells::Missil
     caster->SendMessageToSet(notify.Write(), true);
 }
 
+void WorldSession::HandleCancelQueuedSpell(WorldPackets::Spells::CancelQueuedSpell& packet)
+{
+}
+
 void WorldSession::HandleUpdateMissileTrajectory(WorldPackets::Spells::UpdateMissileTrajectory& packet)
 {
     Unit* caster = ObjectAccessor::GetUnit(*_player, packet.Guid);

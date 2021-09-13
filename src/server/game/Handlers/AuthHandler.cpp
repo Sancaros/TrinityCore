@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "TokenPackets.h"
 #include "WorldSession.h"
 #include "AuthenticationPackets.h"
 #include "BattlenetRpcErrorCodes.h"
@@ -118,4 +119,13 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
     features.EuropaTicketSystemStatus->SuggestionsEnabled = sWorld->getBoolConfig(CONFIG_SUPPORT_SUGGESTIONS_ENABLED);
 
     SendPacket(features.Write());
+}
+
+void WorldSession::HandleConsumableTokenCanVeteranBuy(WorldPackets::Token::ConsumableTokenCanVeteranBuy& packet)
+{
+    WorldPackets::Token::ConsumableTokenCanVeteranBuyResponse response;
+    response.UnkLong = 0;
+    response.UnkInt = packet.UnkInt;
+    response.UnkInt2 = 1;
+    SendPacket(response.Write());
 }

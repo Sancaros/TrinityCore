@@ -38,6 +38,8 @@ class CreatureAI;
 class DynamicObject;
 class GameObject;
 class GameObjectAI;
+class Garrison;
+class GarrisonAI;
 class Guild;
 class GridMap;
 class Group;
@@ -420,6 +422,10 @@ class TC_GAME_API CreatureScript : public UnitScript
 
     public:
 
+
+    // Called when a player opens a gossip dialog with the creature.
+    virtual bool OnGossipHello(Player* /*player*/, Creature* /*creature*/) { return false; }
+
         // Called when a CreatureAI object is needed for the creature.
         virtual CreatureAI* GetAI(Creature* /*creature*/) const = 0;
 };
@@ -431,6 +437,10 @@ class TC_GAME_API GameObjectScript : public ScriptObject
         GameObjectScript(char const* name);
 
     public:
+
+
+    // Called when a player opens a gossip dialog with the gameobject.
+    virtual bool OnGossipHello(Player* /*player*/, GameObject* /*go*/) { return false; }
 
         // Called when a GameObjectAI object is needed for the gameobject.
         virtual GameObjectAI* GetAI(GameObject* /*go*/) const = 0;
@@ -997,10 +1007,12 @@ class TC_GAME_API ScriptMgr
 
     public: /* CreatureScript */
 
+    bool OnGossipHello(Player* player, Creature* creature);
         CreatureAI* GetCreatureAI(Creature* creature);
 
     public: /* GameObjectScript */
 
+    bool OnGossipHello(Player* player, GameObject* go);
         GameObjectAI* GetGameObjectAI(GameObject* go);
 
     public: /* AreaTriggerScript */
