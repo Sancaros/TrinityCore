@@ -174,6 +174,13 @@ enum PlayerSpellState : uint8
     PLAYERSPELL_TEMPORARY = 4
 };
 
+struct WorldQuestInfo
+{
+    uint32 QuestID;
+    uint32 resetTime;
+    bool needSave = false;
+};
+
 struct ChallengeKeyInfo
 {
     ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
@@ -2066,6 +2073,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AtEnterCombat() override;
         void AtExitCombat() override;
 
+        bool HasWorldQuestEnabled(uint8 expansion) const;
+        void UpdateWorldQuestPosition(float x, float y);
+
         void SendMessageToSet(WorldPacket const* data, bool self) const override { SendMessageToSetInRange(data, GetVisibilityRange(), self); }
         void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self) const override;
         void SendMessageToSetInRange(WorldPacket const* data, float dist, bool self, bool own_team_only) const;
@@ -2596,6 +2606,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool IsAdvancedCombatLoggingEnabled() const { return _advancedCombatLoggingEnabled; }
         void SetAdvancedCombatLogging(bool enabled) { _advancedCombatLoggingEnabled = enabled; }
 
+        PlayerAchievementMgr* GetAchievementMgr() { return m_achievementMgr; }
+        QuestObjectiveCriteriaMgr* GetQuestObjectiveCriteriaMgr() const { return m_questObjectiveCriteriaMgr.get(); }
         SceneMgr& GetSceneMgr() { return m_sceneMgr; }
         RestMgr& GetRestMgr() const { return *_restMgr; }
         void SetRestState(RestTypes type, PlayerRestState state)
@@ -2766,6 +2778,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 m_regenTimerCount;
         float m_powerFraction[MAX_POWERS_PER_CLASS];
         uint32 m_contestedPvPTimer;
+        uint32 m_areaQuestTimer;
 
         /*********************************************************/
         /***               BATTLEGROUND SYSTEM                 ***/
@@ -2826,6 +2839,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void _LoadDailyQuestStatus(PreparedQueryResult result);
         void _LoadWeeklyQuestStatus(PreparedQueryResult result);
         void _LoadMonthlyQuestStatus(PreparedQueryResult result);
+        void _LoadAdventureQuestStatus(PreparedQueryResult result);
+        void _LoadWorldQuestStatus(PreparedQueryResult result);
         void _LoadSeasonalQuestStatus(PreparedQueryResult result);
         void _LoadRandomBGStatus(PreparedQueryResult result);
         void _LoadGroup(PreparedQueryResult result);
@@ -2922,12 +2937,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 GetCurrencyTotalCap(CurrencyTypesEntry const* currency) const;
 
         VoidStorageItem* _voidStorageItems[VOID_STORAGE_MAX_SLOT];
+        typedef std::unordered_map<uint32, WorldQuestInfo> WorldQuestStatusMap;
 
         std::vector<Item*> m_itemUpdateQueue;
         bool m_itemUpdateQueueBlocked;
 
         uint32 m_ExtraFlags;
 
+        WorldQuestStatusMap m_worldquests;
         QuestStatusMap m_QuestStatus;
         QuestObjectiveStatusMap m_questObjectiveStatus;
         QuestStatusSaveMap m_QuestStatusSave;
@@ -3103,9 +3120,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         uint32 _activeCheats;
 
+        float _PersonnalXpRate;
+
+        bool canUseDonate = true;
+
         std::unique_ptr<Garrison> _garrison;
 
         bool _advancedCombatLoggingEnabled;
+        uint16 m_adventure_questID = 0;
 
         // variables to save health and mana before duel and restore them after duel
         uint64 healthBeforeDuel;

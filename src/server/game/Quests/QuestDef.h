@@ -39,7 +39,7 @@ namespace WorldPackets
     }
 }
 
-#define MAX_QUEST_LOG_SIZE 25
+#define MAX_QUEST_LOG_SIZE 100
 
 #define QUEST_ITEM_DROP_COUNT 4
 #define QUEST_REWARD_CHOICES_COUNT 6
@@ -475,7 +475,7 @@ class TC_GAME_API Quest
         bool HasQuestObjectiveType(QuestObjectiveType type) const { return _usedQuestObjectiveTypes[type]; }
 
         bool IsAutoPush() const { return HasFlagEx(QUEST_FLAGS_EX_AUTO_PUSH); }
-        bool IsWorldQuest() const { return HasFlagEx(QUEST_FLAGS_EX_IS_WORLD_QUEST); }
+        bool IsWorldQuest() const;
 
         // Possibly deprecated flag
         bool IsUnavailable() const { return HasFlag(QUEST_FLAGS_UNAVAILABLE); }
@@ -570,6 +570,7 @@ class TC_GAME_API Quest
         bool   IsSeasonal() const { return (_questSortID == -QUEST_SORT_SEASONAL || _questSortID == -QUEST_SORT_SPECIAL || _questSortID == -QUEST_SORT_LUNAR_FESTIVAL || _questSortID == -QUEST_SORT_MIDSUMMER || _questSortID == -QUEST_SORT_BREWFEST || _questSortID == -QUEST_SORT_LOVE_IS_IN_THE_AIR || _questSortID == -QUEST_SORT_NOBLEGARDEN) && !IsRepeatable(); }
         bool   IsDailyOrWeekly() const { return (_flags & (QUEST_FLAGS_DAILY | QUEST_FLAGS_WEEKLY)) != 0; }
         bool   IsRaidQuest(Difficulty difficulty) const;
+        bool   IsEmissaryQuest() const { return QuestInfoID == QUEST_INFO_EMISSARY_QUEST; }
         bool   IsAllowedInRaid(Difficulty difficulty) const;
         bool   IsDFQuest() const { return (_specialFlags & QUEST_SPECIAL_FLAGS_DF_QUEST) != 0; }
         uint32 CalculateHonorGain(uint8 level) const;
@@ -662,7 +663,6 @@ class TC_GAME_API Quest
         uint32 _limitTime = 0;
         Trinity::RaceMask<uint64> _allowableRaces;
         int32 _treasurePickerID = 0;
-        int32 _expansion = 0;
         int32 _managedWorldStateID = 0;
         int32 _questSessionBonus = 0;
         std::string _logTitle;
@@ -708,6 +708,10 @@ class TC_GAME_API Quest
 
         // Helpers
         static uint32 RoundXPValue(uint32 xp);
+
+        public:
+        int32 _expansion = 0;
+        uint32 QuestInfoID = 0;
 };
 
 struct QuestStatusData
@@ -716,6 +720,7 @@ struct QuestStatusData
     QuestStatus Status = QUEST_STATUS_NONE;
     uint32 Timer = 0;
     bool Explored = false;
+    std::vector<int32> ObjectiveData;
 };
 
 #endif

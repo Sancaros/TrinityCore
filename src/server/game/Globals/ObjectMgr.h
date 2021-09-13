@@ -797,6 +797,7 @@ struct SceneTemplate
 };
 
 typedef std::unordered_map<uint32, SceneTemplate> SceneTemplateContainer;
+typedef std::unordered_map<uint32, std::vector<uint32>> WorldQuestContainer;
 
 struct ScenarioSpellData
 {
@@ -834,6 +835,7 @@ struct PlayerChoiceResponseReward
     uint32 HonorPointCount;
     uint64 Money;
     uint32 Xp;
+    int32 SpellID; // custom
     std::vector<PlayerChoiceResponseRewardItem> Items;
     std::vector<PlayerChoiceResponseRewardEntry> Currency;
     std::vector<PlayerChoiceResponseRewardEntry> Faction;
@@ -1193,6 +1195,18 @@ class TC_GAME_API ObjectMgr
         void LoadGameobjectQuestEnders();
         void LoadCreatureQuestStarters();
         void LoadCreatureQuestEnders();
+
+        struct BonusQuestRectEntry
+        {
+            int32 MinX, MinY, MaxX, MaxY;
+            uint32 MapID;
+
+            bool IsIn(uint32 mapID, int x, int y)
+            {
+                return MapID == mapID && MinX <= x && MaxX >= x && MinY <= y && MaxY >= y;
+            }
+        };
+        std::map<uint32, std::vector<BonusQuestRectEntry>> BonusQuestsRects;
 
         QuestRelations* GetGOQuestRelationMap()
         {
@@ -1677,6 +1691,7 @@ class TC_GAME_API ObjectMgr
             return nullptr;
         }
 
+        WorldQuestContainer const& GetWorldQuestStore() const { return _worldQuestStore; }
         PlayerChoice const* GetPlayerChoice(int32 choiceId) const;
 
     private:
@@ -1844,6 +1859,7 @@ class TC_GAME_API ObjectMgr
 
         CacheVendorItemContainer _cacheVendorItemStore;
         std::unordered_map<uint32, Trainer::Trainer> _trainers;
+        std::unordered_map<uint32, uint32> _adventureMapUIByCreature;
         std::map<std::tuple<uint32, uint32, uint32>, uint32> _creatureDefaultTrainers;
 
         std::set<uint32> _difficultyEntries[MAX_CREATURE_DIFFICULTIES]; // already loaded difficulty 1 value in creatures, used in CheckCreatureTemplate
@@ -1855,6 +1871,8 @@ class TC_GAME_API ObjectMgr
 
         SceneTemplateContainer _sceneTemplateStore;
         ScenarioDataSpellsStep _scenarioDataSpellStep;
+
+        WorldQuestContainer _worldQuestStore;
 
         std::set<uint32> _transportMaps; // Helper container storing map ids that are for transports only, loaded from gameobject_template
 };

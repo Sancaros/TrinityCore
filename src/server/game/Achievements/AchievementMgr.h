@@ -71,6 +71,7 @@ protected:
 protected:
     std::unordered_map<uint32, CompletedAchievementData> _completedAchievements;
     uint32 _achievementPoints;
+    uint32 _achievementBattlePetPoints;
 };
 
 class TC_GAME_API PlayerAchievementMgr : public AchievementMgr
@@ -85,6 +86,7 @@ public:
     void SaveToDB(CharacterDatabaseTransaction& trans);
 
     void ResetCriteria(CriteriaFailEvent failEvent, int32 failAsset, bool evenIfCriteriaComplete = false);
+    void ResetCriteriaId(CriteriaType type, uint32 id);
 
     void SendAllData(Player const* receiver) const override;
     void SendAchievementInfo(Player* receiver, uint32 achievementId = 0) const;

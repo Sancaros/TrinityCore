@@ -35,6 +35,7 @@
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
 #include "World.h"
+#include "WorldQuestMgr.h"
 
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPackets::Quest::QuestGiverStatusQuery& packet)
 {
@@ -768,6 +769,10 @@ void WorldSession::HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceRespons
         if (playerChoiceResponse->Reward->Xp)
             _player->GiveXP(playerChoiceResponse->Reward->Xp, nullptr, 0.0f);
 
+        if (auto reward = playerChoiceResponse->Reward)
+            if (reward.is_initialized() && reward->SpellID)
+                _player->CastSpell(_player, reward->SpellID, true);
+
         for (PlayerChoiceResponseRewardItem const& item : playerChoiceResponse->Reward->Items)
         {
             ItemPosCountVec dest;
@@ -784,4 +789,19 @@ void WorldSession::HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceRespons
         for (PlayerChoiceResponseRewardEntry const& faction : playerChoiceResponse->Reward->Faction)
             _player->GetReputationMgr().ModifyReputation(sFactionStore.AssertEntry(faction.Id), faction.Quantity);
     }
+}
+
+void WorldSession::HandleQueryTreasurePicker(WorldPackets::Quest::QueryTreasurePicker& packet)
+{
+    auto quest = sObjectMgr->GetQuestTemplate(packet.QuestID);
+
+    WorldPackets::Quest::QueryQuestRewardResponse response;
+    response.QuestID = packet.QuestID;
+    response.TreasurePickerID = packet.QuestTimer;
+    sWorldQuestMgr->BuildRewardPacket(GetPlayer(), response.QuestID, response);
+    SendPacket(response.Write());
+}
+
+void WorldSession::HandleUiMapQuestLinesRequest(WorldPackets::Quest::UiMapQuestLinesRequest& packet)
+{
 }

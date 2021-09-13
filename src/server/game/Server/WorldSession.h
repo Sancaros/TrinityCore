@@ -37,6 +37,7 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <Server\Packets\QuestPackets.h>
 
 class BattlepayManager;
 class BattlePetMgr;
@@ -671,6 +672,7 @@ namespace WorldPackets
         class QueryQuestCompletionNPCs;
         class QueryRealmName;
         class ItemTextQuery;
+        class UiMapQuestLinesRequest;
     }
 
     namespace Quest
@@ -1553,6 +1555,8 @@ class TC_GAME_API WorldSession
         void HandleQuestPushResult(WorldPackets::Quest::QuestPushResult& packet);
         void HandleRequestWorldQuestUpdate(WorldPackets::Quest::RequestWorldQuestUpdate& packet);
         void HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceResponse& choiceResponse);
+        void HandleQueryTreasurePicker(WorldPackets::Quest::QueryTreasurePicker& packet);
+        void HandleUiMapQuestLinesRequest(WorldPackets::Quest::UiMapQuestLinesRequest& packet);
 
         void HandleChatMessageOpcode(WorldPackets::Chat::ChatMessage& chatMessage);
         void HandleChatMessageWhisperOpcode(WorldPackets::Chat::ChatMessageWhisper& chatMessageWhisper);

@@ -392,6 +392,21 @@ void PlayerAchievementMgr::ResetCriteria(CriteriaFailEvent failEvent, int32 fail
     }
 }
 
+void PlayerAchievementMgr::ResetCriteriaId(CriteriaType type, uint32 id)
+{
+    TC_LOG_DEBUG("criteria.achievement", "PlayerAchievementMgr::ResetCriteriaId(%u)", id);
+    CriteriaList list = GetCriteriaByType(type, id);
+
+    for (Criteria const* crit : list)
+    {
+        if (crit->Entry->ID == id)
+        {
+            RemoveCriteriaProgress(crit);
+            break;
+        }
+    }
+}
+
 void PlayerAchievementMgr::SendAllData(Player const* /*receiver*/) const
 {
     VisibleAchievementCheck filterInvisible;

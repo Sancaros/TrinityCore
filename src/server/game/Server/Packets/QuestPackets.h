@@ -631,14 +631,13 @@ namespace WorldPackets
 
         struct WorldQuestUpdateInfo
         {
-            WorldQuestUpdateInfo(time_t lastUpdate, uint32 questID, uint32 timer, int32 variableID, int32 value) :
-                LastUpdate(lastUpdate), QuestID(questID), Timer(timer), VariableID(variableID), Value(value) { }
-            Timestamp<> LastUpdate;
-            uint32 QuestID;
-            uint32 Timer;
+            int32 LastUpdate = 0;
+            uint32 Unk1 = 0;
+            uint32 QuestID = 0;
+            uint32 Timer = 0;
             // WorldState
-            int32 VariableID;
-            int32 Value;
+            int32 VariableID = 0;
+            int32 Value = 0;
         };
 
         class WorldQuestUpdateResponse final : public ServerPacket
@@ -648,7 +647,47 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            std::vector<WorldQuestUpdateInfo> WorldQuestUpdates;
+            std::vector<WorldPackets::Quest::WorldQuestUpdateInfo> WorldQuestUpdates;
+        };
+
+        class QueryTreasurePicker final : public ClientPacket
+        {
+        public:
+            QueryTreasurePicker(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_TREASURE_PICKER, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 QuestID;
+            uint32 QuestTimer;
+        };
+
+        class QueryQuestRewardResponse final : public ServerPacket
+        {
+        public:
+            QueryQuestRewardResponse() : ServerPacket(SMSG_TREASURE_PICKER_RESPONSE) { }
+
+            WorldPacket const* Write() override;
+
+            struct CurrencyReward
+            {
+                uint32 CurrencyID = 0;
+                uint32 Amount = 0;
+                uint32 CurrencyCount = 2;
+            };
+
+            struct ItemReward
+            {
+                WorldPackets::Item::ItemInstance Item;
+                uint32 ItemCount = 0;
+            };
+
+            uint32 QuestID;
+            uint32 TreasurePickerID;
+            uint64 MoneyReward = 0;
+            uint64 BonusCount = 0;
+            uint32 Flags = 0;
+            std::vector<CurrencyReward> CurrencyRewards;
+            std::vector<ItemReward> ItemRewards;
         };
 
         struct PlayerChoiceResponseRewardEntry
@@ -667,6 +706,7 @@ namespace WorldPackets
             uint32 HonorPointCount = 0;
             uint64 Money = 0;
             uint32 Xp = 0;
+            int32 SpellID = 0; // custom
             std::vector<PlayerChoiceResponseRewardEntry> Items;
             std::vector<PlayerChoiceResponseRewardEntry> Currencies;
             std::vector<PlayerChoiceResponseRewardEntry> Factions;
@@ -735,6 +775,46 @@ namespace WorldPackets
             int32 ChoiceID = 0;
             int32 ResponseID = 0;
             bool IsReroll = false;
+        };
+        class IsQuestCompleteResponse final : public ServerPacket
+        {
+        public:
+            IsQuestCompleteResponse() : ServerPacket(SMSG_IS_QUEST_COMPLETE_RESPONSE, 5) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 QuestID = 0;
+            bool Complete = false;
+        };
+
+        class DisplayQuestPopup final : public ServerPacket
+        {
+        public:
+            DisplayQuestPopup(uint32 questID) : ServerPacket(SMSG_DISPLAY_QUEST_POPUP, 4), QuestID(questID) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 QuestID = 0;
+        };
+
+        class UiMapQuestLinesRequest final : public ClientPacket
+        {
+        public:
+            UiMapQuestLinesRequest(WorldPacket&& packet) : ClientPacket(CMSG_UI_MAP_QUEST_LINES_REQUEST, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 UiMapID = 0;
+        };
+
+        class UiMapQuestLinesResponse final : public ServerPacket
+        {
+        public:
+            UiMapQuestLinesResponse(WorldPacket&& packet) : ServerPacket(SMSG_UI_MAP_QUEST_LINES_RESPONSE, 8) { }
+
+            WorldPacket const* Write() override;
+
+            int32 UiMapID = 0;
         };
     }
 }

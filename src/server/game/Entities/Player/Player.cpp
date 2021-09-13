@@ -128,6 +128,7 @@
 #include "WorldPacket.h"
 #include "WorldSession.h"
 #include "WorldStatePackets.h"
+#include "WorldQuestMgr.h"
 #include <G3D/g3dmath.h>
 #include <sstream>
 
@@ -15500,6 +15501,9 @@ void Player::AddQuest(Quest const* quest, Object* questGiver)
         if (questGiver && questGiver->GetTypeId() == TYPEID_PLAYER)
             limittime = questGiver->ToPlayer()->getQuestStatusMap()[quest_id].Timer / IN_MILLISECONDS;
 
+        if (quest->IsWorldQuest())
+            limittime = sWorldQuestMgr->GetTimerForQuest(quest_id);
+
         AddTimedQuest(quest_id);
         questStatusData.Timer = limittime * IN_MILLISECONDS;
         endTime = GameTime::GetGameTime() + limittime;
@@ -15800,11 +15804,19 @@ void Player::RewardQuest(Quest const* quest, LootItemType rewardType, uint32 rew
 
         if (moneyRew > 0)
             UpdateCriteria(CriteriaType::MoneyEarnedFromQuesting, uint32(moneyRew));
+
+        SendDisplayToast(0, ToastType::MONEY, false, moneyRew, DisplayToastMethod::TOAST_METHOD_WORLD_QUEST_REWARD);
     }
+
+    if (quest->IsWorldQuest())
+        sWorldQuestMgr->RewardQuestForPlayer(this, quest->GetQuestId());
 
     // honor reward
     if (uint32 honor = quest->CalculateHonorGain(getLevel()))
+    {
         RewardHonor(nullptr, 0, honor);
+        SendDisplayToast(0, ToastType::HONOR, false, quest->_rewardHonor, DisplayToastMethod::TOAST_METHOD_WORLD_QUEST_REWARD);
+    }
 
     // title reward
     if (quest->GetRewTitle())
@@ -29090,6 +29102,131 @@ bool Player::CanEnableWarModeInArea() const
         return false;
 
     return area->Flags[1] & AREA_FLAG_2_CAN_ENABLE_WAR_MODE;
+}
+
+bool Player::HasWorldQuestEnabled(uint8 expansion) const
+{
+    if (expansion == EXPANSION_LEGION)
+        return MeetPlayerCondition(41005);
+    if (expansion == EXPANSION_BATTLE_FOR_AZEROTH)
+        return GetQuestStatus(51918) == QUEST_STATUS_REWARDED || // Union of Kul'Tiras
+        GetQuestStatus(51916) == QUEST_STATUS_REWARDED;   // Union of Zandalar
+    if (expansion == EXPANSION_SHADOWLANDS)
+        return GetQuestStatus(62796) == QUEST_STATUS_REWARDED ||
+        GetQuestStatus(62796) == QUEST_STATUS_REWARDED;
+    return false;
+}
+
+void Player::UpdateWorldQuestPosition(float x, float y)
+{
+    if (time(nullptr) < m_areaQuestTimer)
+        return;
+
+    m_areaQuestTimer = time(nullptr) + 2;
+
+    for (auto bonus_quest : sObjectMgr->BonusQuestsRects)
+    {
+        if (IsQuestRewarded(bonus_quest.first))
+            continue;
+
+        bool found = false;
+        
+        for (uint32 i = 0; i < bonus_quest.second.size(); ++i)
+        {
+            if (bonus_quest.second[i].IsIn(GetMapId(), x, y))
+                found = true;
+        }
+
+        uint32 slot = FindQuestSlot(bonus_quest.first);
+        Quest const* quest = sObjectMgr->GetQuestTemplate(bonus_quest.first);
+        if (!quest)
+            continue;
+
+        if (!found && slot < MAX_QUEST_LOG_SIZE)
+        {
+            SetQuestSlot(slot, 0);
+        //    RemoveActiveQuest(quest, true);
+        }
+        else if (found && slot >= MAX_QUEST_LOG_SIZE)
+        {
+            if (!CanTakeQuest(quest, false))
+                continue;
+
+            if (quest->IsWorldQuest())
+            {
+                // Uniting the Isles, required for Legion world quests
+                if (!HasWorldQuestEnabled(quest->GetExpansion()))
+                    continue;
+
+                if (!sWorldQuestMgr->IsQuestActive(quest->GetQuestId()))
+                    continue;
+            }
+
+            AddQuest(quest, this);
+            slot = FindQuestSlot(quest->GetQuestId());
+            auto itr = m_QuestStatus.find(quest->GetQuestId());
+            if (itr != m_QuestStatus.end())
+            {
+                QuestStatusData& questStatusData = itr->second;
+                uint8 index = 0;
+                for (auto obj : questStatusData.ObjectiveData)
+                    SetQuestSlotCounter(slot, index++, obj);
+            }
+        }
+    }
+}
+
+void Player::_LoadAdventureQuestStatus(PreparedQueryResult result)
+{
+    m_adventure_questID = 0;
+
+    if (result)
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            uint32 quest_id = fields[0].GetUInt32();
+
+            Quest const* quest = sObjectMgr->GetQuestTemplate(quest_id);
+            if (!quest)
+                continue;
+            m_adventure_questID = quest_id;
+
+        } while (result->NextRow());
+    }
+}
+
+void Player::_LoadWorldQuestStatus(PreparedQueryResult result)
+{
+    // TC_LOG_DEBUG(LOG_FILTER_WORLD_QUEST, "_LoadWorldQuestStatus");
+
+    m_worldquests.clear();
+
+    if (result)
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            uint32 quest_id = fields[0].GetUInt32();
+            uint32 guid = fields[1].GetUInt32();
+            uint32 resetTime = fields[2].GetUInt32();
+
+            Quest const* quest = sObjectMgr->GetQuestTemplate(quest_id);
+                if (!quest)
+                    continue;
+
+            if (m_worldquests.find(quest_id) != m_worldquests.end())
+                continue;
+
+            WorldQuestInfo& wqi = m_worldquests[quest_id];
+            wqi.QuestID = quest_id;
+            wqi.resetTime = resetTime;
+            wqi.needSave = false;
+            SetQuestCompletedBit(sDB2Manager.GetQuestUniqueBitFlag(quest_id), true);
+
+            // TC_LOG_DEBUG(LOG_FILTER_WORLD_QUEST, "Weekly quest {%u} cooldown for player (GUID: %u)", quest_id, GetGUIDLow());
+        } while (result->NextRow());
+    }
 }
 
 void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel)
