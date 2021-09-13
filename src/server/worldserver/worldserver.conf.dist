@@ -2,16 +2,7 @@
 # Trinity Core World Server configuration file #
 ################################################
 [worldserver]
-#Add missing config value
-Guild.SaveInterval = 15
 
-#Add missing bpay config value
-FeatureSystem.BattlePay.Available = 1
-BattlePay.Enabled = 1
-BattlePay.Currency = 1
-
-#Add missing log config value
-ConsoleErrorLogging = 1
 ###################################################################################################
 # SECTION INDEX
 #
@@ -4214,4 +4205,43 @@ Metric.ConnectionInfo = "127.0.0.1;8086;worldserver"
 Metric.OverallStatusInterval = 1
 
 #
+###################################################################################################
+
+###################################################################################################
+#
+#    Guild.SaveInterval
+#        Description: Enable/Disable Guild Save Interval time
+#        Default:     0 - (Disabled)
+#                     15 - (Enabled)
+Guild.SaveInterval = 15
+###################################################################################################
+
+#
+#    FeatureSystem.BattlePay.Available
+#        Description: Enable/Disable
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+#
+#    BattlePay.Enabled
+#        Description: Enable/Disable
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+#
+#    BattlePay.Currency
+#        Description: Enable/Disable
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+FeatureSystem.BattlePay.Available = 1
+BattlePay.Enabled = 1
+BattlePay.Currency = 1
+###################################################################################################
+
+#
+#    ConsoleErrorLogging
+#        Description: Enable/Disable Errors shown in Server Console
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled)
+
+ConsoleErrorLogging = 0
 ###################################################################################################
