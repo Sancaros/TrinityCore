@@ -4245,3 +4245,18 @@ BattlePay.Currency = 1
 
 ConsoleErrorLogging = 0
 ###################################################################################################
+
+#Missing name Pvp.FactionBalance.LevelCheckDiff
+Pvp.FactionBalance.LevelCheckDiff = 0
+
+#Missing name Pvp.FactionBalance.Pct5
+Pvp.FactionBalance.Pct5 = 0.600000
+
+#Missing name Pvp.FactionBalance.Pct10
+Pvp.FactionBalance.Pct10 = 0.700000
+
+#Missing name Pvp.FactionBalance.Pct2
+Pvp.FactionBalance.Pct2 = 0.800000
+
+#Missing name Pvp.FactionBalance.Overwhelming
+Pvp.FactionBalance.Overwhelming = 0.900000
