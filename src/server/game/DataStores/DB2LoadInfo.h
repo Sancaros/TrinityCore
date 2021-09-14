@@ -3088,7 +3088,6 @@ struct ItemEffectLoadInfo
             { false, FT_SHORT, "SpellCategoryID" },
             { true, FT_INT, "SpellID" },
             { false, FT_SHORT, "ChrSpecializationID" },
-            { false, FT_INT, "ParentItemID" },
         };
         static DB2LoadInfo const loadInfo(&fields[0], std::extent<decltype(fields)>::value, ItemEffectMeta::Instance(), HOTFIX_SEL_ITEM_EFFECT);
         return &loadInfo;
@@ -5584,7 +5583,6 @@ struct SpellScalingLoadInfo
         {
             { false, FT_INT, "ID" },
             { true, FT_INT, "SpellID" },
-            { true, FT_INT, "Class" },
             { false, FT_INT, "MinScalingLevel" },
             { false, FT_INT, "MaxScalingLevel" },
             { true, FT_SHORT, "ScalesFromItemLevel" },

@@ -2050,7 +2050,6 @@ struct ItemEffectEntry //bbhiihih
     uint16 SpellCategoryID;
     int32 SpellID;
     uint16 ChrSpecializationID;
-    uint32 ParentItemID;
 };
 
 #define MAX_ITEM_EXT_COST_ITEMS         5
@@ -3391,7 +3390,6 @@ struct SpellScalingEntry
 {
     uint32 ID;
     int32 SpellID;
-    int32 Class;
     uint32 MinScalingLevel;
     uint32 MaxScalingLevel;
     int16 ScalesFromItemLevel;

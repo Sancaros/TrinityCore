@@ -5081,14 +5081,13 @@ struct GarrMissionMeta
 {
     static DB2Meta const* Instance()
     {
-        static DB2MetaField const fields[32] =
+        static DB2MetaField const fields[31] =
         {
             { FT_STRING, 1, true },
             { FT_STRING, 1, true },
             { FT_STRING, 1, true },
             { FT_FLOAT, 2, true },
             { FT_FLOAT, 2, true },
-            { FT_INT, 1, false },
             { FT_BYTE, 1, false },
             { FT_BYTE, 1, false },
             { FT_BYTE, 1, false },
@@ -5116,7 +5115,7 @@ struct GarrMissionMeta
             { FT_INT, 1, true },
             { FT_INT, 1, true },
         };
-        static DB2Meta instance(967962, 5, 32, 32, 0x09B91DB9, fields, 17);
+        static DB2Meta instance(967962, -1, 31, 31, 0xF35C1992, fields, 16);
         return &instance;
     }
 };
@@ -6691,7 +6690,7 @@ struct ItemEffectMeta
 {
     static DB2Meta const* Instance()
     {
-        static DB2MetaField const fields[9] =
+        static DB2MetaField const fields[8] =
         {
             { FT_BYTE, 1, false },
             { FT_BYTE, 1, true },
@@ -6701,9 +6700,8 @@ struct ItemEffectMeta
             { FT_SHORT, 1, false },
             { FT_INT, 1, true },
             { FT_SHORT, 1, false },
-            { FT_INT, 1, true },
         };
-        static DB2Meta instance(969941, -1, 9, 8, 0xE3E95759, fields, 8);
+        static DB2Meta instance(969941, -1, 8, 8, 0x54C10519, fields, -1);
         return &instance;
     }
 };
@@ -12172,15 +12170,14 @@ struct SpellScalingMeta
 {
     static DB2Meta const* Instance()
     {
-        static DB2MetaField const fields[5] =
+        static DB2MetaField const fields[4] =
         {
-            { FT_INT, 1, true },
             { FT_INT, 1, true },
             { FT_INT, 1, false },
             { FT_INT, 1, false },
             { FT_SHORT, 1, true },
         };
-        static DB2Meta instance(1139940, -1, 5, 5, 0x732DE96C, fields, -1);
+        static DB2Meta instance(1139940, -1, 4, 4, 0x47361722, fields, -1);
         return &instance;
     }
 };
