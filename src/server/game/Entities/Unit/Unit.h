@@ -1898,6 +1898,7 @@ class TC_GAME_API Unit : public WorldObject
         uint16 GetVirtualItemAppearanceMod(uint32 slot) const;
         void SetVirtualItem(uint32 slot, uint32 itemId, uint16 appearanceModId = 0, uint16 itemVisual = 0);
 
+        TaskScheduler& GetScheduler() { return _scheduler; }
         UF::UpdateField<UF::UnitData, 0, TYPEID_UNIT> m_unitData;
 
     protected:

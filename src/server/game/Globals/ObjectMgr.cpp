@@ -4173,6 +4173,7 @@ void ObjectMgr::LoadQuests()
     _questTemplates.clear();
     _questTemplatesAutoPush.clear();
     _questObjectives.clear();
+    _worldQuestStore.clear();
 
     _exclusiveQuestGroups.clear();
 
@@ -9540,6 +9541,34 @@ std::string const& ObjectMgr::GetScriptName(uint32 id) const
     return (id < _scriptNamesStore.size()) ? _scriptNamesStore[id] : empty;
 }
 
+uint32 ObjectMgr::GetScriptIdOrAdd(std::string const& name)
+{
+    // use binary search to find the script name in the sorted vector
+    // assume "" is the first element
+    if (name.empty())
+        return 0;
+
+    ScriptNameContainer::const_iterator itr = std::find(_scriptNamesStore.begin(), _scriptNamesStore.end(), name);
+    if (itr == _scriptNamesStore.end() || *itr != name)
+    {
+        _scriptNamesStore.push_back(name);
+        return _scriptNamesStore.size() - 1;
+    }
+
+    return uint32(itr - _scriptNamesStore.begin());
+}
+
+bool ObjectMgr::FindScriptId(std::string const& name) const
+{
+    // use binary search to find the script name in the sorted vector
+    // assume "" is the first element
+    if (name.empty())
+        return 0;
+
+    ScriptNameContainer::const_iterator itr = std::find(_scriptNamesStore.begin(), _scriptNamesStore.end(), name);
+    return itr != _scriptNamesStore.end() && *itr == name;
+}
+
 uint32 ObjectMgr::GetScriptId(std::string const& name)
 {
     // use binary search to find the script name in the sorted vector
@@ -10319,6 +10348,36 @@ ClassAvailability const* ObjectMgr::GetClassExpansionRequirement(uint8 raceId, u
 PlayerChoice const* ObjectMgr::GetPlayerChoice(int32 choiceId) const
 {
     return Trinity::Containers::MapGetValuePtr(_playerChoices, choiceId);
+}
+
+void ObjectMgr::LoadZoneScriptNames()
+{
+    uint32 oldMSTime = getMSTime();
+    QueryResult result = WorldDatabase.Query("SELECT zoneId, scriptname FROM zone_scripts");
+
+    if (!result)
+    {
+        TC_LOG_ERROR("server.loading", ">> Loading 0 zone scripts");
+        return;
+    }
+
+    do
+    {
+        if (uint32 scriptId = GetScriptIdOrAdd((*result)[1].GetString()))
+            _scriptIdsByZoneStore[(*result)[0].GetUInt32()] = scriptId;
+
+    } while (result->NextRow());
+
+    TC_LOG_INFO("server.loading", ">> Loaded " SZFMTD " zone scriptnames in %u ms", _scriptIdsByZoneStore.size(), GetMSTimeDiffToNow(oldMSTime));
+}
+
+uint32 ObjectMgr::GetScriptIdForZone(uint32 zoneId)
+{
+    auto itr = _scriptIdsByZoneStore.find(zoneId);
+    if (itr != _scriptIdsByZoneStore.end())
+        return itr->second;
+
+    return 0;
 }
 
 void ObjectMgr::LoadGameObjectQuestItems()

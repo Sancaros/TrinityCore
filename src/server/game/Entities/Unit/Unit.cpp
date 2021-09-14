@@ -8218,6 +8218,8 @@ void Unit::setDeathState(DeathState s)
         UnsummonAllTotems();
         RemoveAllControlled();
         RemoveAllAurasOnDeath();
+
+        GetScheduler().CancelAll();
     }
 
     if (s == JUST_DIED)

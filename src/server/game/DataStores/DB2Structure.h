@@ -1636,7 +1636,7 @@ struct GarrFollowerXAbilityEntry
     uint16 GarrAbilityID;
     uint32 GarrFollowerID;
 };
-
+//ssffffibbbbihbhiiiibhiiibiibiifii
 struct GarrMissionEntry
 {
     LocalizedString Name;
@@ -2039,7 +2039,7 @@ struct ItemDisplayInfoEntry
     int32 HelmetGeosetVis[2];
 };
 
-struct ItemEffectEntry
+struct ItemEffectEntry //bbhiihih
 {
     uint32 ID;
     uint8 LegacySlotIndex;

@@ -2268,6 +2268,10 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Item loot...");
     sLootItemStorage->LoadStorageFromDB();
 
+
+    TC_LOG_INFO("server.loading", "Loading Zones script names...");
+    sObjectMgr->LoadZoneScriptNames();
+
     TC_LOG_INFO("server.loading", "Initialize query data...");
     sObjectMgr->InitializeQueriesData(QUERY_DATA_ALL);
 

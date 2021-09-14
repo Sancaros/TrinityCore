@@ -49,6 +49,7 @@
 #include "Vehicle.h"
 #include "Weather.h"
 #include "WorldPacket.h"
+#include "ZoneScript.h"
 #include <unordered_map>
 
 // Trait which indicates whether this script type
@@ -398,6 +399,7 @@ class CreatureGameObjectAreaTriggerScriptRegistrySwapHooks
         // Remove deletable events only,
         // otherwise it causes crashes with non-deletable spell events.
         creature->m_Events.KillAllEvents(false);
+        creature->GetScheduler().CancelAll();
 
         if (creature->IsCharmed())
             creature->RemoveCharmedBy(nullptr);
@@ -423,6 +425,7 @@ class CreatureGameObjectAreaTriggerScriptRegistrySwapHooks
     // Hook which is called before a gameobject is swapped
     static void UnloadResetScript(GameObject* gameobject)
     {
+        gameobject->GetScheduler().CancelAll();
         gameobject->AI()->Reset();
     }
 

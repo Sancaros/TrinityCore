@@ -1614,6 +1614,8 @@ class TC_GAME_API ObjectMgr
         void LoadScriptNames();
         ScriptNameContainer const& GetAllScriptNames() const;
         std::string const& GetScriptName(uint32 id) const;
+        uint32 GetScriptIdOrAdd(std::string const& name);
+        bool FindScriptId(std::string const& name) const;
         uint32 GetScriptId(std::string const& name);
 
         Trinity::IteratorPair<SpellClickInfoContainer::const_iterator> GetSpellClickInfoMapBounds(uint32 creature_id) const
@@ -1696,6 +1698,9 @@ class TC_GAME_API ObjectMgr
 
         WorldQuestContainer const& GetWorldQuestStore() const { return _worldQuestStore; }
         PlayerChoice const* GetPlayerChoice(int32 choiceId) const;
+
+        void LoadZoneScriptNames();
+        uint32 GetScriptIdForZone(uint32 zoneId);
 
     private:
         // first free id for selected id type
@@ -1792,6 +1797,7 @@ class TC_GAME_API ObjectMgr
         std::unordered_map<uint32, std::vector<PhaseAreaInfo>> _phaseInfoByArea;
         std::unordered_map<uint32, std::vector<TerrainSwapInfo*>> _terrainSwapInfoByMap;
 
+        std::unordered_map<uint32, uint32> _scriptIdsByZoneStore;
     private:
         void LoadScripts(ScriptsType type);
         void LoadQuestRelationsHelper(QuestRelations& map, QuestRelationsReverse* reverseMap, std::string const& table, bool starter, bool go);

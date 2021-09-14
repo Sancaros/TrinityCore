@@ -39,6 +39,7 @@ struct AccessRequirement;
 struct AchievementEntry;
 struct AreaTableEntry;
 struct AreaTriggerEntry;
+struct AreaTriggerTeleportStruct;
 struct ArtifactPowerRankEntry;
 struct AzeriteEssencePowerEntry;
 struct AzeriteItemMilestonePowerEntry;
@@ -1523,6 +1524,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool CanRewardQuest(Quest const* quest, LootItemType rewardType, uint32 rewardId, bool msg) const;
         void AddQuestAndCheckCompletion(Quest const* quest, Object* questGiver);
         void AddQuest(Quest const* quest, Object* questGiver);
+        void ForceCompleteQuest(uint32 quest_id);
         void AbandonQuest(uint32 quest_id);
         void CompleteQuest(uint32 quest_id);
         void IncompleteQuest(uint32 quest_id);
@@ -2603,6 +2605,9 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         VoidStorageItem* GetVoidStorageItem(uint8 slot) const;
         VoidStorageItem* GetVoidStorageItem(uint64 id, uint8& slot) const;
 
+        float GetPersonnalXpRate() { return _PersonnalXpRate; }
+        void SetPersonnalXpRate(float PersonnalXpRate);
+
         void CreateGarrison(uint32 garrSiteId);
         void DeleteGarrison();
         Garrison* GetGarrison() const { return _garrison.get(); }
@@ -2614,6 +2619,11 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         QuestObjectiveCriteriaMgr* GetQuestObjectiveCriteriaMgr() const { return m_questObjectiveCriteriaMgr.get(); }
         SceneMgr& GetSceneMgr() { return m_sceneMgr; }
         RestMgr& GetRestMgr() const { return *_restMgr; }
+       
+        std::vector<std::pair<uint32, std::function<void()>>> MovieDelayedActions;
+        void AddMovieDelayedAction(uint32 movieId, std::function<void()>&& function);
+        void RemoveMovieDelayedAction(uint32 movieId);
+
         void SetRestState(RestTypes type, PlayerRestState state)
         {
             SetUpdateFieldValue(m_values
@@ -2630,6 +2640,10 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         }
 
         void SendPlayerChoice(ObjectGuid sender, int32 choiceId);
+
+        // Adventures.
+        uint16 GetAdventureQuestID() const { return m_adventure_questID; }
+        void SetAdventureQuestID(uint16 questID);
 
         bool MeetPlayerCondition(uint32 conditionId) const;
 
@@ -3101,6 +3115,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         // Current teleport data
         WorldLocation m_teleport_dest;
         uint32 m_teleport_options;
+        uint32 m_teleport_option_param;
         bool mSemaphoreTeleport_Near;
         bool mSemaphoreTeleport_Far;
 

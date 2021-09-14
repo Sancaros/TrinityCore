@@ -747,8 +747,9 @@ void WorldSession::JoinBracket(uint8 slot, uint8 rolesMask /*= ROLES_DEFAULT*/)
 
      //   matchmakerRating = grp->GetAverageMMR(BracketType(slot));
         //  WorldPackets::Battleground::IgnorMapInfo ignore;
+         // ginfo = bgQueue.AddGroup(player, grp, bgTypeId, bracketEntry, Jointype, true, false, ignore, matchmakerRating);
         //  avgTime = bgQueue.GetAverageQueueWaitTime(ginfo, bracketEntry->GetBracketId());
-        //joinTime = ginfo->JoinTime;
+        joinTime = ginfo->JoinTime;
     }
     else
     {
