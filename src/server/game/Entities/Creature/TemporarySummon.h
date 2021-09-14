@@ -54,6 +54,7 @@ class TC_GAME_API TempSummon : public Creature
         void SetTempSummonType(TempSummonType type);
         void SaveToDB(uint32 /*mapid*/, std::vector<Difficulty> const& /*spawnDifficulties*/) override { }
         Unit* GetSummoner() const;
+        void SetSummonerGUID(ObjectGuid summonerGUID) { m_summonerGUID = summonerGUID; }
         Creature* GetSummonerCreatureBase() const;
         ObjectGuid GetSummonerGUID() const { return m_summonerGUID; }
         TempSummonType const& GetSummonType() { return m_type; }

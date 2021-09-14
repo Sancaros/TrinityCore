@@ -1403,6 +1403,35 @@ bool Creature::isTappedBy(Player const* player) const
     return true;
 }
 
+std::vector<Player*> Creature::GetLootRecipients() const
+{
+    std::set<Player*> recipients;
+    for (ObjectGuid guid : m_lootRecipients)
+    {
+        if (guid.IsPlayer())
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
+                recipients.insert(player);
+
+        if (guid.IsParty())
+            if (Group* group = sGroupMgr->GetGroupByGUID(guid))
+                for (Group::MemberSlot const& slot : group->GetMemberSlots())
+                    if (Player* player = ObjectAccessor::FindConnectedPlayer(slot.guid))
+                        recipients.insert(player);
+    }
+
+    return std::vector<Player*>(recipients.begin(), recipients.end());
+}
+
+std::vector<Group*> Creature::GetLootRecipientGroups() const
+{
+    std::vector<Group*> recipients;
+    for (ObjectGuid guid : m_lootRecipients)
+        if (guid.IsParty())
+            recipients.push_back(sGroupMgr->GetGroupByGUID(guid));
+
+    return recipients;
+}
+
 void Creature::SaveToDB()
 {
     // this should only be used when the creature has already been loaded
@@ -2737,6 +2766,40 @@ void Creature::SendZoneUnderAttackMessage(Player* attacker)
     sWorld->SendGlobalMessage(packet.Write(), nullptr, (enemy_team == ALLIANCE ? HORDE : ALLIANCE));
 }
 
+void Creature::SetInCombatWithZone()
+{
+    if (!CanHaveThreatList())
+    {
+        TC_LOG_ERROR("entities.unit", "Creature entry %u call SetInCombatWithZone but creature cannot have threat list.", GetEntry());
+        return;
+    }
+
+    Map* map = GetMap();
+
+    if (!map->IsDungeon())
+    {
+        TC_LOG_ERROR("entities.unit", "Creature entry %u call SetInCombatWithZone for map (id: %u) that isn't an instance.", GetEntry(), map->GetId());
+        return;
+    }
+
+    Map::PlayerList const& PlList = map->GetPlayers();
+
+    if (PlList.isEmpty())
+        return;
+
+    for (Map::PlayerList::const_iterator i = PlList.begin(); i != PlList.end(); ++i)
+    {
+        if (Player* player = i->GetSource())
+        {
+            if (player->IsGameMaster())
+                continue;
+
+            if (player->IsAlive())
+                EngageWithTarget(player);
+        }
+    }
+}
+
 bool Creature::HasSpell(uint32 spellID) const
 {
     for (uint8 i = 0; i < MAX_CREATURE_SPELLS; ++i)
@@ -3420,4 +3483,16 @@ bool Creature::IsEscortNPC(bool onlyIfActive)
         return false;
 
     return AI()->IsEscortNPC(onlyIfActive);
+}
+
+void Creature::DespawnCreaturesInArea(uint32 entry, float range)
+{
+    std::list<Creature*> creatures;
+    GetCreatureListWithEntryInGrid(creatures, entry, range);
+
+    if (creatures.empty())
+        return;
+
+    for (std::list<Creature*>::iterator iter = creatures.begin(); iter != creatures.end(); ++iter)
+        (*iter)->DespawnOrUnsummon();
 }

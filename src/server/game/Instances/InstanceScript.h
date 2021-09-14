@@ -68,7 +68,10 @@ enum EncounterFrameType
     ENCOUNTER_FRAME_UPDATE_OBJECTIVE        = 7,
     ENCOUNTER_FRAME_DISABLE_OBJECTIVE       = 8,
     ENCOUNTER_FRAME_UNK7                    = 9,    // Seems to have something to do with sorting the encounter units
-    ENCOUNTER_FRAME_ADD_COMBAT_RES_LIMIT    = 10
+    ENCOUNTER_FRAME_ADD_COMBAT_RES_LIMIT    = 10,
+    ENCOUNTER_FRAME_INSTANCE_END = 11,
+    ENCOUNTER_FRAME_UPDATE_SUPPRESSING_RELEASE = 13,
+    ENCOUNTER_FRAME_UPDATE_ALLOWING_RELEASE = 12
 };
 
 enum EncounterState
@@ -211,6 +214,9 @@ class TC_GAME_API InstanceScript : public ZoneScript
         // Called when a player successfully enters the instance.
         virtual void OnPlayerEnter(Player* /*player*/) { }
 
+        virtual void OnCompletedCriteriaTree(CriteriaTree const* /*tree*/) { }
+        virtual void OnCreatureGroupWipe(uint32 /*creatureGroupId*/) { }
+
         // For use in InstanceScript
         virtual void OnPlayerEnterForScript(Player* player);
         virtual void OnPlayerLeaveForScript(Player* player);
@@ -227,6 +233,8 @@ class TC_GAME_API InstanceScript : public ZoneScript
 
         virtual void OnUnitCharmed(Unit* unit, Unit* charmer);
         virtual void OnUnitRemoveCharmed(Unit* unit, Unit* charmer);
+
+        void BroadcastPacket(WorldPacket const* data) const;
 
         // Handle open / close objects
         // * use HandleGameObject(0, boolen, GO); in OnObjectCreate in instance scripts
@@ -249,6 +257,8 @@ class TC_GAME_API InstanceScript : public ZoneScript
         // Update Achievement Criteria for all players in instance
         void DoUpdateCriteria(CriteriaType type, uint32 miscValue1 = 0, uint32 miscValue2 = 0, Unit* unit = nullptr);
 
+        void DoCompleteAchievement(uint32 achievement);
+
         // Start/Stop Timed Achievement Criteria for all players in instance
         void DoStartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
         void DoStopCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
@@ -261,6 +271,10 @@ class TC_GAME_API InstanceScript : public ZoneScript
 
         // Return wether server allow two side groups or not
         static bool ServerAllowsTwoSideGroups();
+
+        CreatureGroup* SummonCreatureGroup(uint32 creatureGroupID, std::list<TempSummon*>* list = nullptr);
+        CreatureGroup* GetCreatureGroup(uint32 creatureGroupID);
+        void DespawnCreatureGroup(uint32 creatureGroupID);
 
         virtual bool SetBossState(uint32 id, EncounterState state);
         EncounterState GetBossState(uint32 id) const { return id < bosses.size() ? bosses[id].state : TO_BE_DECIDED; }
@@ -301,13 +315,17 @@ class TC_GAME_API InstanceScript : public ZoneScript
         void SendEncounterUnit(uint32 type, Unit* unit = nullptr, uint8 priority = 0);
         void SendEncounterStart(uint32 inCombatResCount = 0, uint32 maxInCombatResCount = 0, uint32 inCombatResChargeRecovery = 0, uint32 nextCombatResChargeTime = 0);
         void SendEncounterEnd();
-
+        bool IsAllowingRelease;
         void SendBossKillCredit(uint32 encounterId);
 
         virtual void FillInitialWorldStates(WorldPackets::WorldState::InitWorldStates& /*packet*/) { }
 
         // ReCheck PhaseTemplate related conditions
         void UpdatePhasing();
+
+        //scenario thordekk
+        void CompleteScenario();
+        void CompleteCurrStep();
 
         uint32 GetEncounterCount() const { return uint32(bosses.size()); }
 
@@ -317,6 +335,16 @@ class TC_GAME_API InstanceScript : public ZoneScript
         void ResetCombatResurrections();
         uint8 GetCombatResurrectionCharges() const { return _combatResurrectionCharges; }
         uint32 GetCombatResurrectionChargeInterval() const;
+
+        //Thordekk
+        void AddTimedDelayedOperation(uint32 timeout, std::function<void()>&& function)
+        {
+            emptyWarned = false;
+            timedDelayedOperations.push_back(std::pair<uint32, std::function<void()>>(timeout, function));
+        }
+
+        std::vector<std::pair<int32, std::function<void()>>>    timedDelayedOperations;   ///< Delayed operations
+        bool                                                    emptyWarned;              ///< Warning when there are no more delayed operations
 
          /// Challenge
         void SetChallenge(Challenge* challenge);
@@ -334,6 +362,27 @@ class TC_GAME_API InstanceScript : public ZoneScript
         ObjectGuid _challengeOrbGuid;
         ObjectGuid _challengeChest;
 
+        // Execute the parameter function for all players in instance
+        void DoOnPlayers(std::function<void(Player*)>&& function);
+
+        void DoAddAuraOnPlayers(uint32 spell);
+
+        void DoPlayScenePackageIdOnPlayers(uint32 scenePackageId);
+
+        void DoStartMovie(uint32 movieId);
+
+        void DoPlayConversation(uint32 conversationId);
+
+        //Scenarios
+        void DoSendScenarioEvent(uint32 eventId);
+        void GetScenarioByID(Player* p_Player, uint32 p_ScenarioId);
+
+        void DoNearTeleportPlayers(const Position pos, bool casting);
+
+        void DoTeleportPlayers(uint32 mapId, const Position pos);
+
+        void SetCheckPointPos(Position pos) { _checkPointPosition = pos; }
+        Optional<Position> GetCheckPoint() { return _checkPointPosition; }
 
     protected:
         void SetHeaders(std::string const& dataHeaders);
@@ -373,6 +422,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         static void LoadObjectData(ObjectData const* creatureData, ObjectInfoMap& objectInfo);
         void UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Unit* source);
 
+        std::map<uint32, std::list<ObjectGuid>> summonBySummonGroupIDs;
         std::vector<char> headers;
         std::vector<BossInfo> bosses;
         DoorInfoMap doors;
@@ -388,6 +438,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         uint32 _combatResurrectionTimer;
         uint8 _combatResurrectionCharges; // the counter for available battle resurrections
         bool _combatResurrectionTimerStarted;
+        Optional<Position> _checkPointPosition;
         Challenge* _challenge;
 
     #ifdef TRINITY_API_USE_DYNAMIC_LINKING

@@ -142,6 +142,7 @@ class TC_GAME_API GameObject : public WorldObject, public GridObject<GameObject>
             SetUpdateFieldValue(m_values.ModifyValue(&GameObject::m_gameObjectData).ModifyValue(&UF::GameObjectData::CreatedBy), owner);
         }
         ObjectGuid GetOwnerGUID() const override { return m_gameObjectData->CreatedBy; }
+        Unit* GetOwner() const;
 
         void SetSpellId(uint32 id)
         {

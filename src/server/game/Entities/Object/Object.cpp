@@ -38,6 +38,7 @@
 #include "PhasingHandler.h"
 #include "Player.h"
 #include "ReputationMgr.h"
+#include "SharedDefines.h"
 #include "SpellAuraEffects.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
@@ -1851,6 +1852,7 @@ void Map::SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list /*= null
 
 void WorldObject::SetZoneScript()
 {
+    m_zoneScript = nullptr;
     if (Map* map = FindMap())
     {
         if (map->IsDungeon())
@@ -1859,8 +1861,10 @@ void WorldObject::SetZoneScript()
         {
             if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(GetZoneId()))
                 m_zoneScript = bf;
+            else if (ZoneScript* out = sOutdoorPvPMgr->GetZoneScript(GetZoneId()))
+                m_zoneScript = out;
             else
-                m_zoneScript = sOutdoorPvPMgr->GetZoneScript(GetZoneId());
+                m_zoneScript = sScriptMgr->GetZoneScript(sObjectMgr->GetScriptIdForZone(GetZoneId()));
         }
     }
 }
@@ -1989,6 +1993,53 @@ Creature* WorldObject::FindNearestCreature(uint32 entry, float range, bool alive
     return creature;
 }
 
+Creature* WorldObject::FindNearestCreature(std::list<uint32> entrys, float range, bool alive) const
+{
+    Creature* creature = nullptr;
+    for (std::list<uint32>::iterator itr = entrys.begin(); itr != entrys.end(); ++itr)
+        if (Creature* npc = FindNearestCreature((*itr), range, alive))
+            if (this->GetDistance2d(npc) < range)
+            {
+                creature = npc;
+                range = this->GetDistance2d(npc);
+            }
+
+    return creature;
+}
+
+std::list<Creature*> WorldObject::FindNearestCreatures(uint32 entry, float range) const
+{
+    std::list<Creature*> creatureList;
+    GetCreatureListWithEntryInGrid(creatureList, entry, range);
+    return creatureList;
+}
+
+Creature* WorldObject::FindNearestCreatureOnTransportInFloor(uint32 entry, float rangeXY, float rangeZ)
+{
+    Position posS = m_movementInfo.transport.pos;
+    Creature* rNpc = nullptr;
+    float rDist = rangeXY;
+    float max = (rangeXY > rangeZ) ? rangeXY : rangeZ;
+    std::list<Creature*> cList = FindNearestCreatures(entry, max);
+    for (auto creature : cList)
+    {
+        if (creature->IsAlive())
+        {
+            Position posT = creature->m_movementInfo.transport.pos;
+            float dist = posS.GetExactDist2d(&posT);
+            if (dist < rDist)
+            {
+                if (fabs(posS.m_positionZ - posT.m_positionZ) < rangeZ)
+                {
+                    rDist = dist;
+                    rNpc = creature;
+                }
+            }
+        }
+    }
+
+    return rNpc;
+}
 
 std::list<Creature*> WorldObject::FindAllCreaturesInRange(float range)
 {
@@ -2006,6 +2057,55 @@ std::list<Creature*> WorldObject::FindAllCreaturesInRange(float range)
     cell.Visit(pair, cSearcher, *(GetMap()), *this, this->GetGridActivationRange());
 
     return templist;
+}
+
+Creature* WorldObject::FindNearestAttackableCreatureOnTransportInFloor(float rangeXY, float rangeZ)
+{
+    Position posS = m_movementInfo.transport.pos;
+    Creature* rNpc = nullptr;
+    float rDist = rangeXY;
+    float max = (rangeXY > rangeZ) ? rangeXY : rangeZ;
+    std::list<Creature*> cList = FindAllUnfriendlyCreaturesInRange(max);
+    for (auto creature : cList)
+        if (creature->IsAlive())
+        {
+            Position posT = creature->m_movementInfo.transport.pos;
+            float dist = posS.GetExactDist2d(&posT);
+            if (dist < rDist)
+                if (fabs(posS.m_positionZ - posT.m_positionZ) < rangeZ)
+                {
+                    rDist = dist;
+                    rNpc = creature;
+                }
+        }
+    return rNpc;
+}
+
+std::list<Creature*> WorldObject::FindAllUnfriendlyCreaturesInRange(float range)
+{
+    std::list<Creature*> templist;
+    if (Unit* unit = this->ToUnit())
+    {
+        float x, y, z;
+        unit->GetPosition(x, y, z);
+
+        CellCoord pair(Trinity::ComputeCellCoord(x, y));
+        Cell cell(pair);
+        cell.SetNoCreate();
+
+        Trinity::AttackableUnitInObjectRangeCheck check(unit, range);
+        Trinity::CreatureListSearcher<Trinity::AttackableUnitInObjectRangeCheck> searcher(unit, templist, check);
+        TypeContainerVisitor<Trinity::CreatureListSearcher<Trinity::AttackableUnitInObjectRangeCheck>, GridTypeMapContainer> cSearcher(searcher);
+        cell.Visit(pair, cSearcher, *(unit->GetMap()), *unit, unit->GetGridActivationRange());
+    }
+    return templist;
+}
+
+std::list<GameObject*> WorldObject::FindNearestGameObjects(uint32 entry, float range) const
+{
+    std::list<GameObject*> goList;
+    GetGameObjectListWithEntryInGrid(goList, entry, range);
+    return goList;
 }
 
 GameObject* WorldObject::FindNearestGameObject(uint32 entry, float range) const
@@ -2035,6 +2135,44 @@ Player* WorldObject::SelectNearestPlayer(float distance) const
     Cell::VisitGridObjects(this, searcher, distance);
 
     return target;
+}
+//update log
+std::list<Player*> WorldObject::SelectNearestPlayers(float range, bool alive)
+{
+    std::list<Player*> PlayerList;
+    Trinity::AnyPlayerInObjectRangeCheck checker(this, range, alive);
+    Trinity::PlayerListSearcher<Trinity::AnyPlayerInObjectRangeCheck> searcher(this, PlayerList, checker);
+    Cell::VisitGridObjects(this, searcher, range);
+    return PlayerList;
+}
+
+AreaTrigger* WorldObject::SelectNearestAreaTrigger(uint32 spellId, float distance) const
+{
+    AreaTrigger* target = nullptr;
+
+    Trinity::NearestAreaTriggerWithIdInObjectRangeCheck checker(this, spellId, distance);
+    Trinity::AreaTriggerSearcher<Trinity::NearestAreaTriggerWithIdInObjectRangeCheck> searcher(this, target, checker);
+    Cell::VisitAllObjects(this, searcher, distance);
+
+    return target;
+}
+
+std::list<AreaTrigger*> WorldObject::SelectNearestAreaTriggers(uint32 spellId, float range)
+{
+    std::list<AreaTrigger*> atList;
+    Trinity::AnyAreatriggerInObjectRangeCheck checker(this, range);
+    Trinity::AreaTriggerListSearcher<Trinity::AnyAreatriggerInObjectRangeCheck> searcher(this, atList, checker);
+    Cell::VisitGridObjects(this, searcher, range);
+
+    atList.remove_if([spellId](AreaTrigger* p_AreaTrigger)
+    {
+        if (p_AreaTrigger == nullptr || p_AreaTrigger->GetSpellId() != spellId)
+            return true;
+
+        return false;
+    });
+
+    return atList;
 }
 
 ObjectGuid WorldObject::GetCharmerOrOwnerOrOwnGUID() const
@@ -3068,6 +3206,14 @@ void WorldObject::GetContactPoint(WorldObject const* obj, float& x, float& y, fl
     GetNearPoint(obj, x, y, z, obj->GetCombatReach(), distance2d, GetAngle(obj));
 }
 
+float WorldObject::GetObjectSize() const
+{
+    if (Unit const* thisUnit = ToUnit())
+        return thisUnit->m_unitData->CombatReach;
+
+    return DEFAULT_WORLD_OBJECT_SIZE;
+}
+
 void WorldObject::MovePosition(Position &pos, float dist, float angle)
 {
     angle += GetOrientation();
@@ -3202,6 +3348,15 @@ void WorldObject::PlayDirectMusic(uint32 musicId, Player* target /*= nullptr*/)
         SendMessageToSet(WorldPackets::Misc::PlayMusic(musicId).Write(), true);
 }
 
+void WorldObject::GetCreatureListWithEntryInGridAppend(std::list<Creature*>& creatureList, uint32 entry, float maxSearchRange) const
+{
+    std::list<Creature*> tempList;
+    GetCreatureListWithEntryInGrid(tempList, entry, maxSearchRange);
+    creatureList.sort();
+    tempList.sort();
+    creatureList.merge(tempList);
+}
+
 void WorldObject::DestroyForNearbyPlayers()
 {
     if (!IsInWorld())
@@ -3226,6 +3381,7 @@ void WorldObject::DestroyForNearbyPlayers()
 
         DestroyForPlayer(player);
         player->m_clientGUIDs.erase(GetGUID());
+        player->GetVignetteMgr().OnWorldObjectDisappear(this);
     }
 }
 
@@ -3353,6 +3509,28 @@ float WorldObject::GetMapHeight(float x, float y, float z, bool vmap/* = true*/,
         z += GetCollisionHeight();
 
     return GetMap()->GetHeight(GetPhaseShift(), x, y, z, vmap, distanceToSearch);
+}
+
+void WorldObject::SetRWVisibilityRange(float rwvisible)
+{
+    if (rwvisible <= 0.0f)
+    {
+        m_rwVisibility = false;
+        m_rwVisibilityRange = 0.0f;
+        return;
+    }
+    m_rwVisibility = true;
+    m_rwVisibilityRange = rwvisible;
+}
+
+bool WorldObject::IsRWVisibility()
+{
+    return m_rwVisibility;
+}
+
+float WorldObject::GetRWVisibility()
+{
+    return m_rwVisibilityRange;
 }
 
 template TC_GAME_API void WorldObject::GetGameObjectListWithEntryInGrid(std::list<GameObject*>&, uint32, float) const;

@@ -42,6 +42,7 @@
 #include <sstream>
 #include <cstdarg>
 #include "SpellMgr.h"
+#include <Scenarios\ScenarioMgr.h>
 
 BossBoundaryData::~BossBoundaryData()
 {
@@ -646,6 +647,21 @@ void InstanceScript::DoUpdateCriteria(CriteriaType type, uint32 miscValue1 /*= 0
                 player->UpdateCriteria(type, miscValue1, miscValue2, 0, unit);
 }
 
+void InstanceScript::DoCompleteAchievement(uint32 achievement)
+{
+    AchievementEntry const* achievementEntry = sAchievementStore.LookupEntry(achievement);
+    if (!achievementEntry)
+    {
+        TC_LOG_ERROR("scripts", "DoCompleteAchievement called for not existing achievement %u", achievement);
+        return;
+    }
+
+    DoOnPlayers([achievementEntry](Player* player)
+    {
+        player->CompletedAchievement(achievementEntry);
+    });
+}
+
 // Start timed achievement for all players in instance
 void InstanceScript::DoStartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry)
 {
@@ -702,6 +718,44 @@ bool InstanceScript::ServerAllowsTwoSideGroups()
     return sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP);
 }
 
+CreatureGroup* InstanceScript::SummonCreatureGroup(uint32 creatureGroupID, std::list<TempSummon*>* list /*= nullptr*/)
+{
+    bool createTempList = !list;
+    if (createTempList)
+        list = new std::list<TempSummon*>;
+
+    instance->SummonCreatureGroup(creatureGroupID, list);
+
+    for (TempSummon* summon : *list)
+        summonBySummonGroupIDs[creatureGroupID].push_back(summon->GetGUID());
+
+    if (createTempList)
+    {
+        delete list;
+        list = nullptr;
+    }
+
+    return GetCreatureGroup(creatureGroupID);
+}
+
+CreatureGroup* InstanceScript::GetCreatureGroup(uint32 creatureGroupID)
+{
+    for (ObjectGuid guid : summonBySummonGroupIDs[creatureGroupID])
+        if (Creature* summon = instance->GetCreature(guid))
+            return summon->GetFormation();
+
+    return nullptr;
+}
+
+void InstanceScript::DespawnCreatureGroup(uint32 creatureGroupID)
+{
+    for (ObjectGuid guid : summonBySummonGroupIDs[creatureGroupID])
+        if (Creature* summon = instance->GetCreature(guid))
+            summon->DespawnOrUnsummon();
+
+    summonBySummonGroupIDs.erase(creatureGroupID);
+}
+
 bool InstanceScript::CheckAchievementCriteriaMeet(uint32 criteria_id, Player const* /*source*/, Unit const* /*target*/ /*= nullptr*/, uint32 /*miscvalue1*/ /*= 0*/)
 {
     TC_LOG_ERROR("misc", "Achievement system call InstanceScript::CheckAchievementCriteriaMeet but instance script for map %u not have implementation for achievement criteria %u",
@@ -739,6 +793,8 @@ void InstanceScript::SendEncounterUnit(uint32 type, Unit* unit /*= nullptr*/, ui
             WorldPackets::Instance::InstanceEncounterDisengageUnit encounterDisengageMessage;
             encounterDisengageMessage.Unit = unit->GetGUID();
             instance->SendToPlayers(encounterDisengageMessage.Write());
+            instance->m_activeEntry = 0;
+            instance->m_activeEncounter = 0;
             break;
         }
         case ENCOUNTER_FRAME_UPDATE_PRIORITY:           // SMSG_INSTANCE_ENCOUNTER_CHANGE_PRIORITY
@@ -750,6 +806,28 @@ void InstanceScript::SendEncounterUnit(uint32 type, Unit* unit /*= nullptr*/, ui
             encounterChangePriorityMessage.Unit = unit->GetGUID();
             encounterChangePriorityMessage.TargetFramePriority = priority;
             instance->SendToPlayers(encounterChangePriorityMessage.Write());
+            break;
+        }
+        case ENCOUNTER_FRAME_UPDATE_ALLOWING_RELEASE:
+        {
+            if (!unit)
+                return;
+
+            IsAllowingRelease = priority;
+            WorldPackets::Instance::InstanceEncounterUpdateAllowingRelease packet;
+            packet.ReleaseAllowed = priority;
+            instance->SendToPlayers(packet.Write());
+            break;
+        }
+        case ENCOUNTER_FRAME_UPDATE_SUPPRESSING_RELEASE:
+        {
+            if (!unit)
+                return;
+
+            IsAllowingRelease = false;
+            WorldPackets::Instance::InstanceEncounterUpdateSuppressingRelease packet;
+            packet.ReleaseDisabled = IsAllowingRelease;
+            instance->SendToPlayers(packet.Write());
             break;
         }
         default:
@@ -843,6 +921,22 @@ void InstanceScript::UpdatePhasing()
             PhasingHandler::SendToPlayer(player);
 }
 
+void InstanceScript::CompleteScenario()
+{
+    if (InstanceScenario* inScenario = instance->GetInstanceScenario())
+        inScenario->CompleteScenario();
+    else
+        TC_LOG_ERROR("scripts", "InstanceScript::CompleteScenario() fail", "");
+}
+
+void InstanceScript::CompleteCurrStep()
+{
+    if (InstanceScenario* inScenario = instance->GetInstanceScenario())
+        inScenario->CompleteCurrStep();
+    else
+        TC_LOG_ERROR("scripts", "InstanceScript::CompleteCurrStep() fail", "");
+}
+
 /*static*/ char const* InstanceScript::GetBossStateName(uint8 state)
 {
     // See enum EncounterState in InstanceScript.h
@@ -926,6 +1020,95 @@ bool InstanceHasScript(WorldObject const* obj, char const* scriptName)
         return instance->GetScriptName() == scriptName;
 
     return false;
+}
+
+void InstanceScript::DoNearTeleportPlayers(const Position pos, bool casting /*=false*/)
+{
+    DoOnPlayers([pos, casting](Player* player)
+    {
+        player->NearTeleportTo(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation(), casting);
+    });
+}
+
+void InstanceScript::DoTeleportPlayers(uint32 mapId, const Position pos)
+{
+    DoOnPlayers([pos, mapId](Player* player)
+    {
+        player->TeleportTo(mapId, pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ(), pos.GetOrientation());
+    });
+}
+
+void InstanceScript::DoOnPlayers(std::function<void(Player*)>&& function)
+{
+    Map::PlayerList const& plrList = instance->GetPlayers();
+
+    if (!plrList.isEmpty())
+        for (Map::PlayerList::const_iterator i = plrList.begin(); i != plrList.end(); ++i)
+            if (Player* player = i->GetSource())
+                function(player);
+}
+
+// Add aura on all players in instance
+void InstanceScript::DoAddAuraOnPlayers(uint32 spell)
+{
+    DoOnPlayers([spell](Player* player)
+    {
+        player->AddAura(spell, player);
+    });
+}
+
+// Cast spell on all players in instance
+void InstanceScript::DoPlayScenePackageIdOnPlayers(uint32 scenePackageId)
+{
+    DoOnPlayers([scenePackageId](Player* player)
+    {
+        player->GetSceneMgr().PlaySceneByPackageId(scenePackageId);
+    });
+}
+
+void InstanceScript::DoStartMovie(uint32 movieId)
+{
+    MovieEntry const* movieEntry = sMovieStore.LookupEntry(movieId);
+    if (!movieEntry)
+    {
+        TC_LOG_ERROR("scripts", "DoStartMovie called for not existing movieId %u", movieId);
+        return;
+    }
+
+    DoOnPlayers([movieId](Player* player)
+    {
+        player->SendMovieStart(movieId);
+    });
+}
+
+void InstanceScript::DoPlayConversation(uint32 conversationId)
+{
+    DoOnPlayers([conversationId](Player* player)
+    {
+        player->PlayConversation(conversationId);
+    });
+}
+
+void InstanceScript::DoSendScenarioEvent(uint32 eventId)
+{
+    DoOnPlayers([eventId](Player* player)
+    {
+        player->GetScenario()->SendScenarioEvent(player, eventId);
+        return;
+    });
+}
+
+void InstanceScript::GetScenarioByID(Player* p_Player, uint32 p_ScenarioId)
+{
+    InstanceMap* map = instance->ToInstanceMap();
+
+    if (InstanceScenario* instanceScenario = sScenarioMgr->CreateInstanceScenarioByID(map, p_ScenarioId))
+    {
+        TC_LOG_ERROR("scripts", "GetScenarioByID CreateInstanceScenario %s", "");
+        map->SetInstanceScenario(instanceScenario);
+    }
+    else
+        TC_LOG_DEBUG("scripts", "InstanceScript: GetScenarioByID failed");
 }
 
 void InstanceScript::OnPlayerEnterForScript(Player* player)
@@ -1035,3 +1218,13 @@ void InstanceScript::OnUnitRemoveCharmed(Unit* unit, Unit* charmer)
         _challenge->OnUnitRemoveCharmed(unit, charmer);
 }
 
+void InstanceScript::BroadcastPacket(WorldPacket const* data) const
+{
+    if (!this || !instance)
+        return;
+
+    instance->ApplyOnEveryPlayer([&](Player* player)
+    {
+        player->SendDirectMessage(data);
+    });
+}

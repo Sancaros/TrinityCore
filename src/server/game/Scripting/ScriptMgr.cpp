@@ -115,6 +115,10 @@ struct is_script_database_bound<AreaTriggerEntityScript>
     : std::true_type { };
 
 template<>
+struct is_script_database_bound<GarrisonScript>
+    : std::true_type { };
+
+template<>
 struct is_script_database_bound<ConversationScript>
     : std::true_type { };
 
@@ -124,6 +128,10 @@ struct is_script_database_bound<SceneScript>
 
 template<>
 struct is_script_database_bound<QuestScript>
+    : std::true_type { };
+
+template<>
+struct is_script_database_bound<ZoneScript>
     : std::true_type { };
 
 enum Spells
@@ -763,6 +771,35 @@ private:
 /// This hook is responsible for swapping QuestScript's
 template<typename Base>
 class ScriptRegistrySwapHooks<QuestScript, Base>
+    : public ScriptRegistrySwapHookBase
+{
+public:
+    ScriptRegistrySwapHooks() : swapped(false) { }
+
+    void BeforeReleaseContext(std::string const& context) final override
+    {
+        auto const bounds = static_cast<Base*>(this)->_ids_of_contexts.equal_range(context);
+        if (bounds.first != bounds.second)
+            swapped = true;
+    }
+
+    void BeforeSwapContext(bool /*initialize*/) override
+    {
+        swapped = false;
+    }
+
+    void BeforeUnload() final override
+    {
+        ASSERT(!swapped);
+    }
+
+private:
+    bool swapped;
+};
+
+/// This hook is responsible for swapping ZoneScript's
+template<typename Base>
+class ScriptRegistrySwapHooks<ZoneScript, Base>
     : public ScriptRegistrySwapHookBase
 {
 public:
@@ -1640,6 +1677,26 @@ AreaTriggerAI* ScriptMgr::GetAreaTriggerAI(AreaTrigger* areatrigger)
     return tmpscript->GetAI(areatrigger);
 }
 
+GarrisonAI* ScriptMgr::GetGarrisonAI(Garrison* garrison)
+{
+    /// @todo Implement script-side
+    ABORT();
+    return nullptr;
+    /*ASSERT(garrison);
+
+    GET_SCRIPT_RET(GarrisonScript, garrison->GetScriptId(), tmpscript, nullptr);
+    return tmpscript->GetAI(garrison);*/
+}
+
+ZoneScript* ScriptMgr::GetZoneScript(uint32 scriptId)
+{
+    if (!scriptId)
+        return nullptr;
+
+    GET_SCRIPT_RET(ZoneScript, scriptId, zoneScript, nullptr);
+    return zoneScript;
+}
+
 void ScriptMgr::OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type)
 {
     FOREACH_SCRIPT(WorldStateScript)->OnCreate(variableID, value, type);
@@ -1648,8 +1705,16 @@ void ScriptMgr::OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type)
 void ScriptMgr::OnWorldStateDelete(uint32 variableID, uint8 type)
 {
     FOREACH_SCRIPT(WorldStateScript)->OnDelete(variableID, type);
-
 }
+
+void ScriptMgr::OnCreatureUpdate(Creature* creature, uint32 diff)
+{
+    ASSERT(creature);
+
+    GET_SCRIPT(CreatureScript, creature->GetScriptId(), tmpscript);
+    tmpscript->OnUpdate(creature, diff);
+}
+
 bool ScriptMgr::OnGossipHello(Player* player, GameObject* go)
 {
     ASSERT(player);
@@ -2450,6 +2515,12 @@ AccountScript::AccountScript(char const* name)
     ScriptRegistry<AccountScript>::Instance()->AddScript(this);
 }
 
+RestScript::RestScript(const char* url)
+    : ScriptObject(url)
+{
+    ScriptRegistry<RestScript>::Instance()->AddScript(this);
+}
+
 SceneScript::SceneScript(char const* name)
     : ScriptObject(name)
 {
@@ -2480,10 +2551,22 @@ AreaTriggerEntityScript::AreaTriggerEntityScript(char const* name)
     ScriptRegistry<AreaTriggerEntityScript>::Instance()->AddScript(this);
 }
 
+GarrisonScript::GarrisonScript(const char* name)
+    : ScriptObject(name)
+{
+    ScriptRegistry<GarrisonScript>::Instance()->AddScript(this);
+}
+
 ConversationScript::ConversationScript(char const* name)
     : ScriptObject(name)
 {
     ScriptRegistry<ConversationScript>::Instance()->AddScript(this);
+}
+
+ZoneScript::ZoneScript(const char* name)
+    : ScriptObject(name), _scriptType(ZONE_SCRIPT_TYPE_ZONE)
+{
+    ScriptRegistry<ZoneScript>::Instance()->AddScript(this);
 }
 
 // Specialize for each script type class like so:
@@ -2513,7 +2596,10 @@ template class TC_GAME_API ScriptRegistry<GuildScript>;
 template class TC_GAME_API ScriptRegistry<GroupScript>;
 template class TC_GAME_API ScriptRegistry<UnitScript>;
 template class TC_GAME_API ScriptRegistry<AccountScript>;
+template class TC_GAME_API ScriptRegistry<RestScript>;
 template class TC_GAME_API ScriptRegistry<AreaTriggerEntityScript>;
+template class TC_GAME_API ScriptRegistry<GarrisonScript>;
 template class TC_GAME_API ScriptRegistry<ConversationScript>;
 template class TC_GAME_API ScriptRegistry<SceneScript>;
 template class TC_GAME_API ScriptRegistry<QuestScript>;
+template class TC_GAME_API ScriptRegistry<ZoneScript>;

@@ -461,6 +461,9 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         GameObject* GetGameObjectBySpawnId(ObjectGuid::LowType spawnId) const;
         WorldObject* GetWorldObjectBySpawnId(SpawnObjectType type, ObjectGuid::LowType spawnId) const { return (type == SPAWN_TYPE_GAMEOBJECT) ? reinterpret_cast<WorldObject*>(GetGameObjectBySpawnId(spawnId)) : reinterpret_cast<WorldObject*>(GetCreatureBySpawnId(spawnId)); }
 
+        uint32 m_activeEntry;
+        uint32 m_activeEncounter;
+
         MapStoredObjectTypesContainer& GetObjectsStore() { return _objectsStore; }
 
         typedef std::unordered_multimap<ObjectGuid::LowType, Creature*> CreatureBySpawnIdContainer;

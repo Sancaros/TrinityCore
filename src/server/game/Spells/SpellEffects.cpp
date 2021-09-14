@@ -558,7 +558,7 @@ void Spell::EffectDummy()
 
                     // not empty (checked), copy
                     Unit::AttackerSet attackers = unitTarget->getAttackers();
-
+                    Unit* const m_caster = unitCaster;
                     // remove invalid attackers
                     for (Unit::AttackerSet::iterator aItr = attackers.begin(); aItr != attackers.end();)
                         if (!(*aItr)->IsValidAttackTarget(m_caster))
@@ -1184,7 +1184,7 @@ void Spell::EffectHeal()
         addhealth = bonus + uint32(bonus * variance);
     }
 
-    addhealth = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, addhealth, HEAL);
+    addhealth = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, addhealth, HEAL, *effectInfo);
 
     // Remove Grievious bite if fully healed
     if (unitTarget->HasAura(48920) && (unitTarget->GetHealth() + addhealth >= unitTarget->GetMaxHealth()))
@@ -1205,7 +1205,7 @@ void Spell::EffectHealPct()
     if (unitCaster)
     {
         heal = unitCaster->SpellHealingBonusDone(unitTarget, m_spellInfo, heal, HEAL, *effectInfo);
-        heal = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, heal, HEAL);
+        heal = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, heal, HEAL, *effectInfo);
     }
 
     m_healing += heal;
@@ -1225,7 +1225,7 @@ void Spell::EffectHealMechanical()
 
     heal += uint32(heal * variance);
     if (unitCaster)
-        heal = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, heal, HEAL);
+        heal = unitTarget->SpellHealingBonusTaken(unitCaster, m_spellInfo, heal, HEAL, *effectInfo);
 
     m_healing += heal;
 }
@@ -1258,7 +1258,7 @@ void Spell::EffectHealthLeech()
     if (unitCaster && unitCaster->IsAlive())
     {
         healthGain = unitCaster->SpellHealingBonusDone(unitCaster, m_spellInfo, healthGain, HEAL, *effectInfo);
-        healthGain = unitCaster->SpellHealingBonusTaken(unitCaster, m_spellInfo, healthGain, HEAL);
+        healthGain = unitCaster->SpellHealingBonusTaken(unitCaster, m_spellInfo, healthGain, HEAL, *effectInfo);
 
         HealInfo healInfo(unitCaster, unitCaster, healthGain, m_spellInfo, m_spellSchoolMask);
         unitCaster->HealBySpell(healInfo);

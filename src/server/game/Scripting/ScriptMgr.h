@@ -21,6 +21,9 @@
 #include "Common.h"
 #include "ObjectGuid.h"
 #include <vector>
+#include "WorldSession.h"
+#include "SpellMgr.h"
+#include <boost/property_tree/ptree.hpp>
 
 class AccountMgr;
 class AreaTrigger;
@@ -64,6 +67,8 @@ class WorldPacket;
 class WorldSocket;
 class WorldObject;
 class WorldSession;
+class RestResponse;
+class ZoneScript;
 
 struct AreaTriggerEntry;
 struct AuctionPosting;
@@ -73,12 +78,14 @@ struct CreatureTemplate;
 struct CreatureData;
 struct ItemTemplate;
 struct MapEntry;
+struct OutdoorPvPData;
 struct QuestObjective;
 struct SceneTemplate;
 
 enum BattlegroundTypeId : uint32;
 enum Difficulty : uint8;
 enum DuelCompleteType : uint8;
+enum Powers : int8;
 enum QuestStatus : uint8;
 enum RemoveMethod : uint8;
 enum ShutdownExitCode : uint32;
@@ -414,7 +421,7 @@ class TC_GAME_API UnitScript : public ScriptObject
         virtual void ModifySpellDamageTaken(Unit* /*target*/, Unit* /*attacker*/, int32& /*damage*/, SpellInfo const* /*spellInfo*/) { }
 };
 
-class TC_GAME_API CreatureScript : public UnitScript
+class TC_GAME_API CreatureScript : public UnitScript, public UpdatableScript<Creature>
 {
     protected:
 
@@ -752,6 +759,20 @@ class TC_GAME_API AccountScript : public ScriptObject
         virtual void OnFailedPasswordChange(uint32 /*accountId*/) {}
 };
 
+class TC_GAME_API RestScript : public ScriptObject
+{
+protected:
+    RestScript(const char* url);
+
+public:
+
+    // Called when Rest request received with GET method for this URL
+    virtual void OnGet(RestResponse& /*response*/) { }
+
+    // Called when Rest request received with POST method for this URL
+    virtual void OnPost(boost::property_tree::ptree /*tree*/, RestResponse& /*response*/) { }
+};
+
 class TC_GAME_API GuildScript : public ScriptObject
 {
     protected:
@@ -829,6 +850,18 @@ class TC_GAME_API AreaTriggerEntityScript : public ScriptObject
         virtual AreaTriggerAI* GetAI(AreaTrigger* /*at*/) const { return nullptr; }
 };
 
+class TC_GAME_API GarrisonScript : public ScriptObject
+{
+protected:
+
+    GarrisonScript(const char* name);
+
+public:
+
+    // Called when a GarrisonAI object is needed for the garrison.
+    virtual GarrisonAI* GetAI(Garrison* /*gar*/) const { return nullptr; }
+};
+
 class TC_GAME_API ConversationScript : public ScriptObject
 {
     protected:
@@ -838,6 +871,9 @@ class TC_GAME_API ConversationScript : public ScriptObject
 
         // Called when Conversation is created but not added to Map yet.
         virtual void OnConversationCreate(Conversation* /*conversation*/, Unit* /*creator*/) { }
+
+    // Called when Conversation is removed
+    virtual void OnConversationRemove(Conversation* /*conversation*/, Unit* /*creator*/) { }
 };
 
 class TC_GAME_API SceneScript : public ScriptObject
@@ -858,6 +894,9 @@ class TC_GAME_API SceneScript : public ScriptObject
 
         // Called when a scene is completed
         virtual void OnSceneComplete(Player* /*player*/, uint32 /*sceneInstanceID*/, SceneTemplate const* /*sceneTemplate*/) { }
+
+    // Called when a scene is either canceled or completed
+    virtual void OnSceneEnd(Player* /*player*/, uint32 /*sceneInstanceID*/, SceneTemplate const* /*sceneTemplate*/) { }
 };
 
 class TC_GAME_API QuestScript : public ScriptObject
@@ -1009,6 +1048,7 @@ class TC_GAME_API ScriptMgr
 
     bool OnGossipHello(Player* player, Creature* creature);
         CreatureAI* GetCreatureAI(Creature* creature);
+    void OnCreatureUpdate(Creature* creature, uint32 diff);
 
     public: /* GameObjectScript */
 
@@ -1154,7 +1194,10 @@ class TC_GAME_API ScriptMgr
 
     public: /* ConversationScript */
 
+    GarrisonAI* GetGarrisonAI(Garrison* garrison);
+public: /* ConversationScript */
         void OnConversationCreate(Conversation* conversation, Unit* creator);
+    void OnConversationRemove(Conversation* conversation, Unit* creator);
 
     public: /* SceneScript */
 
@@ -1169,6 +1212,7 @@ class TC_GAME_API ScriptMgr
         void OnQuestAcknowledgeAutoAccept(Player* player, Quest const* quest);
         void OnQuestObjectiveChange(Player* player, Quest const* quest, QuestObjective const& objective, int32 oldAmount, int32 newAmount);
 public: /* ZoneScript */
+    ZoneScript* GetZoneScript(uint32 scriptId);
 
     public: /* WorldStateScript */
         void OnWorldStateCreate(uint32 variableID, uint32 value, uint8 type);
@@ -1218,6 +1262,13 @@ class GenericCreatureScript : public CreatureScript
         CreatureAI* GetAI(Creature* me) const override { return new AI(me); }
 };
 #define RegisterCreatureAI(ai_name) new GenericCreatureScript<ai_name>(#ai_name)
+#define RegisterCreatureScript(script) new script()
+#define RegisterSceneScript(script) new script()
+#define RegisterQuestScript(script) new script()
+#define RegisterConversationScript(script) new script()
+#define RegisterPlayerScript(script) new script()
+#define RegisterZoneScript(script) new script()
+#define RegisterItemScript(script) new script()
 
 template <class AI, AI*(*AIFactory)(Creature*)>
 class FactoryCreatureScript : public CreatureScript
@@ -1245,6 +1296,24 @@ class GenericAreaTriggerEntityScript : public AreaTriggerEntityScript
         AreaTriggerAI* GetAI(AreaTrigger* at) const override { return new AI(at); }
 };
 #define RegisterAreaTriggerAI(ai_name) new GenericAreaTriggerEntityScript<ai_name>(#ai_name)
+
+template <class AI>
+class GenericGarrisonScript : public GarrisonScript
+{
+public:
+    GenericGarrisonScript(char const* name) : GarrisonScript(name) { }
+    GarrisonAI* GetAI(Garrison* gar) const override { return new AI(gar); }
+};
+#define RegisterGarrisonAI(ai_name) new GenericGarrisonScript<ai_name>(#ai_name)
+
+template <class AI>
+class GenericInstanceMapScript : public InstanceMapScript
+{
+public:
+    GenericInstanceMapScript(char const* name, uint32 mapId) : InstanceMapScript(name, mapId) { }
+    InstanceScript* GetInstanceScript(InstanceMap* map) const override { return new AI(map); }
+};
+#define RegisterInstanceScript(ai_name, mapId) new GenericInstanceMapScript<ai_name>(#ai_name, mapId)
 
 #define sScriptMgr ScriptMgr::instance()
 

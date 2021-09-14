@@ -254,6 +254,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         void DespawnOrUnsummon(uint32 msTimeToDespawn = 0, Seconds const& forceRespawnTime = Seconds(0));
         void DespawnOrUnsummon(Milliseconds const& time, Seconds const& forceRespawnTime = Seconds(0)) { DespawnOrUnsummon(uint32(time.count()), forceRespawnTime); }
+        void DespawnCreaturesInArea(uint32 entry, float range = 125.0f);
 
         time_t const& GetRespawnTime() const { return m_respawnTime; }
         time_t GetRespawnTimeEx() const;
@@ -280,6 +281,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         ObjectGuid lootingGroupLowGUID;                     // used to find group which is looting corpse
 
         void SendZoneUnderAttackMessage(Player* attacker);
+
+        void SetInCombatWithZone();
 
         bool hasQuest(uint32 quest_id) const override;
         bool hasInvolvedQuest(uint32 quest_id)  const override;

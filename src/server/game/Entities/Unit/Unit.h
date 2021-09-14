@@ -829,6 +829,7 @@ class TC_GAME_API Unit : public WorldObject
 
         struct VisibleAuraSlotCompare { bool operator()(AuraApplication* left, AuraApplication* right) const; };
         typedef std::set<AuraApplication*, VisibleAuraSlotCompare> VisibleAuraContainer;
+        typedef std::unordered_multimap<uint32 /*spellId*/, ObjectGuid /*targetGuid*/> TargetAuraContainer;
 
         virtual ~Unit();
 
@@ -1106,6 +1107,8 @@ class TC_GAME_API Unit : public WorldObject
 
         float MeleeSpellMissChance(Unit const* victim, WeaponAttackType attType, SpellInfo const* spellInfo) const override;
         SpellMissInfo MeleeSpellHitResult(Unit* victim, SpellInfo const* spellInfo) const override;
+        SpellMissInfo MagicSpellHitResult(Unit* victim, SpellInfo const* spellInfo) const;
+        SpellMissInfo SpellHitResult(Unit* victim, SpellInfo const* spellInfo, bool canReflect = false);
 
         float GetUnitDodgeChance(WeaponAttackType attType, Unit const* victim) const;
         float GetUnitParryChance(WeaponAttackType attType, Unit const* victim) const;
@@ -1114,6 +1117,7 @@ class TC_GAME_API Unit : public WorldObject
         float GetUnitCriticalChanceDone(WeaponAttackType attackType) const;
         float GetUnitCriticalChanceTaken(Unit const* attacker, WeaponAttackType attackType, float critDone) const;
         float GetUnitCriticalChanceAgainst(WeaponAttackType attackType, Unit const* victim) const;
+        float GetUnitCriticalChance(WeaponAttackType attackType, Unit const* victim) const;
         int32 GetMechanicResistChance(SpellInfo const* spellInfo) const;
         bool CanUseAttackType(uint8 attacktype) const;
 
@@ -1186,6 +1190,7 @@ class TC_GAME_API Unit : public WorldObject
         // Exposes the threat manager directly - be careful when interfacing with this
         // As a general rule of thumb, any unit pointer MUST be null checked BEFORE passing it to threatmanager methods
         // threatmanager will NOT null check your pointers for you - misuse = crash
+        void TauntApply(Unit* taunter, bool force = false);
         ThreatManager& GetThreatManager() { return m_threatManager; }
         ThreatManager const& GetThreatManager() const { return m_threatManager; }
 
@@ -1205,6 +1210,12 @@ class TC_GAME_API Unit : public WorldObject
         bool isFrozen() const;
 
         bool isTargetableForAttack(bool checkFakeDeath = true) const;
+
+        bool IsValidAttackTarget(Unit const* target) const;
+        bool _IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, WorldObject const* obj = nullptr) const;
+
+        bool IsValidAssistTarget(Unit const* target) const;
+        bool _IsValidAssistTarget(Unit const* target, SpellInfo const* bySpell) const;
 
         virtual bool IsInWater() const;
         virtual bool IsUnderWater() const;
@@ -1385,9 +1396,12 @@ class TC_GAME_API Unit : public WorldObject
 
         Aura* GetOwnedAura(uint32 spellId, ObjectGuid casterGUID = ObjectGuid::Empty, ObjectGuid itemCasterGUID = ObjectGuid::Empty, uint32 reqEffMask = 0, Aura* except = nullptr) const;
 
+        bool HasOwnedAurasWithType(AuraType type) const;
+
         // m_appliedAuras container management
         AuraApplicationMap      & GetAppliedAuras()       { return m_appliedAuras; }
         AuraApplicationMap const& GetAppliedAuras() const { return m_appliedAuras; }
+        std::vector<Aura*> GetTargetAurasWithType(AuraType type) const;
 
         void RemoveAura(AuraApplicationMap::iterator &i, AuraRemoveMode mode = AURA_REMOVE_BY_DEFAULT);
         void RemoveAura(uint32 spellId, ObjectGuid casterGUID = ObjectGuid::Empty, uint32 reqEffMask = 0, AuraRemoveMode removeMode = AURA_REMOVE_BY_DEFAULT);
@@ -1717,26 +1731,36 @@ class TC_GAME_API Unit : public WorldObject
         bool HasAuraState(AuraStateType flag, SpellInfo const* spellProto = nullptr, Unit const* Caster = nullptr) const;
         void UnsummonAllTotems();
         bool IsMagnet() const;
+        Unit* GetMagicHitRedirectTarget(Unit* victim, SpellInfo const* spellInfo);
         Unit* GetMeleeHitRedirectTarget(Unit* victim, SpellInfo const* spellInfo = nullptr);
 
         int32  SpellBaseDamageBonusDone(SpellSchoolMask schoolMask) const;
+        int32  SpellBaseDamageBonusTaken(SpellSchoolMask schoolMask) const;
         uint32 SpellDamageBonusDone(Unit* victim, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype, SpellEffectInfo const& spellEffectInfo, uint32 stack = 1) const;
         float  SpellDamagePctDone(Unit* victim, SpellInfo const* spellProto, DamageEffectType damagetype) const;
         uint32 SpellDamageBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 pdamage, DamageEffectType damagetype) const;
         int32  SpellBaseHealingBonusDone(SpellSchoolMask schoolMask) const;
+        int32  SpellBaseHealingBonusTaken(SpellSchoolMask schoolMask) const;
         uint32 SpellHealingBonusDone(Unit* victim, SpellInfo const* spellProto, uint32 healamount, DamageEffectType damagetype, SpellEffectInfo const& spellEffectInfo, uint32 stack = 1) const;
         float SpellHealingPctDone(Unit* victim, SpellInfo const* spellProto) const;
-        uint32 SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 healamount, DamageEffectType damagetype) const;
+        uint32 SpellHealingBonusTaken(Unit* caster, SpellInfo const* spellProto, uint32 healamount, DamageEffectType damagetype, SpellEffectInfo const& spellEffectInfo, uint32 stack = 1) const;
 
         uint32 MeleeDamageBonusDone(Unit* pVictim, uint32 damage, WeaponAttackType attType, DamageEffectType damagetype, SpellInfo const* spellProto = nullptr, SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL);
         uint32 MeleeDamageBonusTaken(Unit* attacker, uint32 pdamage, WeaponAttackType attType, DamageEffectType damagetype, SpellInfo const* spellProto = nullptr, SpellSchoolMask damageSchoolMask = SPELL_SCHOOL_MASK_NORMAL);
 
         bool   isSpellBlocked(Unit* victim, SpellInfo const* spellProto, WeaponAttackType attackType = BASE_ATTACK);
         bool   isBlockCritical();
+        bool   IsSpellCrit(Unit* victim, Spell* spell, AuraEffect const* aurEff, SpellSchoolMask schoolMask, WeaponAttackType attackType = BASE_ATTACK) const;
+        float  GetUnitSpellCriticalChance(Unit* victim, Spell* spell, AuraEffect const* aurEff, SpellSchoolMask schoolMask, WeaponAttackType attackType = BASE_ATTACK) const;
         float  SpellCritChanceDone(Spell* spell, AuraEffect const* aurEff, SpellSchoolMask schoolMask, WeaponAttackType attackType = BASE_ATTACK) const;
         float  SpellCritChanceTaken(Unit const* caster, Spell* spell, AuraEffect const* aurEff, SpellSchoolMask schoolMask, float doneChance, WeaponAttackType attackType = BASE_ATTACK) const;
         static uint32 SpellCriticalDamageBonus(Unit const* caster, SpellInfo const* spellProto, uint32 damage, Unit* victim);
         static uint32 SpellCriticalHealingBonus(Unit const* caster, SpellInfo const* spellProto, uint32 damage, Unit* victim);
+
+        uint32 GetCastingTimeForBonus(SpellInfo const* spellProto, DamageEffectType damagetype, uint32 CastingTime) const;
+        float CalculateDefaultCoefficient(SpellInfo const* spellInfo, DamageEffectType damagetype) const;
+
+        uint32 GetRemainingPeriodicAmount(ObjectGuid caster, uint32 spellId, AuraType auraType, uint8 effectIndex = 0) const;
 
         void ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply);
         virtual bool IsImmunedToSpell(SpellInfo const* spellInfo, WorldObject const* caster) const;
@@ -1955,6 +1979,8 @@ class TC_GAME_API Unit : public WorldObject
         AuraList m_removedAuras;
         AuraMap::iterator m_auraUpdateIterator;
         uint32 m_removedAurasCount;
+
+        TargetAuraContainer m_targetAuras;
 
         AuraEffectList m_modAuras[TOTAL_AURAS];
         AuraList m_scAuras;                        // cast singlecast auras

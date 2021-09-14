@@ -288,7 +288,9 @@ class TC_GAME_API SpellCastTargets
         float GetSpeedXY() const { return m_speed * std::cos(m_pitch); }
         float GetSpeedZ() const { return m_speed * std::sin(m_pitch); }
 
+        void SetCaster(WorldObject* caster);
         void Update(WorldObject* caster);
+        void OutDebug() const;
         std::string GetTargetString() const { return m_strTarget; }
 
     private:
@@ -303,6 +305,7 @@ class TC_GAME_API SpellCastTargets
         ObjectGuid m_objectTargetGUID;
         ObjectGuid m_itemTargetGUID;
         uint32 m_itemTargetEntry;
+        Unit* m_caster;
 
         SpellDestination m_src;
         SpellDestination m_dst;

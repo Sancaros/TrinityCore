@@ -507,6 +507,37 @@ namespace Trinity
         template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED> &) { }
     };
 
+    /// AreaTriggers searchers
+    template<class Check>
+    struct AreaTriggerListSearcher
+    {
+        WorldObject const* i_searcher;
+        std::list<AreaTrigger*>& m_AreaTriggers;
+        Check& i_check;
+
+        AreaTriggerListSearcher(WorldObject const* searcher, std::list<AreaTrigger*>& areaTriggers, Check& check)
+            : i_searcher(searcher), m_AreaTriggers(areaTriggers), i_check(check) {}
+
+        void Visit(AreaTriggerMapType& p_AreaTriggerMap);
+
+        template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED>&) {}
+    };
+
+    template<class Check>
+    struct AreaTriggerSearcher
+    {
+        WorldObject const* i_searcher;
+        AreaTrigger*& i_object;
+        Check& i_check;
+
+        AreaTriggerSearcher(WorldObject const* searcher, AreaTrigger*& result, Check& check)
+            : i_searcher(searcher), i_object(result), i_check(check) {}
+
+        void Visit(AreaTriggerMapType& m);
+
+        template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED>&) {}
+    };
+
     // Creature searchers
 
     template<class Check>
@@ -727,7 +758,30 @@ namespace Trinity
             WorldObject const* _caster;
             uint32 _focusId;
     };
+	
+    class NearestAreaTriggerWithIdInObjectRangeCheck
+    {
+    public:
+        NearestAreaTriggerWithIdInObjectRangeCheck(WorldObject const* obj, uint32 spellId, float range) : i_obj(obj), i_spellId(spellId), i_range(range) {}
+        bool operator()(AreaTrigger* a)
+        {
+            if (i_obj->IsWithinDistInMap(a, i_range) && a->GetSpellId() == i_spellId)
+            {
+                i_range = i_obj->GetDistance(a);        // use found unit range as new range limit for next check
+                return true;
+            }
 
+            return false;
+        }
+    private:
+        WorldObject const* i_obj;
+        uint32 i_spellId;
+        float i_range;
+
+        // prevent clone this object
+        NearestAreaTriggerWithIdInObjectRangeCheck(NearestAreaTriggerWithIdInObjectRangeCheck const&);
+    };
+	
     // Find the nearest Fishing hole and return true only if source object is in range of hole
     class NearestGameObjectFishingHole
     {
@@ -928,6 +982,22 @@ namespace Trinity
             float i_range;
     };
 
+    class AnyAreatriggerInObjectRangeCheck
+    {
+    public:
+        AnyAreatriggerInObjectRangeCheck(WorldObject const* p_Object, float range) : m_Object(p_Object), m_Range(range) {}
+        bool operator()(AreaTrigger* p_AreaTrigger)
+        {
+            if (m_Object->IsWithinDistInMap(p_AreaTrigger, m_Range))
+                return true;
+
+            return false;
+        }
+    private:
+        WorldObject const* m_Object;
+        float m_Range;
+    };
+
     class NearestAttackableNoTotemUnitInObjectRangeCheck
     {
         public:
@@ -947,7 +1017,7 @@ namespace Trinity
                 if (!u->isTargetableForAttack(false))
                     return false;
 
-                if (!i_obj->IsWithinDistInMap(u, i_range) || !i_funit->IsValidAttackTarget(u))
+                if (!i_obj->IsWithinDistInMap(u, i_range) || !i_funit->_IsValidAttackTarget(u, nullptr, i_obj))
                     return false;
 
                 i_range = i_obj->GetDistance(*u);
@@ -1039,6 +1109,26 @@ namespace Trinity
             bool i_incTargetRadius;
     };
 
+    class AttackableUnitInObjectRangeCheck
+    {
+    public:
+        AttackableUnitInObjectRangeCheck(WorldObject const* obj, float range, bool check3D = true) : i_obj(obj), i_range(range), i_check3D(check3D) { }
+
+        bool operator()(Unit* u) const
+        {
+            if (i_obj->IsUnit())
+                if (u->IsAlive() && i_obj->IsWithinDistInMap(u, i_range, i_check3D) && i_obj->ToUnit()->IsValidAttackTarget(u))
+                    return true;
+
+            return false;
+        }
+
+    private:
+        WorldObject const* i_obj;
+        float i_range;
+        bool i_check3D;
+    };
+
     class AnyUnitInObjectRangeCheck
     {
         public:
@@ -1091,6 +1181,9 @@ namespace Trinity
             AnyAoETargetUnitInObjectRangeCheck(WorldObject const* obj, Unit const* funit, float range, SpellInfo const* spellInfo = nullptr, bool incOwnRadius = true, bool incTargetRadius = true)
                 : i_obj(obj), i_funit(funit), _spellInfo(spellInfo), i_range(range), i_incOwnRadius(incOwnRadius), i_incTargetRadius(incTargetRadius)
             {
+                if (!_spellInfo)
+                    if (DynamicObject const* dynObj = i_obj->ToDynObject())
+                        _spellInfo = dynObj->GetSpellInfo();
             }
 
             bool operator()(Unit* u) const
@@ -1102,7 +1195,7 @@ namespace Trinity
                 if (_spellInfo && _spellInfo->HasAttribute(SPELL_ATTR3_ONLY_TARGET_PLAYERS) && u->GetTypeId() != TYPEID_PLAYER)
                     return false;
 
-                if (!i_funit->IsValidAttackTarget(u, _spellInfo))
+                if (!i_funit->_IsValidAttackTarget(u, _spellInfo, i_obj->GetTypeId() == TYPEID_DYNAMICOBJECT ? i_obj : nullptr))
                     return false;
 
                 float searchRadius = i_range;
@@ -1629,5 +1722,13 @@ namespace Trinity
         Localizer& _localizer;
         std::vector<std::unique_ptr<LocalizedAction>> _localizedCache;         // 0 = default, i => i-1 locale index
     };
+    template<class Check>
+    inline void AreaTriggerSearcher<Check>::Visit(AreaTriggerMapType& m)
+    {
+    }
+    template<class Check>
+    inline void AreaTriggerListSearcher<Check>::Visit(AreaTriggerMapType& p_AreaTriggerMap)
+    {
+    }
 }
 #endif

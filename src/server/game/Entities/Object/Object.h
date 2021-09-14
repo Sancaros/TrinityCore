@@ -144,6 +144,7 @@ float const DEFAULT_COLLISION_HEIGHT = 2.03128f; // Most common value in dbc
 class TC_GAME_API Object
 {
     public:
+        HellgarveCore::AnyData Variables;
         virtual ~Object();
 
         bool IsInWorld() const { return m_inWorld; }
@@ -431,6 +432,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         uint32 GetCurrentAreaID() const { return m_areaId; }
 
         virtual float GetCombatReach() const { return 0.0f; } // overridden (only) in Unit
+        float GetObjectSize() const;
         void UpdateGroundPositionZ(float x, float y, float &z) const;
         void UpdateAllowedPositionZ(float x, float y, float &z) const;
 
@@ -531,6 +533,12 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibility;
         FlaggedValuesArray32<int32, uint32, ServerSideVisibilityType, TOTAL_SERVERSIDE_VISIBILITY_TYPES> m_serverSideVisibilityDetect;
 
+        bool IsRWVisibility();
+        float GetRWVisibility();
+        void SetRWVisibilityRange(float rwvisible);
+        bool m_rwVisibility;
+        float m_rwVisibilityRange;
+
         virtual void SetMap(Map* map);
         virtual void ResetMap();
         Map* GetMap() const { ASSERT(m_currMap); return m_currMap; }
@@ -551,11 +559,23 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
 
         Creature*   FindNearestCreature(uint32 entry, float range, bool alive = true) const;
+        Creature* FindNearestCreature(std::list<uint32> entrys, float range, bool alive = true) const;
+        std::list<Creature*>    FindNearestCreatures(uint32 entry, float range) const;
+        Creature* FindNearestCreatureOnTransportInFloor(uint32 entry, float rangeXY, float rangeZ);
         std::list<Creature*>    FindAllCreaturesInRange(float range);
+        Creature* FindNearestAttackableCreatureOnTransportInFloor(float rangeXY, float rangeZ);
+        std::list<Creature*>    FindAllUnfriendlyCreaturesInRange(float range);
+
+        std::list<GameObject*>  FindNearestGameObjects(uint32 entry, float range) const;
         GameObject* FindNearestGameObject(uint32 entry, float range) const;
         GameObject* FindNearestGameObjectOfType(GameobjectTypes type, float range) const;
         Player* SelectNearestPlayer(float distance) const;
+		//update log
+        std::list<Player*> SelectNearestPlayers(float range, bool alive = true);
 
+        AreaTrigger* SelectNearestAreaTrigger(uint32 spellId, float distance = 0.0f) const;
+        std::list<AreaTrigger*> SelectNearestAreaTriggers(uint32 spellId, float range);
+		
         virtual ObjectGuid GetOwnerGUID() const = 0;
         virtual ObjectGuid GetCharmerOrOwnerGUID() const { return GetOwnerGUID(); }
         ObjectGuid GetCharmerOrOwnerOrOwnGUID() const;
@@ -617,6 +637,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         template <typename Container>
         void GetPlayerListInGrid(Container& playerContainer, float maxSearchRange) const;
+        void GetCreatureListWithEntryInGridAppend(std::list<Creature*>& lList, uint32 uiEntry, float fMaxSearchRange = 250.0f) const;
 
         void DestroyForNearbyPlayers();
         virtual void UpdateObjectVisibility(bool forced = true);
@@ -714,6 +735,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
     private:
         Map* m_currMap;                                   // current object's Map location
 
+        //uint32 m_mapId;                                 // object at map with map_id
         uint32 m_InstanceId;                              // in map copy with instance id
         PhaseShift _phaseShift;
         PhaseShift _suppressedPhaseShift;                 // contains phases for current area but not applied due to conditions
