@@ -4213,7 +4213,11 @@ Metric.OverallStatusInterval = 1
 #        Description: Enable/Disable Guild Save Interval time
 #        Default:     0 - (Disabled)
 #                     15 - (Enabled)
+
 Guild.SaveInterval = 15
+
+###################################################################################################
+
 ###################################################################################################
 
 #
@@ -4233,8 +4237,13 @@ Guild.SaveInterval = 15
 #                     1 - (Enabled)
 
 FeatureSystem.BattlePay.Available = 1
+
 BattlePay.Enabled = 1
+
 BattlePay.Currency = 1
+
+###################################################################################################
+
 ###################################################################################################
 
 #
@@ -4243,20 +4252,29 @@ BattlePay.Currency = 1
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-ConsoleErrorLogging = 0
+ConsoleErrorLogging = 1
+
 ###################################################################################################
 
+###################################################################################################
 #Missing name Pvp.FactionBalance.LevelCheckDiff
-Pvp.FactionBalance.LevelCheckDiff = 0
+
+Pvp.FactionBalance.LevelCheckDiff = 1
 
 #Missing name Pvp.FactionBalance.Pct5
+
 Pvp.FactionBalance.Pct5 = 0.600000
 
 #Missing name Pvp.FactionBalance.Pct10
+
 Pvp.FactionBalance.Pct10 = 0.700000
 
 #Missing name Pvp.FactionBalance.Pct2
+
 Pvp.FactionBalance.Pct2 = 0.800000
 
 #Missing name Pvp.FactionBalance.Overwhelming
+
 Pvp.FactionBalance.Overwhelming = 0.900000
+###################################################################################################
+
