@@ -362,6 +362,8 @@ struct CreatureModel
 
 struct CreatureLevelScaling
 {
+    uint16 MinLevel;
+    uint16 MaxLevel;
     int16 DeltaLevelMin;
     int16 DeltaLevelMax;
     int32 ContentTuningID;

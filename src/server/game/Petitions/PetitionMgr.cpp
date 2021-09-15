@@ -79,7 +79,7 @@ void PetitionMgr::LoadSignatures()
         if (!petition)
             continue;
 
-        petition->AddSignature(fields[1].GetUInt32(), ObjectGuid::Create<HighGuid::Player>(fields[2].GetUInt64()), true);
+        petition->AddSignature(petition->PetitionGuid, fields[1].GetUInt32(), ObjectGuid::Create<HighGuid::Player>(fields[2].GetUInt64()), true);
         ++count;
     } while (result->NextRow());
 
@@ -184,7 +184,7 @@ bool Petition::IsPetitionSignedByAccount(uint32 accountId) const
     return false;
 }
 
-void Petition::AddSignature(uint32 accountId, ObjectGuid playerGuid, bool isLoading)
+void Petition::AddSignature(ObjectGuid PetitionGuid, uint32 accountId, ObjectGuid playerGuid, bool isLoading)
 {
     Signatures.emplace_back(accountId, playerGuid);
 

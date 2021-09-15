@@ -281,7 +281,7 @@ void WorldSession::HandleSignPetition(WorldPackets::Petition::SignPetition& pack
     }
 
     // fill petition store
-    petition->AddSignature(GetAccountId(), _player->GetGUID(), false);
+    petition->AddSignature(packet.PetitionGUID, GetAccountId(), _player->GetGUID(), false);
 
     TC_LOG_DEBUG("network", "PETITION SIGN: %s by player: %s (%s Account: %u)", packet.PetitionGUID.ToString().c_str(), _player->GetName().c_str(), _player->GetGUID().ToString().c_str(), GetAccountId());
 

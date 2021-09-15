@@ -628,7 +628,7 @@ void PlayerAI::DoRangedAttackIfReady()
     SpellCastTargets targets;
     targets.SetUnitTarget(victim);
     spell->prepare(targets);
-
+    me->CastSpell(victim, rangedAttackSpell, TRIGGERED_CAST_DIRECTLY);
     me->resetAttackTimer(RANGED_ATTACK);
 }
 

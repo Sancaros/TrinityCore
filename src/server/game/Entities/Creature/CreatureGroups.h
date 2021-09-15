@@ -92,6 +92,8 @@ class TC_GAME_API CreatureGroup
         void RemoveMember(Creature* member);
         void FormationReset(bool dismiss);
 
+        void MoveGroupTo(float x, float y, float z, bool fightMove = false);
+
         void LeaderMoveTo(Position const& destination, uint32 id = 0, uint32 moveType = 0, bool orientation = false);
         void MemberEngagingTarget(Creature* member, Unit* target);
         bool CanLeaderStartMoving() const;

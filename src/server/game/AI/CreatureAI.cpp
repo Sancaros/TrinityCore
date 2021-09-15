@@ -67,7 +67,7 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= nullptr*/, float maxRange
         creature = me;
 
     Map* map = creature->GetMap();
-    if (creature->CanHaveThreatList())
+    if (creature->CanHaveThreatList())                      //use IsDungeon instead of Instanceable, in case battlegrounds will be instantiated
     {
         if (!map->IsDungeon())                                  //use IsDungeon instead of Instanceable, in case battlegrounds will be instantiated
         {
@@ -83,16 +83,14 @@ void CreatureAI::DoZoneInCombat(Creature* creature /*= nullptr*/, float maxRange
             {
                 if (Unit* summoner = creature->ToTempSummon()->GetSummoner())
                 {
-                    if (creature->IsFriendlyTo(summoner))
-                    {
-                        Unit* target = summoner->getAttackerForHelper();
-                        if (target && creature->IsHostileTo(target))
-                            creature->AI()->AttackStart(target);
-                    }
+                    Unit* target = summoner->getAttackerForHelper();
+                    if (!target && !summoner->GetThreatManager().IsThreatListEmpty())
+                        target = summoner->GetThreatManager().GetAnyTarget();
+                    if (target && (creature->IsFriendlyTo(summoner) || creature->IsHostileTo(target)))
+                        creature->AI()->AttackStart(target);
                 }
             }
         }
-
         // Intended duplicated check, the code above this should select a victim
         // If it can't find a suitable attack target then we should error out.
         if (!creature->HasReactState(REACT_PASSIVE) && !creature->GetVictim())
@@ -192,6 +190,36 @@ void CreatureAI::EnterEvadeMode(EvadeReason why)
 
     if (me->IsVehicle()) // use the same sequence of addtoworld, aireset may remove all summons!
         me->GetVehicleKit()->Reset(true);
+}
+
+void CreatureAI::SetGazeOn(Unit* target)
+{
+    if (me->IsValidAttackTarget(target))
+    {
+        if (!me->IsFocusing(nullptr, true) && target != me->GetVictim())
+            AttackStart(target);
+        me->SetReactState(REACT_PASSIVE);
+    }
+}
+
+bool CreatureAI::UpdateVictimWithGaze()
+{
+    if (!me->IsEngaged())
+        return false;
+
+    if (me->HasReactState(REACT_PASSIVE))
+    {
+        if (me->GetVictim())
+            return true;
+        else
+            me->SetReactState(REACT_AGGRESSIVE);
+    }
+
+    if (Unit* victim = me->SelectVictim())
+        if (!me->IsFocusing(nullptr, true) && victim != me->GetVictim())
+            AttackStart(victim);
+
+    return me->GetVictim() != nullptr;
 }
 
 bool CreatureAI::UpdateVictim()
@@ -319,6 +347,17 @@ int32 CreatureAI::VisualizeBoundary(uint32 duration, Unit* owner, bool fill) con
         Q.pop();
     }
     return boundsWarning ? LANG_CREATURE_MOVEMENT_MAYBE_UNBOUNDED : 0;
+}
+
+bool CreatureAI::CheckBoundary(Position const* who) const
+{
+    if (!_boundary)
+        return true;
+
+    if (!who)
+        who = me;
+
+    return (CreatureAI::IsInBounds(*_boundary, who) != _negateBoundary);
 }
 
 bool CreatureAI::IsInBoundary(Position const* who) const

@@ -19,6 +19,7 @@
 #include "Containers.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "CombatAI.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
 #include "Map.h"
@@ -33,6 +34,8 @@ FormationMgr::FormationMgr()
 
 FormationMgr::~FormationMgr()
 {
+    for (auto itr = _creatureGroupMap.begin(); itr != _creatureGroupMap.end(); ++itr)
+        /*delete itr->second;*/{ }
 }
 
 FormationMgr* FormationMgr::instance()
@@ -44,6 +47,8 @@ FormationMgr* FormationMgr::instance()
 void FormationMgr::AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature)
 {
     Map* map = creature->GetMap();
+    if (!map)
+        return;
 
     auto itr = map->CreatureGroupHolder.find(leaderSpawnId);
     if (itr != map->CreatureGroupHolder.end())
@@ -83,6 +88,8 @@ void FormationMgr::RemoveCreatureFromGroup(CreatureGroup* group, Creature* membe
     if (group->IsEmpty())
     {
         Map* map = member->GetMap();
+        if (!map)
+            return;
 
         TC_LOG_DEBUG("entities.unit", "Deleting group with InstanceID %u", member->GetInstanceId());
         auto itr = map->CreatureGroupHolder.find(group->GetLeaderSpawnId());
@@ -105,10 +112,11 @@ void FormationMgr::LoadCreatureFormations()
     }
 
     uint32 count = 0;
+    Field* fields;
     std::unordered_set<ObjectGuid::LowType> leaderSpawnIds;
     do
     {
-        Field* fields = result->Fetch();
+        fields = result->Fetch();
 
         //Load group member data
         FormationInfo member;
@@ -273,6 +281,34 @@ void CreatureGroup::FormationReset(bool dismiss)
     }
 
     _formed = !dismiss;
+}
+
+void CreatureGroup::MoveGroupTo(float x, float y, float z, bool fightMove /*= false*/)
+{
+    if (!_leader)
+        return;
+
+    float centerX = 0.f, centerY = 0.f;
+    for (auto itr : _members)
+    {
+        centerX += itr.first->GetPositionX();
+        centerY += itr.first->GetPositionY();
+    }
+
+    centerX /= _members.size();
+    centerY /= _members.size();
+
+    for (auto itr : _members)
+    {
+        float destX = itr.first->GetPositionX() + (x - centerX);
+        float destY = itr.first->GetPositionY() + (y - centerY);
+        float destZ = _leader->GetMap()->GetHeight(_leader->GetPhaseShift(), destX, destY, z + 1.f, true);
+
+        if (fightMove)
+            static_cast<CombatAI*>(itr.first->AI())->MoveCombat(Position(destX, destY, destZ));
+        else
+            itr.first->GetMotionMaster()->MovePoint(1, destX, destY, destZ);
+    }
 }
 
 void CreatureGroup::LeaderMoveTo(Position const& destination, uint32 id /*= 0*/, uint32 moveType /*= 0*/, bool orientation /*= false*/)
