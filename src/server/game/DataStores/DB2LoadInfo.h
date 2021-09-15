@@ -2265,6 +2265,7 @@ struct GarrMissionLoadInfo
     {
         static DB2FieldMeta const fields[] =
         {
+            { false, FT_INT, "ID" },
             { false, FT_STRING, "Name" },
             { false, FT_STRING, "Description" },
             { false, FT_STRING, "Location" },
@@ -2272,7 +2273,6 @@ struct GarrMissionLoadInfo
             { false, FT_FLOAT, "MapPos2" },
             { false, FT_FLOAT, "WorldPos1" },
             { false, FT_FLOAT, "WorldPos2" },
-            { false, FT_INT, "ID" },
             { false, FT_BYTE, "GarrTypeID" },
             { false, FT_BYTE, "GarrMissionTypeID" },
             { false, FT_BYTE, "GarrFollowerTypeID" },

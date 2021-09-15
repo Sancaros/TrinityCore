@@ -1639,12 +1639,12 @@ struct GarrFollowerXAbilityEntry
 //ssffffibbbbihbhiiiibhiiibiibiifii
 struct GarrMissionEntry
 {
+    uint32 ID;
     LocalizedString Name;
     LocalizedString Location;
     LocalizedString Description;
     float MapPos[2];
     float WorldPos[2];
-    uint32 ID;
     uint8  GarrTypeID;
     uint8  GarrMissionTypeID;
     uint8  GarrFollowerTypeID;
