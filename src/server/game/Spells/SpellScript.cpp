@@ -775,6 +775,17 @@ Difficulty SpellScript::GetCastDifficulty() const
     return m_spell->GetCastDifficulty();
 }
 
+/*
+SpellEffectInfo const* SpellScript::GetEffectInfo(SpellEffIndex effIndex) const
+{
+    return GetSpellInfo()->GetEffect(effIndex);
+}
+
+SpellEffectInfo const* AuraScript::GetEffectInfo(SpellEffIndex effIndex) const
+{
+    return GetSpellInfo()->GetEffect(effIndex);
+}*/
+
 bool AuraScript::_Validate(SpellInfo const* entry)
 {
     for (auto itr = DoCheckAreaTarget.begin(); itr != DoCheckAreaTarget.end(); ++itr)

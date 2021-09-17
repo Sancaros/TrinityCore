@@ -10654,7 +10654,6 @@ void ObjectMgr::LoadPlayerChoices()
             reward->HonorPointCount  = fields[7].GetUInt32();
             reward->Money            = fields[8].GetUInt64();
             reward->Xp               = fields[9].GetUInt32();
-            reward->SpellID          = fields[10].GetInt32();
             ++rewardCount;
 
             if (reward->TitleId && !sCharTitlesStore.LookupEntry(reward->TitleId))

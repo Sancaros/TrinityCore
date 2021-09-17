@@ -28648,6 +28648,7 @@ void Player::SendPlayerChoice(ObjectGuid sender, int32 choiceId)
             playerChoiceResponse.Reward->HonorPointCount = playerChoiceResponseTemplate.Reward->HonorPointCount;
             playerChoiceResponse.Reward->Money = playerChoiceResponseTemplate.Reward->Money;
             playerChoiceResponse.Reward->Xp = playerChoiceResponseTemplate.Reward->Xp;
+            playerChoiceResponse.Reward->SpellID = playerChoiceResponseTemplate.Reward->SpellID;
             for (PlayerChoiceResponseRewardItem const& item : playerChoiceResponseTemplate.Reward->Items)
             {
                 playerChoiceResponse.Reward->Items.emplace_back();
