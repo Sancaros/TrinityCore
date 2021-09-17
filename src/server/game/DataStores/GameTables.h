@@ -40,6 +40,26 @@ struct GtBarberShopCostBaseEntry
     float Cost = 0.0f;
 };
 
+struct GtBattlePetTypeDamageModEntry
+{
+    float Humanoid = 0.0f;
+    float Dragonkin = 0.0f;
+    float Flying = 0.0f;
+    float Undead = 0.0f;
+    float Critter = 0.0f;
+    float Magic = 0.0f;
+    float Elemental = 0.0f;
+    float Beast = 0.0f;
+    float Aquatic = 0.0f;
+    float Mechanical = 0.0f;
+};
+
+struct GtBattlePetXPEntry
+{
+    float Wins = 0.0f;
+    float Xp = 0.0f;
+};
+
 struct GtBaseMPEntry
 {
     float Rogue = 0.0f;
@@ -179,6 +199,8 @@ private:
 TC_GAME_API extern GameTable<GtArtifactKnowledgeMultiplierEntry>    sArtifactKnowledgeMultiplierGameTable;
 TC_GAME_API extern GameTable<GtArtifactLevelXPEntry>                sArtifactLevelXPGameTable;
 TC_GAME_API extern GameTable<GtBarberShopCostBaseEntry>             sBarberShopCostBaseGameTable;
+TC_GAME_API extern GameTable<GtBattlePetXPEntry>                    sBattlePetXPTable;
+TC_GAME_API extern GameTable<GtBattlePetTypeDamageModEntry>         sBattlePetTypeDamageModTable;
 TC_GAME_API extern GameTable<GtBaseMPEntry>                         sBaseMPGameTable;
 TC_GAME_API extern GameTable<GtCombatRatingsEntry>                  sCombatRatingsGameTable;
 TC_GAME_API extern GameTable<GtCombatRatingsMultByILvl>             sCombatRatingsMultByILvlGameTable;

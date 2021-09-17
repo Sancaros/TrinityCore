@@ -33,6 +33,7 @@
 #include "SharedDefines.h"
 #include "SpawnData.h"
 #include "Timer.h"
+#include "WildBattlePet.h"
 #include <boost/heap/fibonacci_heap.hpp>
 #include <bitset>
 #include <list>
@@ -460,6 +461,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         Creature* GetCreatureBySpawnId(ObjectGuid::LowType spawnId) const;
         GameObject* GetGameObjectBySpawnId(ObjectGuid::LowType spawnId) const;
         WorldObject* GetWorldObjectBySpawnId(SpawnObjectType type, ObjectGuid::LowType spawnId) const { return (type == SPAWN_TYPE_GAMEOBJECT) ? reinterpret_cast<WorldObject*>(GetGameObjectBySpawnId(spawnId)) : reinterpret_cast<WorldObject*>(GetCreatureBySpawnId(spawnId)); }
+        WildBattlePetPool* GetWildBattlePetPool(Creature* creature);
 
         uint32 m_activeEntry;
         uint32 m_activeEncounter;
@@ -566,6 +568,7 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
         void SetZoneWeather(uint32 zoneId, WeatherState weatherId, float weatherGrade);
         void SetZoneOverrideLight(uint32 zoneId, uint32 lightId, uint32 fadeInTime);
 
+        void AddBattlePet(Creature* creature);
         void UpdateAreaDependentAuras();
 
         template<HighGuid high>
@@ -648,6 +651,12 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
 
         void setNGrid(NGridType* grid, uint32 x, uint32 y);
         void ScriptsProcess();
+
+      
+        void RemoveBattlePet(Creature* creature);
+        void PopulateBattlePet(uint32 diff);
+        void DepopulateBattlePet();
+        std::map<uint16, std::map<uint32, WildBattlePetPool>> m_wildBattlePetPool;
 
         void SendObjectUpdates();
 

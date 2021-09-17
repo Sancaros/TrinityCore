@@ -78,6 +78,16 @@ enum GarrisonAbilityFlags
     GARRISON_ABILITY_FLAG_IS_EMPTY_SLOT                 = 0x0400
 };
 
+enum MissionState
+{
+    MISSION_STATE_AVAILABLE = 0,
+    MISSION_STATE_IN_PROGRESS = 1,
+    MISSION_STATE_WAITING_BONUS = 2,
+    MISSION_STATE_WAITING_OWERMAX_BONUS = 3,
+    MISSION_STATE_COMPLETED = 5,
+    MISSION_STATE_COMPLETED_OWERMAX = 6
+};
+
 enum GarrisonError
 {
     GARRISON_SUCCESS                                            = 0,
@@ -245,6 +255,10 @@ public:
     void CancelBuildingConstruction(uint32 garrPlotInstanceId);
     void ActivateBuilding(uint32 garrPlotInstanceId);
 
+    // Missions
+  //  Mission const* GetMission(uint64 dbId) const;
+    //Mission* GetMissionByRecID(uint32 missionRecID);
+
     // Followers
     void AddFollower(uint32 garrFollowerId);
     Follower const* GetFollower(uint64 dbId) const;
@@ -274,6 +288,7 @@ private:
     Player* _owner;
     GarrSiteLevelEntry const* _siteLevel;
     uint32 _followerActivationsRemainingToday;
+    uint32 _MissionGen = 0;
 
     std::unordered_map<uint32 /*garrPlotInstanceId*/, Plot> _plots;
     std::unordered_set<uint32 /*garrBuildingId*/> _knownBuildings;

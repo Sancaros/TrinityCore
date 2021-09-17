@@ -16,6 +16,7 @@
  */
 
 #include "Creature.h"
+#include "BattlePet.h"
 #include "BattlegroundMgr.h"
 #include "CellImpl.h"
 #include "CombatPackets.h"
@@ -52,6 +53,7 @@
 #include "Util.h"
 #include "Vehicle.h"
 #include "World.h"
+#include "WildBattlePet.h"
 #include "WorldPacket.h"
 #include <G3D/g3dmath.h>
 #include <sstream>
@@ -305,7 +307,7 @@ Creature::Creature(bool isWorldObject): Unit(isWorldObject), MapObject(), m_grou
     m_corpseRemoveTime(0), m_respawnTime(0), m_respawnDelay(300), m_corpseDelay(60), m_respawnradius(0.0f), m_boundaryCheckTime(2500), m_combatPulseTime(0), m_combatPulseDelay(0), m_reactState(REACT_AGGRESSIVE),
     m_defaultMovementType(IDLE_MOTION_TYPE), m_spawnId(UI64LIT(0)), m_equipmentId(0), m_originalEquipmentId(0), m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false), m_cannotReachTarget(false), m_cannotReachTimer(0),
     m_AI_locked(false), m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_homePosition(), m_transportHomePosition(), m_creatureInfo(nullptr), m_creatureData(nullptr), _waypointPathId(0), _currentWaypointNodeInfo(0, 0),
-    m_formation(nullptr), m_triggerJustAppeared(true), m_respawnCompatibilityMode(false), m_focusSpell(nullptr), m_focusDelay(0), m_shouldReacquireTarget(false), m_suppressedOrientation(0.0f), _lastDamagedTime(0),
+    m_formation(nullptr), m_triggerJustAppeared(true), m_respawnCompatibilityMode(false), m_focusSpell(nullptr), m_focusDelay(0), m_shouldReacquireTarget(false), m_suppressedOrientation(0.0f), _lastDamagedTime(0), m_wildBattlePet(nullptr),
     _regenerateHealth(true), _regenerateHealthLock(false)
 {
     m_regenTimer = CREATURE_REGEN_INTERVAL;
@@ -326,6 +328,9 @@ Creature::~Creature()
 {
     delete i_AI;
     i_AI = nullptr;
+
+    //delete m_wildBattlePet; // pointer deallocated? 
+    m_wildBattlePet = nullptr; // lets set it to nullptr instead for future use. -Varjgard
 
     //if (m_uint32Values)
     //    TC_LOG_ERROR("entities.unit", "Deconstruct Creature Entry = %u", GetEntry());
@@ -1170,7 +1175,11 @@ bool Creature::Create(ObjectGuid::LowType guidlow, Map* map, uint32 entry, Posit
     LoadCreaturesAddon();
 
     //! Need to be called after LoadCreaturesAddon - MOVEMENTFLAG_HOVER is set there
-    m_positionZ += GetHoverOffset();
+    if (HasUnitMovementFlag(MOVEMENTFLAG_HOVER))
+    {
+        //! Relocate again with updated Z coord
+        m_positionZ += m_unitData->HoverHeight;
+    }
 
     LastUsedScriptID = GetScriptId();
 
@@ -1232,8 +1241,31 @@ Unit* Creature::SelectVictim()
 {
     Unit* target = nullptr;
 
-    if (CanHaveThreatList())
-        target = GetThreatManager().SelectVictim();
+    ThreatManager& mgr = GetThreatManager();
+
+    if (mgr.CanHaveThreatList())
+    {
+        target = mgr.SelectVictim();
+        while (!target)
+        {
+            Unit* newTarget = nullptr;
+            // nothing found to attack - try to find something we're in combat with (but don't have a threat entry for yet) and start attacking it
+            for (auto const& pair : GetCombatManager().GetPvECombatRefs())
+            {
+                newTarget = pair.second->GetOther(this);
+                if (!mgr.IsThreatenedBy(newTarget, true))
+                {
+                    mgr.AddThreat(newTarget, 0.0f, nullptr, true, true);
+                    break;
+                }
+                else
+                    newTarget = nullptr;
+            }
+            if (!newTarget)
+                break;
+            target = mgr.SelectVictim();
+        }
+    }
     else if (!HasReactState(REACT_PASSIVE))
     {
         // We're a player pet, probably
@@ -1272,6 +1304,15 @@ Unit* Creature::SelectVictim()
     /// @todo a vehicle may eat some mob, so mob should not evade
     if (GetVehicle())
         return nullptr;
+
+    // search nearby enemy before enter evade mode
+    if (HasReactState(REACT_AGGRESSIVE))
+    {
+        target = SelectNearestTargetInAttackDistance(m_CombatDistance ? m_CombatDistance : ATTACK_DISTANCE);
+
+        if (target && _IsTargetAcceptable(target) && CanCreatureAttack(target))
+            return target;
+    }
 
     Unit::AuraEffectList const& iAuras = GetAuraEffectsByType(SPELL_AURA_MOD_INVISIBILITY);
     if (!iAuras.empty())
@@ -1809,6 +1850,13 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
     m_respawnradius = data->spawndist;
     m_respawnDelay = data->spawntimesecs;
 
+    // Is the creature script objecting to us spawning? If yes, delay by a little bit (then re-check in ::Update)
+    if (!m_respawnCompatibilityMode && !m_respawnTime && !sScriptMgr->CanSpawn(spawnId, data->id, data, map))
+    {
+        SaveRespawnTime(urand(4,7));
+        return false;
+    }
+
     if (!Create(map->GenerateLowGuid<HighGuid::Creature>(), map, data->id, data->spawnPoint, data, 0U , !m_respawnCompatibilityMode))
         return false;
 
@@ -1847,6 +1895,9 @@ bool Creature::LoadFromDB(ObjectGuid::LowType spawnId, Map* map, bool addToMap, 
 
     if (addToMap && !GetMap()->AddToMap(this))
         return false;
+
+    GetMap()->AddBattlePet(this);
+
     return true;
 }
 

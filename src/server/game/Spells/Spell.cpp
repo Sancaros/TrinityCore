@@ -429,6 +429,11 @@ bool SpellCastTargets::HasDst() const
     return (GetTargetMask() & TARGET_FLAG_DEST_LOCATION) != 0;
 }
 
+void SpellCastTargets::SetCaster(Unit* caster)
+{
+    m_caster = caster;
+}
+
 void SpellCastTargets::Update(WorldObject* caster)
 {
     m_objectTarget = (m_objectTargetGUID == caster->GetGUID()) ? caster : ObjectAccessor::GetWorldObject(*caster, m_objectTargetGUID);
@@ -468,6 +473,28 @@ void SpellCastTargets::Update(WorldObject* caster)
             m_dst._position.RelocateOffset(m_dst._transportOffset);
         }
     }
+}
+
+void SpellCastTargets::OutDebug() const
+{
+    if (!m_targetMask)
+        TC_LOG_DEBUG("spells", "No targets");
+
+    TC_LOG_DEBUG("spells", "target mask: %u", m_targetMask);
+    if (m_targetMask & (TARGET_FLAG_UNIT_MASK | TARGET_FLAG_CORPSE_MASK | TARGET_FLAG_GAMEOBJECT_MASK))
+        TC_LOG_DEBUG("spells", "Object target: %s", m_objectTargetGUID.ToString().c_str());
+    if (m_targetMask & TARGET_FLAG_ITEM)
+        TC_LOG_DEBUG("spells", "Item target: %s", m_itemTargetGUID.ToString().c_str());
+    if (m_targetMask & TARGET_FLAG_TRADE_ITEM)
+        TC_LOG_DEBUG("spells", "Trade item target: %s", m_itemTargetGUID.ToString().c_str());
+    if (m_targetMask & TARGET_FLAG_SOURCE_LOCATION)
+        TC_LOG_DEBUG("spells", "Source location: transport guid:%s trans offset: %s position: %s", m_src._transportGUID.ToString().c_str(), m_src._transportOffset.ToString().c_str(), m_src._position.ToString().c_str());
+    if (m_targetMask & TARGET_FLAG_DEST_LOCATION)
+        TC_LOG_DEBUG("spells", "Destination location: transport guid:%s trans offset: %s position: %s", m_dst._transportGUID.ToString().c_str(), m_dst._transportOffset.ToString().c_str(), m_dst._position.ToString().c_str());
+    if (m_targetMask & TARGET_FLAG_STRING)
+        TC_LOG_DEBUG("spells", "String: %s", m_strTarget.c_str());
+    TC_LOG_DEBUG("spells", "speed: %f", m_speed);
+    TC_LOG_DEBUG("spells", "pitch: %f", m_pitch);
 }
 
 SpellValue::SpellValue(SpellInfo const* proto, WorldObject const* caster)
@@ -719,6 +746,7 @@ void Spell::SelectExplicitTargets()
                     redirect = ASSERT_NOTNULL(m_caster->ToUnit())->GetMeleeHitRedirectTarget(target, m_spellInfo);
                     break;
                 default:
+                    redirect = nullptr;
                     break;
             }
             if (redirect && (redirect != target))

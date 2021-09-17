@@ -78,10 +78,16 @@ DB2Storage<AzeriteUnlockMappingEntry>           sAzeriteUnlockMappingStore("Azer
 DB2Storage<BankBagSlotPricesEntry>              sBankBagSlotPricesStore("BankBagSlotPrices.db2", BankBagSlotPricesLoadInfo::Instance());
 DB2Storage<BannedAddonsEntry>                   sBannedAddonsStore("BannedAddons.db2", BannedAddonsLoadInfo::Instance());
 DB2Storage<BarberShopStyleEntry>                sBarberShopStyleStore("BarberShopStyle.db2", BarberShopStyleLoadInfo::Instance());
+DB2Storage<BattlePetAbilityEntry>               sBattlePetAbilityStore("BattlePetAbility.db2", BattlePetAbilityLoadInfo::Instance());
+DB2Storage<BattlePetAbilityTurnEntry>           sBattlePetAbilityTurnStore("BattlePetAbilityTurn.db2", BattlePetAbilityTurnLoadInfo::Instance());
+DB2Storage<BattlePetAbilityStateEntry>          sBattlePetAbilityStateStore("BattlePetAbilityState.db2", BattlePetAbilityStateLoadInfo::Instance());
+DB2Storage<BattlePetAbilityEffectEntry>         sBattlePetAbilityEffectStore("BattlePetAbilityEffect.db2", BattlePetAbilityEffectLoadInfo::Instance());
 DB2Storage<BattlePetBreedQualityEntry>          sBattlePetBreedQualityStore("BattlePetBreedQuality.db2", BattlePetBreedQualityLoadInfo::Instance());
 DB2Storage<BattlePetBreedStateEntry>            sBattlePetBreedStateStore("BattlePetBreedState.db2", BattlePetBreedStateLoadInfo::Instance());
 DB2Storage<BattlePetSpeciesEntry>               sBattlePetSpeciesStore("BattlePetSpecies.db2", BattlePetSpeciesLoadInfo::Instance());
 DB2Storage<BattlePetSpeciesStateEntry>          sBattlePetSpeciesStateStore("BattlePetSpeciesState.db2", BattlePetSpeciesStateLoadInfo::Instance());
+DB2Storage<BattlePetSpeciesXAbilityEntry>       sBattlePetSpeciesXAbilityStore("BattlePetSpeciesXAbility.db2", BattlePetSpeciesXAbilityLoadInfo::Instance());
+DB2Storage<BattlePetStateEntry>                 sBattlePetStateStore("BattlePetState.db2", BattlePetStateLoadInfo::Instance());
 DB2Storage<BattlemasterListEntry>               sBattlemasterListStore("BattlemasterList.db2", BattlemasterListLoadInfo::Instance());
 DB2Storage<BroadcastTextEntry>                  sBroadcastTextStore("BroadcastText.db2", BroadcastTextLoadInfo::Instance());
 DB2Storage<Cfg_RegionsEntry>                    sCfgRegionsStore("Cfg_Regions.db2", CfgRegionsLoadInfo::Instance());
@@ -380,6 +386,9 @@ typedef std::unordered_map<uint32, std::unordered_map<uint32, std::vector<SpellP
 typedef std::unordered_map<uint32, std::vector<SpellProcsPerMinuteModEntry const*>> SpellProcsPerMinuteModContainer;
 typedef std::vector<TalentEntry const*> TalentsByPosition[MAX_CLASSES][MAX_TALENT_TIERS][MAX_TALENT_COLUMNS];
 typedef std::unordered_set<uint32> ToyItemIdsContainer;
+typedef std::vector<BattlePetSpeciesEntry const*> BattlePetSpeciesContainer;
+typedef std::vector<BattlePetSpeciesEntry const*> CreatureToSpeciesContainer;
+typedef std::unordered_map<uint32 /*SpellID*/, BattlePetSpeciesEntry const*> SpellToSpeciesContainer;
 typedef std::tuple<uint16, uint8, int32> WMOAreaTableKey;
 typedef std::map<WMOAreaTableKey, WMOAreaTableEntry const*> WMOAreaTableLookupContainer;
 typedef std::pair<uint32 /*tableHash*/, int32 /*recordId*/> HotfixBlobKey;
@@ -406,6 +415,7 @@ namespace
     ArtifactPowersContainer _artifactPowers;
     ArtifactPowerLinksContainer _artifactPowerLinks;
     ArtifactPowerRanksContainer _artifactPowerRanks;
+    std::unordered_map<uint32, BattlePetSpeciesEntry const*> _battlePetSpeciesByCreatureId;
     std::unordered_map<uint32 /*itemId*/, AzeriteEmpoweredItemEntry const*> _azeriteEmpoweredItems;
     std::unordered_map<std::pair<uint32 /*azeriteEssenceId*/, uint32 /*rank*/>, AzeriteEssencePowerEntry const*> _azeriteEssencePowersByIdAndRank;
     std::vector<AzeriteItemMilestonePowerEntry const*> _azeriteItemMilestonePowers;
@@ -470,6 +480,9 @@ namespace
     MapChallengeWeightListContainer _challengeWeightMaps;
     TalentsByPosition _talentsByPosition;
     ToyItemIdsContainer _toys;
+    BattlePetSpeciesContainer _battlePetSpeciesContainer;
+    SpellToSpeciesContainer _spellToSpeciesContainer;
+    CreatureToSpeciesContainer _creatureToSpeciesContainer;
     std::unordered_map<uint32, std::vector<TransmogSetEntry const*>> _transmogSetsByItemModifiedAppearance;
     std::unordered_map<uint32, std::vector<TransmogSetItemEntry const*>> _transmogSetItemsByTransmogSet;
     std::unordered_map<int32, UiMapBounds> _uiMapBounds;
@@ -638,10 +651,16 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sBankBagSlotPricesStore);
     LOAD_DB2(sBannedAddonsStore);
     LOAD_DB2(sBarberShopStyleStore);
+    LOAD_DB2(sBattlePetAbilityStore);
+    LOAD_DB2(sBattlePetAbilityTurnStore);
+    LOAD_DB2(sBattlePetAbilityStateStore);
+    LOAD_DB2(sBattlePetAbilityEffectStore);
     LOAD_DB2(sBattlePetBreedQualityStore);
     LOAD_DB2(sBattlePetBreedStateStore);
     LOAD_DB2(sBattlePetSpeciesStore);
     LOAD_DB2(sBattlePetSpeciesStateStore);
+    LOAD_DB2(sBattlePetSpeciesXAbilityStore);
+    LOAD_DB2(sBattlePetStateStore);
     LOAD_DB2(sBattlemasterListStore);
     LOAD_DB2(sBroadcastTextStore);
     LOAD_DB2(sCfgRegionsStore);
@@ -989,6 +1008,9 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     ASSERT(BATTLE_PET_SPECIES_MAX_ID >= sBattlePetSpeciesStore.GetNumRows(),
         "BATTLE_PET_SPECIES_MAX_ID (%d) must be equal to or greater than %u", BATTLE_PET_SPECIES_MAX_ID, sBattlePetSpeciesStore.GetNumRows());
 
+    for (BattlePetSpeciesEntry const* battlePetSpeciesEntry : sBattlePetSpeciesStore)
+        _battlePetSpeciesByCreatureId[battlePetSpeciesEntry->CreatureID] = battlePetSpeciesEntry;
+
     for (ChrClassUIDisplayEntry const* uiDisplay : sChrClassUIDisplayStore)
     {
         ASSERT(uiDisplay->ChrClassesID < MAX_CLASSES);
@@ -1272,6 +1294,17 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     for (PhaseXPhaseGroupEntry const* group : sPhaseXPhaseGroupStore)
         if (PhaseEntry const* phase = sPhaseStore.LookupEntry(group->PhaseID))
             _phasesByGroup[group->PhaseGroupID].push_back(phase->ID);
+
+    _battlePetSpeciesContainer.resize(sBattlePetSpeciesStore.GetNumRows(), nullptr);
+    for (auto const& bps : sBattlePetSpeciesStore)
+    {
+        _battlePetSpeciesContainer[bps->ID] = bps;
+        _spellToSpeciesContainer[bps->SummonSpellID] = bps;
+
+        if (bps->CreatureID >= _creatureToSpeciesContainer.size())
+            _creatureToSpeciesContainer.resize(bps->CreatureID + 1, nullptr);
+        _creatureToSpeciesContainer[bps->CreatureID] = bps;
+    }
 
     for (PowerTypeEntry const* powerType : sPowerTypeStore)
     {
@@ -1812,6 +1845,15 @@ bool DB2Manager::IsAzeriteItem(uint32 itemId) const
         [&](AzeriteItemEntry const* azeriteItem) { return azeriteItem->ItemID == int32(itemId); }) != sAzeriteItemStore.end();
 }
 
+BattlePetSpeciesEntry const* DB2Manager::GetBattlePetSpeciesByCreatureID(uint32 CreatureID) const
+{
+    auto itr = _battlePetSpeciesByCreatureId.find(CreatureID);
+    if (itr != _battlePetSpeciesByCreatureId.end())
+        return itr->second;
+
+    return nullptr;
+}
+
 AzeriteEssencePowerEntry const* DB2Manager::GetAzeriteEssencePower(uint32 azeriteEssenceId, uint32 rank) const
 {
     return Trinity::Containers::MapGetValuePtr(_azeriteEssencePowersByIdAndRank, std::make_pair(azeriteEssenceId, rank));
@@ -2317,6 +2359,17 @@ std::vector<uint32> const* DB2Manager::GetGlyphRequiredSpecs(uint32 glyphPropert
 HeirloomEntry const* DB2Manager::GetHeirloomByItemId(uint32 itemId) const
 {
     return Trinity::Containers::MapGetValuePtr(_heirlooms, itemId);
+}
+
+bool DB2Manager::HasBattlePetSpeciesFlag(uint16 species, uint16 flag)
+{
+    if (species >= _battlePetSpeciesContainer.size())
+        return false;
+
+    if (auto const& speciesEntry = _battlePetSpeciesContainer[species])
+        return (speciesEntry->Flags & flag) != 0;
+
+    return false;
 }
 
 DB2Manager::ItemBonusList const* DB2Manager::GetItemBonusList(uint32 bonusListId) const
@@ -2879,6 +2932,19 @@ std::vector<SkillLineEntry const*> const* DB2Manager::GetSkillLinesForParentSkil
 std::vector<SkillLineAbilityEntry const*> const* DB2Manager::GetSkillLineAbilitiesBySkill(uint32 skillId) const
 {
     return Trinity::Containers::MapGetValuePtr(_skillLineAbilitiesBySkillupSkill, skillId);
+}
+
+BattlePetSpeciesEntry const* DB2Manager::GetSpeciesBySpell(uint32 SpellID) const
+{
+    return Trinity::Containers::MapGetValuePtr(_spellToSpeciesContainer, SpellID);
+}
+
+BattlePetSpeciesEntry const* DB2Manager::GetSpeciesByCreatureID(uint32 CreatureID) const
+{
+    if (CreatureID >= _creatureToSpeciesContainer.size())
+        return nullptr;
+
+    return _creatureToSpeciesContainer[CreatureID];
 }
 
 SkillRaceClassInfoEntry const* DB2Manager::GetSkillRaceClassInfo(uint32 skill, uint8 race, uint8 class_)

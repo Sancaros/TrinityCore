@@ -93,6 +93,10 @@ void WorldSession::HandleQuestgiverHelloOpcode(WorldPackets::Quest::QuestGiverHe
     creature->SetHomePosition(creature->GetPosition());
 
     _player->PlayerTalkClass->ClearMenus();
+
+    if (sScriptMgr->OnGossipHello(_player, creature))
+        return;
+
     if (creature->AI()->GossipHello(_player))
         return;
 

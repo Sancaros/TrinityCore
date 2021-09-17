@@ -1698,11 +1698,11 @@ void UnitData::WriteUpdate(ByteBuffer& data, Mask const& changesMask, bool ignor
             }
         }
     }
-    if (changesMask[123])
+    if (changesMask[122])
     {
         for (std::size_t i = 0; i < 6; ++i)
         {
-            if (changesMask[124 + i])
+            if (changesMask[123 + i])
             {
                 data << int32(Power[i]);
             }
@@ -3040,6 +3040,11 @@ void ActivePlayerData::WriteCreate(ByteBuffer& data, EnumFlag<UpdateFieldFlag> f
     }
     data << int32(Honor);
     data << int32(HonorNextLevel);
+    data << int64(PvpRewardAchieved);
+    data << int32(PvpTierMaxFromWins);
+    data << int64(PvpLastWeeksRewardAchieved);
+    data << int32(PvpLastWeeksTierMaxFromWins);
+    data << int64(PvpLastWeeksRewardClaimed);
     data << uint8(NumBankSlots);
     data << uint32(ResearchSites.size());
     data << uint32(ResearchSiteProgress.size());
@@ -3914,21 +3919,41 @@ void ActivePlayerData::WriteUpdate(ByteBuffer& data, Mask const& changesMask, bo
         }
         if (changesMask[104])
         {
-            data << uint8(NumBankSlots);
+            data << int64(PvpRewardAchieved);
+        }
+        if (changesMask[105])
+        {
+            data << int32(PvpTierMaxFromWins);
+        }
+        if (changesMask[106])
+        {
+            data << int64(PvpLastWeeksRewardAchieved);
         }
         if (changesMask[107])
         {
-            data << int32(UiChromieTimeExpansionID);
+            data << int32(PvpLastWeeksTierMaxFromWins);
         }
         if (changesMask[108])
         {
-            data << int32(TransportServerTime);
+            data << int64(PvpLastWeeksRewardClaimed);
         }
         if (changesMask[109])
         {
+            data << uint8(NumBankSlots);
+        }
+        if (changesMask[112])
+        {
+            data << int32(UiChromieTimeExpansionID);
+        }
+        if (changesMask[113])
+        {
+            data << int32(TransportServerTime);
+        }
+        if (changesMask[114])
+        {
             data << uint32(WeeklyRewardsPeriodSinceOrigin);
         }
-        if (changesMask[110])
+        if (changesMask[115])
         {
             data << int16(DEBUGSoulbindConduitRank);
         }
@@ -3936,27 +3961,24 @@ void ActivePlayerData::WriteUpdate(ByteBuffer& data, Mask const& changesMask, bo
     if (changesMask[98])
     {
         data.WriteBits(QuestSession.is_initialized(), 1);
-        if (changesMask[106])
+        if (changesMask[111])
         {
-            Field_1410->WriteUpdate(data, ignoreNestedChangesMask, owner, receiver);
+            //ield_1410->WriteUpdate(data, ignoreNestedChangesMask, owner, receiver);
+            data << DungeonScore;
         }
-        if (changesMask[105])
+        if (changesMask[110])
         {
             if (QuestSession.is_initialized())
             {
                 QuestSession->WriteUpdate(data, ignoreNestedChangesMask, owner, receiver);
             }
         }
-        if (changesMask[111])
-        {
-            data << DungeonScore;
-        }
     }
-    if (changesMask[112])
+    if (changesMask[124])
     {
         for (std::size_t i = 0; i < 199; ++i)
         {
-            if (changesMask[113 + i])
+            if (changesMask[125 + i])
             {
                 data << InvSlots[i];
             }
@@ -4216,6 +4238,11 @@ void ActivePlayerData::ClearChangesMask()
     Base::ClearChangesMask(GuildClubMemberID);
     Base::ClearChangesMask(Honor);
     Base::ClearChangesMask(HonorNextLevel);
+    Base::ClearChangesMask(PvpRewardAchieved);
+    Base::ClearChangesMask(PvpTierMaxFromWins);
+    Base::ClearChangesMask(PvpLastWeeksRewardAchieved);
+    Base::ClearChangesMask(PvpLastWeeksTierMaxFromWins);
+    Base::ClearChangesMask(PvpLastWeeksRewardClaimed);
     Base::ClearChangesMask(NumBankSlots);
     Base::ClearChangesMask(Field_1410);
     Base::ClearChangesMask(QuestSession);

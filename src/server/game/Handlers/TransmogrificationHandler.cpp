@@ -111,6 +111,11 @@ void WorldSession::HandleTransmogrifyItems(WorldPackets::Transmogrification::Tra
             if (transmogItem.ItemModifiedAppearanceID && !validateAndStoreTransmogItem(itemTransmogrified, transmogItem.ItemModifiedAppearanceID, false))
                 return;
 
+            // add cost
+            cost += itemTransmogrified->GetSellPrice(_player);
+        }
+        else if (transmogItem.SecondaryItemModifiedAppearanceID)
+        {
             if (transmogItem.SecondaryItemModifiedAppearanceID && !validateAndStoreTransmogItem(itemTransmogrified, transmogItem.SecondaryItemModifiedAppearanceID, true))
                 return;
 

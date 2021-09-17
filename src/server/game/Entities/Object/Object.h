@@ -557,8 +557,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         GameObject* SummonGameObject(uint32 entry, float x, float y, float z, float ang, QuaternionData const& rot, uint32 respawnTime /* s */);
         Creature*   SummonTrigger(float x, float y, float z, float ang, uint32 dur, CreatureAI* (*GetAI)(Creature*) = nullptr);
         void SummonCreatureGroup(uint8 group, std::list<TempSummon*>* list = nullptr);
-
-        Creature*   FindNearestCreature(uint32 entry, float range, bool alive = true) const;
+   
+        Creature* FindNearestCreature(uint32 entry, float range, bool alive = true) const;
         Creature* FindNearestCreature(std::list<uint32> entrys, float range, bool alive = true) const;
         std::list<Creature*>    FindNearestCreatures(uint32 entry, float range) const;
         Creature* FindNearestCreatureOnTransportInFloor(uint32 entry, float rangeXY, float rangeZ);

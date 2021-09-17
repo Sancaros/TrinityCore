@@ -26,9 +26,12 @@
 #include "Loot.h"
 #include "MapObject.h"
 #include "TaskScheduler.h"
+#include "WildBattlePet.h"
 
 #include <list>
 
+
+class BattlePetInstance;
 class CreatureAI;
 class CreatureGroup;
 class Group;
@@ -36,6 +39,7 @@ class Quest;
 class Player;
 class SpellInfo;
 class WorldSession;
+class WildBattlePet;
 
 enum MovementGeneratorType : uint8;
 
@@ -268,6 +272,9 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         float GetRespawnRadius() const { return m_respawnradius; }
         void SetRespawnRadius(float dist) { m_respawnradius = dist; }
 
+        ObjectGuid replacementFromGUID;
+        std::shared_ptr<BattlePetInstance> m_battlePetInstance;
+
         void DoImmediateBoundaryCheck() { m_boundaryCheckTime = 0; }
         uint32 GetCombatPulseDelay() const { return m_combatPulseDelay; }
         void SetCombatPulseDelay(uint32 delay) // (secs) interval at which the creature pulses the entire zone into combat (only works in dungeons)
@@ -366,6 +373,7 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
         bool CanGiveExperience() const;
         void ForcedDespawn(uint32 timeMSToDespawn = 0, Seconds const& forceRespawnTimer = Seconds(0));
 
+        WildBattlePet* GetWildBattlePet() { return m_wildBattlePet; }
 
         //Thordekk
         uint32 GetVignetteId() const { return m_creatureInfo ? m_creatureInfo->VignetteID : 0; }
@@ -458,6 +466,8 @@ class TC_GAME_API Creature : public Unit, public GridObject<Creature>, public Ma
 
         time_t _lastDamagedTime; // Part of Evade mechanics
         CreatureTextRepeatGroup m_textRepeat;
+
+        WildBattlePet* m_wildBattlePet;
 
         TaskScheduler _scheduler;
 

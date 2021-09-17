@@ -42,3 +42,12 @@ void WorldSession::HandleCollectionItemSetFavorite(WorldPackets::Collections::Co
             break;
     }
 }
+
+void WorldSession::HandleBattlePetClearFanfare(WorldPackets::Collections::BattlePetClearFanfare& packet)
+{
+  /*  if (auto battlePet = _player->GetBattlePet(packet.BattlePetGUID))
+    {
+        battlePet->Flags = battlePet->Flags & ~BATTLE_PET_FLAG_GIFT;;
+        battlePet->needSave = true;
+    }*/
+}

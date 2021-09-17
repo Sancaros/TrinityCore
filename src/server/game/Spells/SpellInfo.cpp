@@ -448,6 +448,18 @@ bool SpellEffectInfo::IsAreaAuraEffect() const
     return false;
 }
 
+bool SpellEffectInfo::IsFarUnitTargetEffect() const
+{
+    return (Effect == SPELL_EFFECT_SUMMON_PLAYER)
+        || (Effect == SPELL_EFFECT_SUMMON_RAF_FRIEND)
+        || (Effect == SPELL_EFFECT_RESURRECT);
+}
+
+bool SpellEffectInfo::IsFarDestTargetEffect() const
+{
+    return Effect == SPELL_EFFECT_TELEPORT_UNITS;
+}
+
 bool SpellEffectInfo::IsUnitOwnedAuraEffect() const
 {
     return IsAreaAuraEffect() || Effect == SPELL_EFFECT_APPLY_AURA || Effect == SPELL_EFFECT_APPLY_AURA_ON_PET;
@@ -2387,6 +2399,14 @@ Mechanics SpellInfo::GetEffectMechanic(SpellEffIndex effIndex) const
 
     return MECHANIC_NONE;
 }
+
+/*bool SpellInfo::HasAnyEffectMechanic() const
+{
+    for (uint8 i = 0; i < MAX_SPELL_EFFECTS; ++i)
+        if (Effects[i].Mechanic)
+            return true;
+    return false;
+}*/
 
 uint32 SpellInfo::GetDispelMask() const
 {
@@ -4341,6 +4361,11 @@ bool _isPositiveEffectImpl(SpellInfo const* spellInfo, SpellEffectInfo const& ef
         case SPELLFAMILY_GENERIC:
             switch (spellInfo->Id)
             {
+                case 29214: // Wrath of the Plaguebringer
+                case 34700: // Allergic Reaction
+                case 41914: // Parasitic Shadowfiend (Illidan)
+                case 41917: // Parasitic Shadowfiend (Illidan)
+                case 54836: // Wrath of the Plaguebringer
                 case 61987: // Avenging Wrath Marker
                 case 61988: // Divine Shield exclude aura
                     return false;
@@ -4360,6 +4385,22 @@ bool _isPositiveEffectImpl(SpellInfo const* spellInfo, SpellEffectInfo const& ef
             // Slam, Execute
             if ((spellInfo->SpellFamilyFlags[0] & 0x20200000) != 0)
                 return false;
+            break;
+        case SPELLFAMILY_MAGE:
+            // Arcane Missiles
+            if (spellInfo->SpellFamilyFlags[0] == 0x00000800)
+                return false;
+            break;
+        case SPELLFAMILY_PRIEST:
+            switch (spellInfo->Id)
+            {
+                case 64844: // Divine Hymn
+                case 64904: // Hymn of Hope
+                case 47585: // Dispersion
+                    return true;
+                default:
+                    break;
+            }
             break;
         case SPELLFAMILY_ROGUE:
             switch (spellInfo->Id)

@@ -16,7 +16,7 @@
  */
 
 #include "WorldSession.h"
-#include "BattlePetMgr.h"
+#include "BattlePetSystem.h"
 #include "Common.h"
 #include "Creature.h"
 #include "DatabaseEnv.h"
@@ -27,6 +27,7 @@
 #include "NPCPackets.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
+#include "PetBattle.h"
 #include "Player.h"
 #include "SpellMgr.h"
 #include "World.h"
@@ -1195,14 +1196,6 @@ void WorldSession::HandleUseCritterItem(WorldPackets::Item::UseCritterItem& useC
 
     if (item->GetBonus()->EffectCount < 2)
         return;
-
-    int32 spellToLearn = item->GetEffect(1)->SpellID;
-
-    if (BattlePetSpeciesEntry const* entry = sSpellMgr->GetBattlePetSpecies(uint32(spellToLearn)))
-    {
-        GetBattlePetMgr()->AddPet(entry->ID, entry->CreatureID, BattlePetMgr::RollPetBreed(entry->ID), BattlePetMgr::GetDefaultPetQuality(entry->ID));
-        _player->UpdateCriteria(CriteriaType::UniquePetsOwned);
-    }
 
     _player->DestroyItem(item->GetBagSlot(), item->GetSlot(), true);
 }

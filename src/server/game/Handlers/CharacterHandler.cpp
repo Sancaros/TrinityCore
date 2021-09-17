@@ -315,6 +315,9 @@ bool LoginQueryHolder::Initialize()
     stmt->setUInt64(0, lowGuid);
     res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_LOAD_GARRISON_FOLLOWER_ABILITIES, stmt);
 
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_PETBATTLE_ACCOUNT);
+    stmt->setUInt64(0, m_accountId);
+    res &= SetPreparedQuery(PLAYER_LOGIN_QUERY_BATTLE_PETS, stmt);
     return res;
 }
 
@@ -1109,10 +1112,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         pCurrChar->SetGuildRank(0);
         pCurrChar->SetGuildLevel(0);
     }
-
-    // TODO: Move this to BattlePetMgr::SendJournalLock() just to have all packets in one file
-    WorldPackets::BattlePet::BattlePetJournalLockAcquired lock;
-    SendPacket(lock.Write());
 
     pCurrChar->SendInitialPacketsBeforeAddToMap();
 
@@ -2655,7 +2654,7 @@ void WorldSession::HandleReorderCharacters(WorldPackets::Character::ReorderChara
 
 void WorldSession::HandleEngineSurvey(WorldPackets::Character::EngineSurvey& packet)
 {
-    std::hash<std::string> hash_gen;
+    //std::hash<std::string> hash_gen;
     std::string baseData(
         "TotalPhysMemory:" + std::to_string(packet.TotalPhysMemory) +
         "GPUVideoMemory:" + std::to_string(packet.GPUVideoMemory) +

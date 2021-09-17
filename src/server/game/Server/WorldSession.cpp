@@ -24,8 +24,9 @@
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
 #include "BattlePayMgr.h"
-#include "BattlePetMgr.h"
 #include "BattlegroundMgr.h"
+#include "BattlePet.h"
+#include "BattlePetDataStore.h"
 #include "BattlenetPackets.h"
 #include "CharacterPackets.h"
 #include "ChatPackets.h"
@@ -135,7 +136,6 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     expireTime(60000), // 1 min after socket loss, session is deleted
     forceExit(false),
     m_currentBankerGUID(),
-    _battlePetMgr(std::make_unique<BattlePetMgr>(this)),
     _collectionMgr(std::make_unique<CollectionMgr>(this))
 {
     memset(_tutorials, 0, sizeof(_tutorials));
@@ -562,6 +562,9 @@ void WorldSession::LogoutPlayer(bool save)
 
         ///- Remove pet
         _player->RemovePet(nullptr, PET_SAVE_AS_CURRENT, true);
+
+        ///- Remove battle pet
+        _player->UnsummonCurrentBattlePetIfAny(true);
 
         ///- Clear whisper whitelist
         _player->ClearWhisperWhiteList();
@@ -996,8 +999,7 @@ public:
     enum
     {
         GLOBAL_ACCOUNT_TOYS = 0,
-        BATTLE_PETS,
-        BATTLE_PET_SLOTS,
+        GLOBAL_ACCOUNT_BATTLE_PETS,
         GLOBAL_ACCOUNT_HEIRLOOMS,
         GLOBAL_REALM_CHARACTER_COUNTS,
         MOUNTS,
@@ -1017,14 +1019,7 @@ public:
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(GLOBAL_ACCOUNT_TOYS, stmt) && ok;
 
-        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PETS);
-        stmt->setUInt32(0, battlenetAccountId);
-        ok = SetPreparedQuery(BATTLE_PETS, stmt) && ok;
-
-        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PET_SLOTS);
-        stmt->setUInt32(0, battlenetAccountId);
-        ok = SetPreparedQuery(BATTLE_PET_SLOTS, stmt) && ok;
-
+     
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_HEIRLOOMS);
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(GLOBAL_ACCOUNT_HEIRLOOMS, stmt) && ok;
@@ -1109,9 +1104,6 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder* realmHold
     WorldPackets::Battlenet::ConnectionStatus bnetConnected;
     bnetConnected.State = 1;
     SendPacket(bnetConnected.Write());
-
-    _battlePetMgr->LoadFromDB(holder->GetPreparedResult(AccountInfoQueryHolder::BATTLE_PETS),
-                              holder->GetPreparedResult(AccountInfoQueryHolder::BATTLE_PET_SLOTS));
 
     delete realmHolder;
     delete holder;

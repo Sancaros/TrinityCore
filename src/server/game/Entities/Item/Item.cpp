@@ -2315,6 +2315,11 @@ ItemModifiedAppearanceEntry const* Item::GetItemModifiedAppearance() const
     return sDB2Manager.GetItemModifiedAppearance(GetEntry(), _bonusData.AppearanceModID);
 }
 
+uint8 Item::GetDisplayToastMethod(uint8 value) const
+{
+    return _bonusData.DisplayToastMethod[value];
+}
+
 uint32 Item::GetModifier(ItemModifier modifier) const
 {
     int32 modifierIndex = m_itemData->Modifiers->Values.FindIndexIf([modifier](UF::ItemMod mod)
@@ -2722,6 +2727,9 @@ void BonusData::Initialize(ItemTemplate const* proto)
     RepairCostMultiplier = 1.0f;
     ContentTuningId = proto->GetScalingStatContentTuning();
     PlayerLevelToItemLevelCurveId = proto->GetPlayerLevelToItemLevelCurveId();
+    memset(DisplayToastMethod, 0, sizeof(DisplayToastMethod));
+    DisplayToastMethod[0] = 3; // SHOW_LOOT_TOAST_RARE
+    DisplayToastMethod[1] = 0;
     RelicType = -1;
     HasFixedLevel = false;
     RequiredLevelOverride = 0;
@@ -2842,6 +2850,14 @@ void BonusData::AddBonus(uint32 type, int32 const (&values)[4])
                 _state.ScalingStatDistributionPriority = values[1];
                 HasFixedLevel = type == ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED;
             }
+            break;
+        case ITEM_BONUS_DISPLAY_TOAST_METHOD:
+            if (values[0] < 0xB)
+                if (static_cast<uint32>(values[1]) < DisplayToastMethod[1])
+                {
+                    DisplayToastMethod[0] = static_cast<uint32>(values[0]);
+                    DisplayToastMethod[1] = static_cast<uint32>(values[1]);
+                }
             break;
         case ITEM_BONUS_BONDING:
             Bonding = ItemBondingType(values[0]);

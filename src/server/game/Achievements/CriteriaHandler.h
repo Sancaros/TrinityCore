@@ -278,6 +278,8 @@ public:
     void UpdateTimedCriteria(uint32 timeDiff);
     void StartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry, uint32 timeLost = 0);
     void RemoveCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);   // used for quest and scripted timed s
+    bool CheckCompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer);
+    bool CheckCompletedCriteriaTree(uint32 Criteriatreeid, Player* referencePlayer);
 
 protected:
     virtual void SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, Seconds timeElapsed, bool timedCompleted) const = 0;
@@ -309,6 +311,7 @@ protected:
 
     CriteriaProgressMap _criteriaProgress;
     std::map<uint32, uint32 /*ms time left*/> _timeCriteriaTrees;
+    std::set<uint32> _completedCriteriaTree;
 };
 
 class TC_GAME_API CriteriaMgr

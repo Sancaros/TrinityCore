@@ -135,8 +135,8 @@ namespace WorldPackets
             bool KioskModeEnabled                    = false;
             bool CompetitiveModeEnabled              = false;
             bool TokenBalanceEnabled                 = false;
-            bool WarModeFeatureEnabled               = false;
-            bool ClubsEnabled                        = false;
+            bool WarModeFeatureEnabled               = true;
+            bool ClubsEnabled                        = true;
             bool ClubsBattleNetClubTypeAllowed       = false;
             bool ClubsCharacterClubTypeAllowed       = false;
             bool ClubsPresenceUpdateEnabled          = false;
@@ -169,10 +169,10 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            bool BpayStoreAvailable                  = false; // NYI
+            bool BpayStoreAvailable                  = true; // NYI
             bool BpayStoreDisabledByParentalControls = false; // NYI
             bool CharUndeleteEnabled                 = false;
-            bool BpayStoreEnabled                    = false; // NYI
+            bool BpayStoreEnabled                    = true; // NYI
             bool CommerceSystemEnabled               = false; // NYI
             bool Unk14                               = false; // NYI
             bool WillKickFromWorld                   = false; // NYI

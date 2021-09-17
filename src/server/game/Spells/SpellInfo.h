@@ -314,6 +314,8 @@ public:
     bool IsAura(AuraType aura) const;
     bool IsTargetingArea() const;
     bool IsAreaAuraEffect() const;
+    bool IsFarUnitTargetEffect() const;
+    bool IsFarDestTargetEffect() const;
     bool IsUnitOwnedAuraEffect() const;
 
     int32 CalcValue(WorldObject const* caster = nullptr, int32 const* basePoints = nullptr, Unit const* target = nullptr, float* variance = nullptr, uint32 castItemId = 0, int32 itemLevel = -1) const;
@@ -348,8 +350,6 @@ private:
     ImmunityInfo _immunityInfo;
 };
 
-typedef std::vector<SpellEffectInfo const*> SpellEffectInfoVector;
-
 typedef std::vector<SpellXSpellVisualEntry const*> SpellVisualVector;
 typedef std::unordered_map<uint32, SpellVisualVector> SpellVisualMap;
 
@@ -369,6 +369,8 @@ struct SpellPowerCost
 {
     Powers Power;
     int32 Amount;
+    // OptionalAmount is included in Amount
+    int32 OptionalAmount = 0;
 };
 
 class TC_GAME_API SpellInfo
@@ -465,6 +467,7 @@ class TC_GAME_API SpellInfo
         // SpellScalingEntry
         struct ScalingInfo
         {
+            int32 Class = 0;
             uint32 MinScalingLevel = 0;
             uint32 MaxScalingLevel = 0;
             uint32 ScalesFromItemLevel = 0;

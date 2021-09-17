@@ -363,7 +363,6 @@ namespace WorldPackets
 
             int32 QuestID = 0;
         };
-
         struct QuestObjectiveSimple
         {
             int32 ID        = 0;

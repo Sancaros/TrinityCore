@@ -33,7 +33,9 @@
 #include "BattlegroundMgr.h"
 #include "BattlegroundPackets.h"
 #include "BattlegroundScore.h"
-#include "BattlePetMgr.h"
+#include "BattlePet.h"
+#include "BattlePetDataStore.h"
+#include "BattlePetSystem.h"
 #include "CellImpl.h"
 #include "Channel.h"
 #include "ChannelMgr.h"
@@ -92,6 +94,7 @@
 #include "OutdoorPvP.h"
 #include "OutdoorPvPMgr.h"
 #include "Pet.h"
+#include "PetBattle.h"
 #include "PetPackets.h"
 #include "PoolMgr.h"
 #include "PetitionMgr.h"
@@ -131,6 +134,7 @@
 #include "WorldQuestMgr.h"
 #include <G3D/g3dmath.h>
 #include <sstream>
+#include "BattlePetDataStore.h"
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
@@ -496,7 +500,55 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::Coinage), sWorld->getIntConfig(CONFIG_START_PLAYER_MONEY));
     SetCreateCurrency(CURRENCY_TYPE_APEXIS_CRYSTALS, sWorld->getIntConfig(CONFIG_CURRENCY_START_APEXIS_CRYSTALS));
     SetCreateCurrency(CURRENCY_TYPE_JUSTICE_POINTS, sWorld->getIntConfig(CONFIG_CURRENCY_START_JUSTICE_POINTS));
+    // start with every map explored
+    if (sWorld->getBoolConfig(CONFIG_START_ALL_EXPLORED))
+    {
+        for (uint16 i = 0; i < PLAYER_EXPLORED_ZONES_SIZE; ++i)
+            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::ExploredZones, i), UI64LIT(0xFFFFFFFFFFFFFFFF));
+    }
 
+    //Reputations if "StartAllReputation" is enabled, -- @todo Fix this in a better way
+    if (sWorld->getBoolConfig(CONFIG_START_ALL_REP))
+    {
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(942), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(935), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(936), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(1011), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(970), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(967), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(989), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(932), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(934), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(1038), 42999);
+        GetReputationMgr().SetReputation(sFactionStore.LookupEntry(1077), 42999);
+
+        // Factions depending on team, like cities and some more stuff
+        switch (GetTeam())
+        {
+        case ALLIANCE:
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(72), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(47), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(69), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(930), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(730), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(978), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(54), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(946), 42999);
+            break;
+        case HORDE:
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(76), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(68), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(81), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(911), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(729), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(941), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(530), 42999);
+            GetReputationMgr().SetReputation(sFactionStore.LookupEntry(947), 42999);
+            break;
+        default:
+            break;
+        }
+    }
     // Played time
     m_Last_tick = GameTime::GetGameTime();
     m_Played_time[PLAYED_TIME_TOTAL] = 0;
@@ -780,6 +832,9 @@ void Player::HandleDrowning(uint32 time_diff)
     // In dark water
     if (m_MirrorTimerFlags & UNDERWATER_INDARKWATER)
     {
+        //Do not send fatigue timer when players are in Exile's Reach tutorial
+        if (GetAreaId() == 10639)
+            return;
         // Fatigue timer not activated - activate it
         if (m_MirrorTimer[FATIGUE_TIMER] == DISABLED_MIRROR_TIMER)
         {
@@ -1235,6 +1290,7 @@ void Player::Update(uint32 p_time)
     if (IsHasDelayedTeleport() && IsAlive())
         TeleportTo(m_teleport_dest, m_teleport_options);
 
+    GetVignetteMgr().Update();
 }
 
 void Player::setDeathState(DeathState s)
@@ -1696,6 +1752,36 @@ void Player::ProcessDelayedOperations()
     {
         if (Group* g = GetGroup())
             g->SendUpdateToPlayer(GetGUID());
+    }
+
+    if (m_DelayedOperations & DELAYED_PET_BATTLE_INITIAL)
+    {
+        if (PetBattle* battle = sPetBattleSystem->GetBattle(_petBattleId))
+        {
+            uint8 teamID = battle->Teams[PET_BATTLE_TEAM_1]->OwnerGuid == GetGUID() ? PET_BATTLE_TEAM_1 : PET_BATTLE_TEAM_2;
+
+            PetBattleRequest request;
+            memcpy(&request, &battle->PvPMatchMakingRequest, sizeof(PetBattleRequest)); //@TODO check that
+
+            auto& matchMakingRequest = battle->PvPMatchMakingRequest;
+
+            if (teamID == PET_BATTLE_TEAM_2)
+                std::swap(request.TeamPosition[PET_BATTLE_TEAM_1], request.TeamPosition[PET_BATTLE_TEAM_2]);
+
+            matchMakingRequest.PetBattleCenterPosition.m_positionZ = GetMap()->GetHeight(GetPhaseShift(), matchMakingRequest.PetBattleCenterPosition.GetPositionX(), matchMakingRequest.PetBattleCenterPosition.GetPositionZ(), MAX_HEIGHT);
+
+            GetSession()->SendPetBattleFinalizeLocation(&request);
+
+            SetUnitFlags(UNIT_FLAG_IMMUNE_TO_NPC);
+            SetFacingTo(GetAngle(matchMakingRequest.TeamPosition[!teamID].GetPositionX(), matchMakingRequest.TeamPosition[!teamID].GetPositionY()));
+            SetRooted(true);
+
+            if (!matchMakingRequest.IsPvPReady[teamID])
+                matchMakingRequest.IsPvPReady[teamID] = true;
+
+            if (matchMakingRequest.IsPvPReady[PET_BATTLE_TEAM_1] == true && matchMakingRequest.IsPvPReady[PET_BATTLE_TEAM_2] == true)
+                battle->Begin();
+        }
     }
 
     //we have executed ALL delayed ops, so clear the flag
@@ -3161,11 +3247,14 @@ bool Player::AddSpell(uint32 spellId, bool active, bool learning, bool dependent
         GetSession()->GetCollectionMgr()->AddMount(spellId, MOUNT_STATUS_NONE, false, IsInWorld() ? false : true);
 
     // need to add Battle pets automatically into pet journal
+
+    if (learning && !dependent)
+        AddBattlePet(spellId);
+
     for (BattlePetSpeciesEntry const* entry : sBattlePetSpeciesStore)
     {
-        if (entry->SummonSpellID == int32(spellId) && GetSession()->GetBattlePetMgr()->GetPetCount(entry->ID) == 0)
+        if (entry->SummonSpellID == int32(spellId))
         {
-            GetSession()->GetBattlePetMgr()->AddPet(entry->ID, entry->CreatureID, BattlePetMgr::RollPetBreed(entry->ID), BattlePetMgr::GetDefaultPetQuality(entry->ID));
             UpdateCriteria(CriteriaType::UniquePetsOwned);
             break;
         }
@@ -6979,6 +7068,19 @@ bool Player::HasCurrency(uint32 id, uint32 count) const
     return itr != _currencyStorage.end() && itr->second.Quantity >= count;
 }
 
+bool Player::IsQuestObjectiveProgressComplete(Quest const* quest) const
+{
+    float progress = 0;
+    for (QuestObjective const& obj : quest->GetObjectives())
+        if (obj.Flags & QUEST_OBJECTIVE_FLAG_PART_OF_PROGRESS_BAR)
+        {
+            progress += GetQuestObjectiveData(quest, obj.StorageIndex) * obj.ProgressBarWeight;
+            if (progress >= 100)
+                return true;
+        }
+    return false;
+}
+
 void Player::ModifyCurrency(uint32 id, int32 count, bool printLog/* = true*/, bool ignoreMultipliers/* = false*/, bool sendToast/* = false*/)
 {
     if (!count)
@@ -7245,6 +7347,8 @@ uint32 Player::GetZoneIdFromDB(ObjectGuid guid)
 
 void Player::UpdateArea(uint32 newArea)
 {
+    uint32 oldArea = m_areaUpdateId;
+
     // FFA_PVP flags are area and not zone id dependent
     // so apply them accordingly
     m_areaUpdateId = newArea;
@@ -7283,6 +7387,27 @@ void Player::UpdateArea(uint32 newArea)
         _restMgr->SetRestFlag(REST_FLAG_IN_FACTION_AREA);
     else
         _restMgr->RemoveRestFlag(REST_FLAG_IN_FACTION_AREA);
+
+    if (oldArea != newArea)
+    {
+        sScriptMgr->OnPlayerUpdateArea(this, newArea, oldArea);
+
+        if (ZoneScript* zoneScript = GetZoneScript())
+            zoneScript->OnPlayerAreaUpdate(this, newArea, oldArea);
+
+        /*if (IsInGarrison())
+        {
+            if (Garrison* garrison = GetGarrison(GetCurrentGarrison()))
+                if (!garrison->IsAllowedArea(newArea))
+                    garrison->Leave();
+        }
+        else*/
+       // {
+        //    for (auto& garrison : GetGarrisons())
+          //      if (garrison.second->IsAllowedArea(newArea))
+            //        garrison.second->Enter();
+      //  }
+    }
 
     PushQuests();
 
@@ -7362,6 +7487,20 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
         SendInitWorldStates(newZone, newArea);              // only if really enters to new zone, not just area change, works strange...
         if (Guild* guild = GetGuild())
             guild->UpdateMemberData(this, GUILD_MEMBER_DATA_ZONEID, newZone);
+
+        if (ZoneScript* oldZoneScript = GetZoneScript())
+            if (oldZoneScript->IsZoneScript())
+                oldZoneScript->OnPlayerExit(this);
+
+        // call enter script hooks after everyting else has processed
+        if (m_zoneUpdateId != oldZone)
+        {
+            SetZoneScript();
+
+            if (ZoneScript* newZoneScript = GetZoneScript())
+                if (newZoneScript->IsZoneScript())
+                    GetZoneScript()->OnPlayerEnter(this);
+        }
     }
 }
 
@@ -7879,6 +8018,12 @@ void Player::_ApplyWeaponDamage(uint8 slot, Item* item, bool apply)
         return;
 
     float damage = 0.0f;
+
+    if (slot == EQUIPMENT_SLOT_MAINHAND && (proto->GetInventoryType() == INVTYPE_RANGED || proto->GetInventoryType() == INVTYPE_RANGEDRIGHT))
+        attType = RANGED_ATTACK;
+    else if (slot == EQUIPMENT_SLOT_OFFHAND)
+        attType = OFF_ATTACK;
+
     uint32 itemLevel = item->GetItemLevel(this);
     float minDamage, maxDamage;
     proto->GetDamage(itemLevel, minDamage, maxDamage);
@@ -9864,6 +10009,7 @@ void Player::SendInitWorldStates(uint32 zoneid, uint32 areaid)
             break;
     }
 
+    sWorldQuestMgr->FillInitWorldStates(packet);
     SendDirectMessage(packet.Write());
     SendBGWeekendWorldStates();
     SendBattlefieldWorldStates();
@@ -14694,10 +14840,18 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                 case GOSSIP_OPTION_TABARDDESIGNER:
                 case GOSSIP_OPTION_AUCTIONEER:
                 case GOSSIP_OPTION_TRANSMOGRIFIER:
+                case GOSSIP_OPTION_ADVENTURE_MAP:
+                case GOSSIP_OPTION_GARRISON_TRADESKILL:
+                case GOSSIP_OPTION_GARRISON_SHIPMENT:
                     break;                                  // no checks
                 case GOSSIP_OPTION_OUTDOORPVP:
                     if (!sOutdoorPvPMgr->CanTalkTo(this, creature, itr->second))
                         canTalk = false;
+                    break;
+                case GOSSIP_OPTION_CHOICE:
+                case GOSSIP_OPTION_SHIPMENT_CRAFTER:
+                case GOSSIP_OPTION_ALLIED_RACE_DETAILS:
+                    canTalk = true;
                     break;
                 default:
                     TC_LOG_ERROR("sql.sql", "Creature entry %u has unknown gossip option %u for menu %u.", creature->GetEntry(), itr->second.OptionType, itr->second.MenuId);
@@ -17282,6 +17436,36 @@ bool Player::HasQuestForItem(uint32 itemid) const
     }
 
     return false;
+}
+
+int32 Player::GetQuestObjectiveData(Quest const* quest, int8 storageIndex) const
+{
+    if (storageIndex < 0)
+        TC_LOG_ERROR("entities.player.quest", "Player::GetQuestObjectiveData: Called for quest %u with invalid StorageIndex %d (objective data is not tracked)",
+            quest->GetQuestId(), storageIndex);
+
+    auto itr = m_QuestStatus.find(quest->GetQuestId());
+    if (itr == m_QuestStatus.end())
+        return 0;
+
+    QuestStatusData const& status = itr->second;
+
+    if (uint8(storageIndex) >= status.ObjectiveData.size())
+    {
+        TC_LOG_ERROR("entities.player.quest", "Player::GetQuestObjectiveData: Player '%s' (%s) quest %u out of range StorageIndex %u",
+            GetName().c_str(), GetGUID().ToString().c_str(), quest->GetQuestId(), storageIndex);
+        return 0;
+    }
+
+    return status.ObjectiveData[storageIndex];
+}
+
+int32 Player::GetQuestObjectiveData(uint32 questId, int8 storageIndex) const
+{
+    if (Quest const* qInfo = sObjectMgr->GetQuestTemplate(questId))
+        return GetQuestObjectiveData(qInfo, storageIndex);
+
+    return 0;
 }
 
 int32 Player::GetQuestObjectiveData(QuestObjective const& objective) const
@@ -20843,9 +21027,10 @@ void Player::SaveToDB(LoginDatabaseTransaction loginTransaction, CharacterDataba
     if (m_session->isLogingOut() || !sWorld->getBoolConfig(CONFIG_STATS_SAVE_ONLY_ON_LOGOUT))
         _SaveStats(trans);
 
+    SaveBattlePets(trans);
+
     // TODO: Move this out
     GetSession()->GetCollectionMgr()->SaveAccountToys(loginTransaction);
-    GetSession()->GetBattlePetMgr()->SaveToDB(loginTransaction);
     GetSession()->GetCollectionMgr()->SaveAccountHeirlooms(loginTransaction);
     GetSession()->GetCollectionMgr()->SaveAccountMounts(loginTransaction);
     GetSession()->GetCollectionMgr()->SaveAccountItemAppearances(loginTransaction);
@@ -23509,9 +23694,14 @@ uint32 Player::GetMaxPersonalArenaRatingRequirement(uint32 minarenaslot) const
     uint32 max_personal_rating = 0;
     for (uint8 i = minarenaslot; i < MAX_ARENA_SLOT; ++i)
     {
-        uint32 p_rating = GetArenaPersonalRating(i);
-        if (max_personal_rating < p_rating)
-            max_personal_rating = p_rating;
+        if (ArenaTeam* at = sArenaTeamMgr->GetArenaTeamById(GetArenaTeamId(i)))
+        {
+            uint32 p_rating = GetArenaPersonalRating(i);
+            uint32 t_rating = at->GetRating();
+            p_rating = p_rating < t_rating ? p_rating : t_rating;
+            if (max_personal_rating < p_rating)
+                max_personal_rating = p_rating;
+        }
     }
     return max_personal_rating;
 }
@@ -24087,6 +24277,7 @@ void Player::UpdateVisibilityOf(WorldObject* target)
 
             target->DestroyForPlayer(this);
             m_clientGUIDs.erase(target->GetGUID());
+            GetVignetteMgr().OnWorldObjectDisappear(target);
 
             #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "%s out of range for %s. Distance = %f", target->GetGUID().ToString().c_str(), GetGUID().ToString().c_str(), GetDistance(target));
@@ -24099,6 +24290,8 @@ void Player::UpdateVisibilityOf(WorldObject* target)
         {
             target->SendUpdateToPlayer(this);
             m_clientGUIDs.insert(target->GetGUID());
+
+            GetVignetteMgr().OnWorldObjectAppear(target);
 
             #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "%s is visible now for %s. Distance = %f", target->GetGUID().ToString().c_str(), GetGUID().ToString().c_str(), GetDistance(target));
@@ -24174,6 +24367,7 @@ void Player::UpdateVisibilityOf(T* target, UpdateData& data, std::set<Unit*>& vi
 
             target->BuildOutOfRangeUpdateBlock(&data);
             m_clientGUIDs.erase(target->GetGUID());
+            GetVignetteMgr().OnWorldObjectDisappear(target);
 
             #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "Object %s (%u) is out of range for %s. Distance = %f", target->GetGUID().ToString().c_str(), target->GetEntry(), GetGUID().ToString().c_str(), GetDistance(target));
@@ -24186,6 +24380,7 @@ void Player::UpdateVisibilityOf(T* target, UpdateData& data, std::set<Unit*>& vi
         {
             target->BuildCreateUpdateBlockForPlayer(&data, this);
             UpdateVisibilityOf_helper(m_clientGUIDs, target, visibleNow);
+            GetVignetteMgr().OnWorldObjectAppear(target);
 
             #ifdef TRINITY_DEBUG
             TC_LOG_DEBUG("maps", "Object %s (%u) is visible now for %s. Distance = %f", target->GetGUID().ToString().c_str(), target->GetEntry(), GetGUID().ToString().c_str(), GetDistance(target));
@@ -24289,6 +24484,45 @@ Player* Player::GetSelectedPlayer() const
     if (!selectionGUID.IsEmpty())
         return ObjectAccessor::FindConnectedPlayer(selectionGUID);
     return nullptr;
+}
+
+void Player::AddComboPoints(int8 count, Spell* spell)
+{
+    if (!count)
+        return;
+
+    int8 comboPoints = spell ? spell->m_comboPointGain : GetPower(POWER_COMBO_POINTS);
+
+    comboPoints += count;
+
+    if (comboPoints > 5)
+        comboPoints = 5;
+    else if (comboPoints < 0)
+        comboPoints = 0;
+
+    if (!spell)
+        SetPower(POWER_COMBO_POINTS, comboPoints);
+    else
+        spell->m_comboPointGain = comboPoints;
+}
+
+void Player::GainSpellComboPoints(int8 count)
+{
+    if (!count)
+        return;
+
+    int8 cp = GetPower(POWER_COMBO_POINTS);
+
+    cp += count;
+    if (cp > 5) cp = 5;
+    else if (cp < 0) cp = 0;
+
+    SetPower(POWER_COMBO_POINTS, cp);
+}
+
+void Player::ClearComboPoints()
+{
+    SetPower(POWER_COMBO_POINTS, 0);
 }
 
 bool Player::IsInGroup(ObjectGuid groupGuid) const
@@ -24404,6 +24638,9 @@ void Player::SendInitialPacketsBeforeAddToMap()
     // Spell modifiers
     SendSpellModifiers();
 
+    // Reset Vignitte data
+    SendDirectMessage(WorldPackets::Misc::VignetteUpdate(true).Write());
+
     // SMSG_ACCOUNT_MOUNT_UPDATE
     WorldPackets::Misc::AccountMountUpdate mountUpdate;
     mountUpdate.IsFullUpdate = true;
@@ -24443,6 +24680,8 @@ void Player::SendInitialPacketsAfterAddToMap()
     GetSession()->SendLoadCUFProfiles();
 
     CastSpell(this, 836, true);                             // LOGINEFFECT
+
+    AddPlayerLocalFlag(PLAYER_LOCAL_FLAG_ACCOUNT_SECURED); // TODO: slots are unlocked but backbag is not resized, resize backbag to 20 slot.
 
     // set some aura effects that send packet to player client after add player to map
     // SendMessageToSet not send it to player not it map, only for aura that not changed anything at re-apply
@@ -24514,6 +24753,8 @@ void Player::SendInitialPacketsAfterAddToMap()
 
     if (_garrison)
         _garrison->SendRemoteInfo();
+
+    GetSession()->SendBattlePetJournal();
 
     UpdateItemLevelAreaBasedScaling();
 
@@ -25243,6 +25484,18 @@ bool Player::HasQuestForGO(int32 GOId) const
             }
         }
     }
+    return false;
+}
+
+bool Player::HasQuest(uint32 questId) const
+{
+    if (questId == 0)
+        return false;
+
+    for (uint8 itr = 0; itr < MAX_QUEST_LOG_SIZE; ++itr)
+        if (GetQuestSlotQuestId(itr) == questId)
+            return true;
+
     return false;
 }
 
@@ -26090,20 +26343,6 @@ void Player::ProcessTerrainStatusUpdate(ZLiquidStatus status, Optional<LiquidDat
         m_MirrorTimerFlags &= ~(UNDERWATER_INWATER | UNDERWATER_INLAVA | UNDERWATER_INSLIME | UNDERWATER_INDARKWATER);
 }
 
-void Player::AtEnterCombat()
-{
-    Unit::AtEnterCombat();
-    if (GetCombatManager().HasPvPCombat())
-        EnablePvpRules(true);
-}
-
-void Player::AtExitCombat()
-{
-    Unit::AtExitCombat();
-    UpdatePotionCooldown();
-    m_combatExitTime = getMSTime();
-}
-
 float Player::GetBlockPercent(uint8 attackerLevel) const
 {
     float blockArmor = float(*m_activePlayerData->ShieldBlock);
@@ -26508,9 +26747,17 @@ void Player::StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult/* 
         --loot->unlootedCount;
 
         if (sObjectMgr->GetItemTemplate(item->itemid))
+        {
             if (newitem->GetQuality() > ITEM_QUALITY_EPIC || (newitem->GetQuality() == ITEM_QUALITY_EPIC && newitem->GetItemLevel(this) >= MinNewsItemLevel))
                 if (Guild* guild = GetGuild())
                     guild->AddGuildNews(GUILD_NEWS_ITEM_LOOTED, GetGUID(), 0, item->itemid);
+
+            if (newitem->GetQuality() >= uint32(ITEM_QUALITY_UNCOMMON))
+                SendDisplayToast(item->itemid, ToastType::ITEM, false, item->count, (DisplayToastMethod)newitem->GetDisplayToastMethod(), 0, newitem);
+            else if (newitem->GetQuality() >= uint32(ITEM_QUALITY_LEGENDARY))
+                SendDisplayToast(item->itemid, ToastType::ITEM, false, item->count, (DisplayToastMethod)newitem->GetDisplayToastMethod(), 0, newitem);
+
+        }
 
         // if aeLooting then we must delay sending out item so that it appears properly stacked in chat
         if (!aeResult)
@@ -28299,6 +28546,24 @@ void Player::SendMovementSetCollisionHeight(float height, WorldPackets::Movement
     SendMessageToSet(updateCollisionHeight.Write(), false);
 }
 
+void Player::AddMovieDelayedAction(uint32 movieId, std::function<void()>&& function)
+{
+    MovieDelayedActions.push_back(std::pair<uint32, std::function<void()>>(movieId, function));
+}
+
+void Player::RemoveMovieDelayedAction(uint32 movieId)
+{
+    auto itr = std::find_if(MovieDelayedActions.begin(), MovieDelayedActions.end(), [movieId](const std::pair<uint32, std::function<void()>>& elem) -> bool
+        {
+            return elem.first == movieId;
+        });
+
+    if (itr != MovieDelayedActions.end())
+    {
+        (*itr).second = nullptr;
+        MovieDelayedActions.erase(itr);
+    }
+}
 void Player::SendPlayerChoice(ObjectGuid sender, int32 choiceId)
 {
     PlayerChoice const* playerChoice = sObjectMgr->GetPlayerChoice(choiceId);
@@ -28322,12 +28587,16 @@ void Player::SendPlayerChoice(ObjectGuid sender, int32 choiceId)
         ObjectMgr::GetLocaleString(playerChoiceLocale->Question, locale, displayPlayerChoice.Question);
 
     displayPlayerChoice.Responses.resize(playerChoice->Responses.size());
+    if (playerChoice->Responses.size() > 4)
+        displayPlayerChoice.Responses.resize(4);
     displayPlayerChoice.CloseChoiceFrame = false;
     displayPlayerChoice.HideWarboardHeader = playerChoice->HideWarboardHeader;
     displayPlayerChoice.KeepOpenAfterChoice = playerChoice->KeepOpenAfterChoice;
 
     for (std::size_t i = 0; i < playerChoice->Responses.size(); ++i)
     {
+        if (i > 4)
+            continue;
         PlayerChoiceResponse const& playerChoiceResponseTemplate = playerChoice->Responses[i];
         WorldPackets::Quest::PlayerChoiceResponse& playerChoiceResponse = displayPlayerChoice.Responses[i];
         playerChoiceResponse.ResponseID = playerChoiceResponseTemplate.ResponseId;
@@ -29161,6 +29430,14 @@ bool Player::HasUnlockedReagentBank() const
     return HasPlayerFlagEx(PLAYER_FLAGS_EX_REAGENT_BANK_UNLOCKED);
 }
 
+std::shared_ptr<BattlePet> Player::GetBattlePet(ObjectGuid journalID)
+{
+    BattlePetMap::iterator iter = _battlePets.find(journalID);
+    if (iter == _battlePets.end())
+        return std::shared_ptr<BattlePet>();
+
+    return iter->second;
+}
 
 void Player::SetWarModeDesired(bool enabled)
 {
@@ -29526,3 +29803,292 @@ void Player::ResetChallengeKey()
     m_challengeKeyInfo.InstanceID = 0;
 }
 
+void Player::AtEnterCombat()
+{
+    Unit::AtEnterCombat();
+    if (GetCombatManager().HasPvPCombat())
+        EnablePvpRules(true);
+}
+
+void Player::AtExitCombat()
+{
+    Unit::AtExitCombat();
+    UpdatePotionCooldown();
+    m_combatExitTime = getMSTime();
+}
+
+uint32 Player::GetBattlePetTrapLevel()
+{
+    if (m_achievementMgr->HasAchieved(6581))
+        return 3;
+
+    if (m_achievementMgr->HasAchieved(6556))
+        return 2;
+
+    return 1;
+}
+
+uint8 Player::GetBattlePetCountForSpecies(uint32 speciesID)
+{
+    return std::count_if(_battlePets.begin(), _battlePets.end(), [&](decltype(_battlePets)::value_type pair)
+    {
+        return pair.second && pair.second->Species == speciesID;
+    });
+}
+
+void Player::SaveBattlePets(CharacterDatabaseTransaction& trans)
+{
+    for (BattlePetMap::iterator itr = _battlePets.begin(); itr != _battlePets.end(); ++itr)
+        if (std::shared_ptr<BattlePet> pet = itr->second)
+            pet->Save(trans);
+}
+
+void Player::UnsummonCurrentBattlePetIfAny(bool p_Unvolontary)
+{
+    if (!_battlePetSummon)
+        return;
+
+    if (!p_Unvolontary)
+        _lastSummonedBattlePet = 0;
+
+    if (Creature* pet = GetSummonedBattlePet())
+    {
+        pet->DespawnOrUnsummon();
+        pet->AddObjectToRemoveList();
+    }
+
+    _battlePetSummon.Clear();
+}
+
+void Player::SummonBattlePet(ObjectGuid journalID)
+{
+    if (!IsInWorld())
+        return;
+
+    BattlePetMap::iterator iter = _battlePets.find(journalID);
+    if (iter == _battlePets.end())
+        return;
+
+    if (Creature* pet = GetSummonedBattlePet())
+    {
+        pet->DespawnOrUnsummon();
+        pet->AddObjectToRemoveList();
+    }
+
+    std::shared_ptr<BattlePet> battlePet = iter->second;
+    if (battlePet->Health <= 0)
+    {
+        UnsummonCurrentBattlePetIfAny(false);
+        return;
+    }
+
+    BattlePetSpeciesEntry const* speciesEntry = sBattlePetSpeciesStore.LookupEntry(battlePet->Species);
+    if (!speciesEntry)
+        return;
+
+    CastSpell(this, speciesEntry->SummonSpellID ? speciesEntry->SummonSpellID : uint32(118301));
+}
+
+bool Player::_LoadPetBattles(PreparedQueryResult result)
+{
+    _battlePets.clear();
+
+    if (!result)
+    {
+        auto add = false;
+
+        for (const auto& itr : _oldPetBattleSpellToMerge)
+            if (AddBattlePet(itr.first, 0, false))
+                add = true;
+
+        _oldPetBattleSpellToMerge.clear();
+
+        if (add)
+        {
+            GetSession()->SendBattlePetUpdates();
+            return true;
+        }
+    }
+
+    for (auto i = 0; i < MAX_PET_BATTLE_SLOTS; ++i)
+        _battlePetCombatTeam[i] = std::shared_ptr<BattlePet>();
+
+    auto unlockedSlotCount = GetUnlockedPetBattleSlot();
+    if (unlockedSlotCount > 0)
+        SetPlayerFlags(PLAYER_FLAGS_PET_BATTLES_UNLOCKED);
+
+    std::vector<uint32> alreadyKnownPet;
+
+    if (result)
+    {
+        do
+        {
+            auto BattlePetPtr = std::make_shared<BattlePet>();
+            BattlePetPtr->Load(result->Fetch());
+            _battlePets.emplace(BattlePetPtr->JournalID, BattlePetPtr);
+
+            if (BattlePetPtr->Slot >= 0 && BattlePetPtr->Slot < static_cast<int32>(unlockedSlotCount))
+                _battlePetCombatTeam[BattlePetPtr->Slot] = BattlePetPtr;
+
+            alreadyKnownPet.push_back(BattlePetPtr->Species);
+
+        } while (result->NextRow());
+    }
+
+    for (auto itr = _oldPetBattleSpellToMerge.begin(); itr != _oldPetBattleSpellToMerge.end(); ++itr)
+    {
+        if (std::find(alreadyKnownPet.begin(), alreadyKnownPet.end(), itr->second) != alreadyKnownPet.end())
+            continue;
+
+        AddBattlePet(itr->first, 0, false);
+    }
+
+    _oldPetBattleSpellToMerge.clear();
+
+    GetSession()->SendBattlePetJournal();
+    UpdateCriteria(CriteriaType::UniquePetsOwned, 1);
+
+    return true;
+}
+
+void Player::PetBattleCountBattleSpecies()
+{
+    PetBattle* battle = sPetBattleSystem->GetBattle(_petBattleId);
+    if (!battle)
+        return;
+
+    uint32 thisTeamID = battle->Teams[PET_BATTLE_TEAM_1]->PlayerGuid == GetGUID() ? PET_BATTLE_TEAM_1 : PET_BATTLE_TEAM_2;
+
+    for (BattlePetMap::iterator itr = _battlePets.begin(); itr != _battlePets.end(); ++itr)
+        if (std::shared_ptr<BattlePet> petBattle = itr->second)
+        {
+            if (battle->Teams[thisTeamID]->CapturedSpeciesCount.find(petBattle->Species) == battle->Teams[thisTeamID]->CapturedSpeciesCount.end())
+                battle->Teams[thisTeamID]->CapturedSpeciesCount[petBattle->Species] = 0;
+
+            battle->Teams[thisTeamID]->CapturedSpeciesCount[petBattle->Species]++;
+        }
+}
+
+bool Player::HasBattlePetTraining()
+{
+    return HasSpell(119467);
+}
+
+uint32 Player::GetUnlockedPetBattleSlot()
+{
+    if (m_achievementMgr->HasAchieved(6566))
+        return 3;
+
+    if (m_achievementMgr->HasAchieved(7433))
+        return 2;
+
+    if (HasBattlePetTraining())
+        return 1;
+
+    return 0;
+}
+
+Creature* Player::GetSummonedBattlePet()
+{
+    Unit* pet = ObjectAccessor::FindUnit(_battlePetSummon);
+    return pet ? pet->ToCreature() : nullptr;
+}
+
+void Player::SummonLastSummonedBattlePet()
+{
+    SummonBattlePet(ObjectGuid::Create<HighGuid::BattlePet>(_lastSummonedBattlePet));
+}
+
+BattlePetMap* Player::GetBattlePets()
+{
+    return &_battlePets;
+}
+
+std::shared_ptr<BattlePet>* Player::GetBattlePetCombatTeam()
+{
+    return _battlePetCombatTeam;
+}
+
+uint32 Player::GetBattlePetCombatSize()
+{
+    uint32 count = 0;
+
+    for (size_t i = 0; i < MAX_PET_BATTLE_SLOTS; ++i)
+        if (_battlePetCombatTeam[i])
+            count++;
+
+    return count;
+}
+
+void Player::UpdateBattlePetCombatTeam()
+{
+    for (auto& i : _battlePetCombatTeam)
+        i = std::shared_ptr<BattlePet>();
+
+    auto unlockedSlotCount = GetUnlockedPetBattleSlot();
+
+    for (auto itr = _battlePets.begin(); itr != _battlePets.end(); ++itr)
+    {
+        if (auto battlePet = itr->second)
+        {
+            if (battlePet->Slot >= 0 && battlePet->Slot < static_cast<int32>(unlockedSlotCount))
+            {
+                battlePet->UpdateAbilities();
+                _battlePetCombatTeam[battlePet->Slot] = battlePet;
+            }
+        }
+    }
+}
+
+bool Player::AddBattlePetWithSpeciesId(BattlePetSpeciesEntry const* entry, uint16 flags /*= 0*/, bool sendUpdate /*= true*/, bool sendDiliveryUpdate /*= false*/)
+{
+    if (!entry)
+        return false;
+
+    auto pet = std::make_shared<BattlePet>();
+    pet->Slot = PET_BATTLE_NULL_SLOT;
+    pet->NameTimeStamp = 0;
+    pet->Species = entry->ID;
+    pet->DisplayModelID = 0;
+    pet->Flags = flags;
+    pet->Level = 1;
+    pet->XP = 0;
+
+    if (auto temp = sBattlePetDataStore->GetBattlePetTemplate(entry->ID))
+    {
+        pet->Breed = sBattlePetDataStore->GetRandomBreedID(temp->BreedIDs);
+        pet->Quality = temp->MinQuality;
+    }
+    else
+    {
+        pet->Breed = 3;
+        pet->Quality = BATTLE_PET_QUALITY_COMMON;
+    }
+
+
+    pet->UpdateStats();
+    pet->Health = pet->InfoMaxHealth;
+    auto guidlow = pet->AddToPlayer(this);
+    _battlePets.emplace(pet->JournalID, pet);
+
+    if (sendUpdate)
+    {
+        GetSession()->SendBattlePetUpdates();
+        UpdateCriteria(CriteriaType::AccountKnownPet, entry->CreatureID);
+    }
+
+    if (sendDiliveryUpdate)
+        SendBattlePayBattlePetDelivered(ObjectGuid::Create<HighGuid::BattlePet>(guidlow), entry->CreatureID);
+
+    return true;
+}
+
+bool Player::AddBattlePetByCreatureId(uint32 creatureId, bool sendUpdate /*= true*/, bool sendDiliveryUpdate /*= false*/)
+{
+    return AddBattlePetWithSpeciesId(sDB2Manager.GetSpeciesByCreatureID(creatureId), 0, sendUpdate, sendDiliveryUpdate);
+}
+
+bool Player::AddBattlePet(uint32 spellID, uint16 flags, bool sendUpdate /*= true*/)
+{
+    return AddBattlePetWithSpeciesId(sDB2Manager.GetSpeciesBySpell(spellID), flags, sendUpdate);
+}

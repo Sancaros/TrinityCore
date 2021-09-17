@@ -129,7 +129,7 @@ void BattlepayManager::ProcessDelivery(Purchase * purchase)
     }
     case Battlepay::BattlePet:
         if (player)
-            /*player->AddBattlePetByCreatureId(product.CustomValue, true, true);*/
+            player->AddBattlePetByCreatureId(product.CustomValue, true, true);
         break;
     case Battlepay::CharacterRename:
         if (player)

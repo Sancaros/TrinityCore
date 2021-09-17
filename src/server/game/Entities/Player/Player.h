@@ -70,6 +70,7 @@ struct VendorItem;
 class AELootResult;
 class Bag;
 class Battleground;
+class BattlePet;
 class Channel;
 class CinematicMgr;
 class Creature;
@@ -571,6 +572,7 @@ enum AtLoginFlags
 };
 
 typedef std::map<uint32, QuestStatusData> QuestStatusMap;
+typedef std::set<uint32> RewardedQuestSet;
 
 struct QuestObjectiveStatusData
 {
@@ -579,8 +581,6 @@ struct QuestObjectiveStatusData
 };
 
 using QuestObjectiveStatusMap = std::unordered_multimap<std::pair<QuestObjectiveType, int32>, QuestObjectiveStatusData>;
-
-typedef std::set<uint32> RewardedQuestSet;
 
 enum QuestSaveType
 {
@@ -888,6 +888,10 @@ enum PlayerLoginQueryIndex
     PLAYER_LOGIN_QUERY_LOAD_CURRENCY,
     PLAYER_LOGIN_QUERY_LOAD_CUF_PROFILES,
     PLAYER_LOGIN_QUERY_LOAD_CORPSE_LOCATION,
+    PLAYER_LOGIN_QUERY_LOAD_ALL_PETS,
+    PLAYER_LOGIN_QUERY_BATTLE_PETS,
+    PLAYER_LOGIN_QUERY_LOADWORLDQUESTSTATUS,
+    PLAYER_LOGIN_QUERY_LOAD_ADVENTURE_QUEST,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON_BLUEPRINTS,
     PLAYER_LOGIN_QUERY_LOAD_GARRISON_BUILDINGS,
@@ -904,6 +908,7 @@ enum PlayerDelayedOperations
     DELAYED_BG_MOUNT_RESTORE    = 0x08,                     ///< Flag to restore mount state after teleport from BG
     DELAYED_BG_TAXI_RESTORE     = 0x10,                     ///< Flag to restore taxi state after teleport from BG
     DELAYED_BG_GROUP_RESTORE    = 0x20,                     ///< Flag to restore group state after teleport from BG
+    DELAYED_PET_BATTLE_INITIAL  = 0x080,
     DELAYED_END
 };
 
@@ -1055,6 +1060,8 @@ enum TalentLearnResult
     TALENT_FAILED_CANT_DO_THAT_CHALLENGE_MODE_ACTIVE    = 7,
     TALENT_FAILED_REST_AREA                             = 8
 };
+
+typedef std::map<ObjectGuid, std::shared_ptr<BattlePet>> BattlePetMap;
 
 struct TC_GAME_API SpecializationInfo
 {
@@ -1578,6 +1585,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint16 GetQuestSlotCounter(uint16 slot, uint8 counter) const;
         uint32 GetQuestSlotEndTime(uint16 slot) const;
         uint32 GetQuestSlotAcceptTime(uint16 slot) const;
+		
         bool GetQuestSlotObjectiveFlag(uint16 slot, int8 objectiveIndex) const;
         int32 GetQuestSlotObjectiveData(uint16 slot, QuestObjective const& objective) const;
         void SetQuestSlot(uint16 slot, uint32 quest_id);
@@ -1608,14 +1616,18 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void UpdateQuestObjectiveProgress(QuestObjectiveType objectiveType, int32 objectId, int64 addCount, ObjectGuid victimGuid = ObjectGuid::Empty);
         bool HasQuestForItem(uint32 itemId) const;
         bool HasQuestForGO(int32 goId) const;
+        bool HasQuest(uint32 questId) const;
         void UpdateForQuestWorldObjects();
         bool CanShareQuest(uint32 questId) const;
 
+        int32 GetQuestObjectiveData(Quest const* quest, int8 storageIndex) const;
+        int32 GetQuestObjectiveData(uint32 questId, int8 storageIndex) const;
         int32 GetQuestObjectiveData(QuestObjective const& objective) const;
         void SetQuestObjectiveData(QuestObjective const& objective, int32 data);
         bool IsQuestObjectiveCompletable(uint16 slot, Quest const* quest, QuestObjective const& objective) const;
         bool IsQuestObjectiveComplete(uint16 slot, Quest const* quest, QuestObjective const& objective) const;
         bool IsQuestObjectiveProgressBarComplete(uint16 slot, Quest const* quest) const;
+        bool IsQuestObjectiveProgressComplete(Quest const* quest) const;
         void SendQuestComplete(uint32 questId) const;
         void SendQuestReward(Quest const* quest, Creature const* questGiver, uint32 xp, bool hideChatMessage) const;
         void SendQuestFailed(uint32 questID, InventoryResult reason = EQUIP_ERR_OK) const;
@@ -1715,6 +1727,11 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void SetTarget(ObjectGuid const& /*guid*/) override { } /// Used for serverside target changes, does not apply to players
         void SetSelection(ObjectGuid const& guid) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::Target), guid); }
+
+        uint32 GetComboPoints() const { return uint32(GetPower(POWER_COMBO_POINTS)); }
+        void AddComboPoints(int8 count, Spell* spell = nullptr);
+        void GainSpellComboPoints(int8 count);
+        void ClearComboPoints();
 
         void SendMailResult(uint32 mailId, MailResponseType mailAction, MailResponseResult mailError, uint32 equipError = 0, ObjectGuid::LowType item_guid = UI64LIT(0), uint32 item_count = 0) const;
         void SendNewMail() const;
@@ -2254,7 +2271,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void ResetAllPowers();
 
-        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType attackType = BASE_ATTACK) const override;
+        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType attackType /*= BASE_ATTACK*/) const;
 
         void CastAllObtainSpells();
         void ApplyItemObtainSpells(Item* item, bool apply);
@@ -2728,7 +2745,32 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         }
         void ClearSelfResSpell() { ClearDynamicUpdateFieldValues(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SelfResSpells)); }
 
-        void SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid);  }
+        //bpet thor
+        uint32 GetBattlePetTrapLevel();
+        void SaveBattlePets(CharacterDatabaseTransaction& trans);
+        void UnsummonCurrentBattlePetIfAny(bool p_Unvolontary);
+        void PetBattleCountBattleSpecies();
+        uint8 GetBattlePetCountForSpecies(uint32 speciesID);
+        bool HasBattlePetTraining();
+        uint32 GetUnlockedPetBattleSlot();
+        void SummonBattlePet(ObjectGuid journalID);
+        Creature* GetSummonedBattlePet();
+        void SummonLastSummonedBattlePet();
+        BattlePetMap* GetBattlePets();
+        std::shared_ptr<BattlePet> GetBattlePet(ObjectGuid journalID);
+        std::shared_ptr<BattlePet>* GetBattlePetCombatTeam();
+        uint32 GetBattlePetCombatSize();
+        void UpdateBattlePetCombatTeam();
+        BattlePetMap _battlePets;
+        bool AddBattlePetWithSpeciesId(BattlePetSpeciesEntry const* entry, uint16 flags = 0, bool sendUpdate = true, bool sendDiliveryUpdate = false);
+        bool AddBattlePet(uint32 spellID, uint16 flags = 0, bool sendUpdate = true);
+        bool AddBattlePetByCreatureId(uint32 creatureId, bool sendUpdate = true, bool sendDiliveryUpdate = false);
+
+        void ScheduleDelayedOperation(uint32 operation) { if (operation < DELAYED_END) m_DelayedOperations |= operation; }
+
+        ObjectGuid GetSummonedBattlePetGUID() const { return m_activePlayerData->SummonedBattlePetGUID; }
+        void SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid); }
+
         //BPAY THORDEKK
         uint32 GetBattlePayCredits() const;
         bool HasBattlePayCredits(uint32 count) const;
@@ -3053,6 +3095,13 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         bool m_bPassOnGroupLoot;
         std::array<GroupUpdateCounter, 2> m_groupUpdateSequences;
 
+        // Battle Pet
+        bool _LoadPetBattles(PreparedQueryResult result);
+        ObjectGuid _battlePetSummon;
+        uint64 _lastSummonedBattlePet;
+        std::shared_ptr<BattlePet> _battlePetCombatTeam[3];
+        std::set<std::pair<uint32, uint32>> _oldPetBattleSpellToMerge;
+
         // last used pet number (for BG's)
         uint32 m_lastpetnumber;
 
@@ -3098,7 +3147,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SetCanDelayTeleport(bool setting) { m_bCanDelayTeleport = setting; }
         bool IsHasDelayedTeleport() const { return m_bHasDelayedTeleport; }
         void SetDelayedTeleportFlag(bool setting) { m_bHasDelayedTeleport = setting; }
-        void ScheduleDelayedOperation(uint32 operation) { if (operation < DELAYED_END) m_DelayedOperations |= operation; }
 
         bool IsInstanceLoginGameMasterException() const;
 

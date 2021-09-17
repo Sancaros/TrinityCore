@@ -69,3 +69,13 @@ WorldPacket const* WorldPackets::Reputation::SetFactionStanding::Write()
 
     return &_worldPacket;
 }
+
+WorldPacket const* WorldPackets::Reputation::FactionBonusInfo::Write()
+{
+    for (auto factionHasBonus : FactionHasBonus)
+        _worldPacket.WriteBit(factionHasBonus);
+
+    _worldPacket.FlushBits();
+
+    return &_worldPacket;
+}

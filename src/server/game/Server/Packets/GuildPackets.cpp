@@ -796,6 +796,15 @@ void WorldPackets::Guild::SplitGuildBankItem::Read()
     _worldPacket >> StackCount;
 }
 
+WorldPacket const* WorldPackets::Guild::GuildChallengeCompleted::Write()
+{
+    _worldPacket << ChallengeType;
+    _worldPacket << CurrentCount;
+    _worldPacket << MaxCount;
+    _worldPacket << GoldAwarded;
+
+    return &_worldPacket;
+}
 void WorldPackets::Guild::GuildBankLogQuery::Read()
 {
     _worldPacket >> Tab;

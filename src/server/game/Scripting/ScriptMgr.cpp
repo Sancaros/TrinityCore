@@ -672,6 +672,11 @@ template<typename Base>
 class ScriptRegistrySwapHooks<BattlegroundScript, Base>
     : public UnsupportedScriptRegistrySwapHooks<Base> { };
 
+/// This hook is responsible for swapping Garrison's
+template<typename Base>
+class ScriptRegistrySwapHooks<GarrisonScript, Base>
+    : public UnsupportedScriptRegistrySwapHooks<Base> { };
+
 /// This hook is responsible for swapping OutdoorPvP's
 template<typename Base>
 class ScriptRegistrySwapHooks<OutdoorPvPScript, Base>
@@ -928,6 +933,13 @@ public:
 
         std::unique_ptr<ScriptType> script_ptr(script);
 
+        if (!sObjectMgr->FindScriptId(script->GetName()))
+        {
+            // The script uses a script name from database, but isn't assigned to anything.
+            TC_LOG_ERROR("sql.sql", "Script named '%s' does not have a script name assigned in database.",
+                script->GetName().c_str());
+        }
+
         // Get an ID for the script. An ID only exists if it's a script that is assigned in the database
         // through a script name (or similar).
         if (uint32 const id = sObjectMgr->GetScriptId(script->GetName()))
@@ -1132,6 +1144,9 @@ private:
         itr->second
 
 // Utility macros for finding specific scripts.
+#define GET_SCRIPT_NO_RET(T, I, V) \
+    T* V = ScriptRegistry<T>::Instance()->GetScriptById(I);
+
 #define GET_SCRIPT(T, I, V) \
     T* V = ScriptRegistry<T>::Instance()->GetScriptById(I); \
     if (!V) \
@@ -1593,6 +1608,24 @@ InstanceScript* ScriptMgr::CreateInstanceData(InstanceMap* map)
     return tmpscript->GetInstanceScript(map);
 }
 
+bool ScriptMgr::OnGossipSelect(Player* player, Item* item, uint32 uiSender, uint32 action)
+{
+    ASSERT(player);
+    ASSERT(item);
+
+    GET_SCRIPT_RET(ItemScript, item->GetScriptId(), tmpscript, false);
+    return tmpscript->OnGossipSelect(player, item, uiSender, action);
+}
+
+bool ScriptMgr::OnDummyEffect(Unit* caster, uint32 spellId, SpellEffIndex effIndex, Item* target)
+{
+    ASSERT(caster);
+    ASSERT(target);
+
+    GET_SCRIPT_RET(ItemScript, target->GetScriptId(), tmpscript, false);
+    return tmpscript->OnDummyEffect(caster, spellId, effIndex, target);
+}
+
 bool ScriptMgr::OnQuestAccept(Player* player, Item* item, Quest const* quest)
 {
     ASSERT(player);
@@ -1642,6 +1675,14 @@ bool ScriptMgr::OnCastItemCombatSpell(Player* player, Unit* victim, SpellInfo co
     return tmpscript->OnCastItemCombatSpell(player, victim, spellInfo, item);
 }
 
+bool ScriptMgr::OnDummyEffect(Unit* caster, uint32 spellId, SpellEffIndex effIndex, Creature* target)
+{
+    ASSERT(caster);
+    ASSERT(target);
+
+    GET_SCRIPT_RET(CreatureScript, target->GetScriptId(), tmpscript, false);
+    return tmpscript->OnDummyEffect(caster, spellId, effIndex, target);
+}
 
 bool ScriptMgr::OnGossipHello(Player* player, Creature* creature)
 {
@@ -1653,12 +1694,109 @@ bool ScriptMgr::OnGossipHello(Player* player, Creature* creature)
     return tmpscript->OnGossipHello(player, creature);
 }
 
+bool ScriptMgr::OnGossipSelect(Player* player, Creature* creature, uint32 sender, uint32 action)
+{
+    ASSERT(player);
+    ASSERT(creature);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    return tmpscript->OnGossipSelect(player, creature, sender, action);
+}
+
+bool ScriptMgr::OnGossipSelectCode(Player* player, Creature* creature, uint32 sender, uint32 action, const char* code)
+{
+    ASSERT(player);
+    ASSERT(creature);
+    ASSERT(code);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    return tmpscript->OnGossipSelectCode(player, creature, sender, action, code);
+}
+
+bool ScriptMgr::OnQuestAccept(Player* player, Creature* creature, Quest const* quest)
+{
+    ASSERT(player);
+    ASSERT(creature);
+    ASSERT(quest);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnQuestAccept(player, creature, quest);
+}
+
+bool ScriptMgr::OnQuestSelect(Player* player, Creature* creature, Quest const* quest)
+{
+    ASSERT(player);
+    ASSERT(creature);
+    ASSERT(quest);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnQuestSelect(player, creature, quest);
+}
+
+bool ScriptMgr::OnQuestReward(Player* player, Creature* creature, Quest const* quest, uint32 opt)
+{
+    ASSERT(player);
+    ASSERT(creature);
+    ASSERT(quest);
+
+    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnQuestReward(player, creature, quest, opt);
+}
+
+bool ScriptMgr::CanSpawn(ObjectGuid::LowType spawnId, uint32 entry, CreatureData const* cData, Map const* map)
+{
+    ASSERT(map);
+    CreatureTemplate const* baseTemplate = sObjectMgr->GetCreatureTemplate(entry);
+    ASSERT(baseTemplate);
+
+    // find out which template we'd be using
+    CreatureTemplate const* actTemplate = nullptr;
+    DifficultyEntry const* difficultyEntry = sDifficultyStore.LookupEntry(map->GetDifficultyID());
+    while (!actTemplate && difficultyEntry)
+    {
+        int32 idx = CreatureTemplate::DifficultyIDToDifficultyEntryIndex(difficultyEntry->ID);
+        if (idx == -1)
+            break;
+
+        if (baseTemplate->DifficultyEntry[idx])
+        {
+            actTemplate = sObjectMgr->GetCreatureTemplate(baseTemplate->DifficultyEntry[idx]);
+            break;
+        }
+
+        if (!difficultyEntry->FallbackDifficultyID)
+            break;
+
+        difficultyEntry = sDifficultyStore.LookupEntry(difficultyEntry->FallbackDifficultyID);
+    }
+
+    if (!actTemplate)
+        actTemplate = baseTemplate;
+
+    uint32 scriptId = baseTemplate->ScriptID;
+    if (cData && cData->scriptId)
+        scriptId = cData->scriptId;
+
+    GET_SCRIPT_RET(CreatureScript, scriptId, tmpscript, true);
+    return tmpscript->CanSpawn(spawnId, entry, baseTemplate, actTemplate, cData, map);
+}
+
 CreatureAI* ScriptMgr::GetCreatureAI(Creature* creature)
 {
     ASSERT(creature);
 
-    GET_SCRIPT_RET(CreatureScript, creature->GetScriptId(), tmpscript, nullptr);
-    return tmpscript->GetAI(creature);
+    GET_SCRIPT_NO_RET(CreatureScript, creature->GetScriptId(), tmpscript);
+    if (tmpscript)
+        return tmpscript->GetAI(creature);
+
+    GET_SCRIPT_NO_RET(VehicleScript, creature->GetScriptId(), tmpVehiclescript);
+    if (tmpVehiclescript)
+        return tmpVehiclescript->GetAI(creature);
+
+    return nullptr;
 }
 
 GameObjectAI* ScriptMgr::GetGameObjectAI(GameObject* gameobject)
@@ -1725,6 +1863,95 @@ bool ScriptMgr::OnGossipHello(Player* player, GameObject* go)
     return tmpscript->OnGossipHello(player, go);
 }
 
+bool ScriptMgr::OnGossipSelect(Player* player, GameObject* go, uint32 sender, uint32 action)
+{
+    ASSERT(player);
+    ASSERT(go);
+
+    GET_SCRIPT_RET(GameObjectScript, go->GetScriptId(), tmpscript, false);
+    return tmpscript->OnGossipSelect(player, go, sender, action);
+}
+
+bool ScriptMgr::OnGossipSelectCode(Player* player, GameObject* go, uint32 sender, uint32 action, const char* code)
+{
+    ASSERT(player);
+    ASSERT(go);
+    ASSERT(code);
+
+    GET_SCRIPT_RET(GameObjectScript, go->GetScriptId(), tmpscript, false);
+    return tmpscript->OnGossipSelectCode(player, go, sender, action, code);
+}
+
+bool ScriptMgr::OnQuestAccept(Player* player, GameObject* go, Quest const* quest)
+{
+    ASSERT(player);
+    ASSERT(go);
+    ASSERT(quest);
+
+    GET_SCRIPT_RET(GameObjectScript, go->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnQuestAccept(player, go, quest);
+}
+
+bool ScriptMgr::OnQuestReward(Player* player, GameObject* go, Quest const* quest, uint32 opt)
+{
+    ASSERT(player);
+    ASSERT(go);
+    ASSERT(quest);
+
+    GET_SCRIPT_RET(GameObjectScript, go->GetScriptId(), tmpscript, false);
+    player->PlayerTalkClass->ClearMenus();
+    return tmpscript->OnQuestReward(player, go, quest, opt);
+}
+
+void ScriptMgr::OnGameObjectDestroyed(GameObject* go, Player* player)
+{
+    ASSERT(go);
+
+    GET_SCRIPT(GameObjectScript, go->GetScriptId(), tmpscript);
+    tmpscript->OnDestroyed(go, player);
+}
+
+void ScriptMgr::OnGameObjectDamaged(GameObject* go, Player* player)
+{
+    ASSERT(go);
+
+    GET_SCRIPT(GameObjectScript, go->GetScriptId(), tmpscript);
+    tmpscript->OnDamaged(go, player);
+}
+
+void ScriptMgr::OnGameObjectLootStateChanged(GameObject* go, uint32 state, Unit* unit)
+{
+    ASSERT(go);
+
+    GET_SCRIPT(GameObjectScript, go->GetScriptId(), tmpscript);
+    tmpscript->OnLootStateChanged(go, state, unit);
+}
+
+void ScriptMgr::OnGameObjectStateChanged(GameObject* go, uint32 state)
+{
+    ASSERT(go);
+
+    GET_SCRIPT(GameObjectScript, go->GetScriptId(), tmpscript);
+    tmpscript->OnGameObjectStateChanged(go, state);
+}
+
+void ScriptMgr::OnGameObjectUpdate(GameObject* go, uint32 diff)
+{
+    ASSERT(go);
+
+    GET_SCRIPT(GameObjectScript, go->GetScriptId(), tmpscript);
+    tmpscript->OnUpdate(go, diff);
+}
+
+bool ScriptMgr::OnDummyEffect(Unit* caster, uint32 spellId, SpellEffIndex effIndex, GameObject* target)
+{
+    ASSERT(caster);
+    ASSERT(target);
+
+    GET_SCRIPT_RET(GameObjectScript, target->GetScriptId(), tmpscript, false);
+    return tmpscript->OnDummyEffect(caster, spellId, effIndex, target);
+}
 
 bool ScriptMgr::OnAreaTrigger(Player* player, AreaTriggerEntry const* trigger, bool entered)
 {
@@ -1964,6 +2191,11 @@ void ScriptMgr::OnPlayerKilledByCreature(Creature* killer, Player* killed)
     FOREACH_SCRIPT(PlayerScript)->OnPlayerKilledByCreature(killer, killed);
 }
 
+void ScriptMgr::OnPlayerDeath(Player* player)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnDeath(player);
+}
+
 void ScriptMgr::OnPlayerLevelChanged(Player* player, uint8 oldLevel)
 {
     FOREACH_SCRIPT(PlayerScript)->OnLevelChanged(player, oldLevel);
@@ -2054,9 +2286,19 @@ void ScriptMgr::OnPlayerSpellCast(Player* player, Spell* spell, bool skipCheck)
     FOREACH_SCRIPT(PlayerScript)->OnSpellCast(player, spell, skipCheck);
 }
 
+void ScriptMgr::OnPlayerSuccessfulSpellCast(Player* player, Spell* spell)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnSuccessfulSpellCast(player, spell);
+}
+
 void ScriptMgr::OnPlayerLogin(Player* player, bool firstLogin)
 {
     FOREACH_SCRIPT(PlayerScript)->OnLogin(player, firstLogin);
+}
+
+void ScriptMgr::OnPlayerUpdate(Player* player, uint32 diff)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnUpdate(player, diff);
 }
 
 void ScriptMgr::OnPlayerLogout(Player* player)
@@ -2094,9 +2336,74 @@ void ScriptMgr::OnPlayerUpdateZone(Player* player, uint32 newZone, uint32 newAre
     FOREACH_SCRIPT(PlayerScript)->OnUpdateZone(player, newZone, newArea);
 }
 
+void ScriptMgr::OnPlayerUpdateArea(Player* player, uint32 newArea, uint32 oldArea)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnUpdateArea(player, newArea, oldArea);
+}
+
+void ScriptMgr::OnPetBattleFinish(Player* player)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnPetBattleFinish(player);
+}
+
+void ScriptMgr::OnQuestAccept(Player* player, const Quest* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestAccept(player, quest);
+}
+
+void ScriptMgr::OnQuestReward(Player* player, const Quest* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestReward(player, quest);
+}
+
+void ScriptMgr::OnObjectiveValidate(Player* player, uint32 questID, uint32 objectiveID)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnObjectiveValidate(player, questID, objectiveID);
+}
+
+void ScriptMgr::OnQuestComplete(Player* player, const Quest* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestComplete(player, quest);
+}
+
+void ScriptMgr::OnQuestAbandon(Player* player, const Quest* quest)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnQuestAbandon(player, quest);
+}
+
 void ScriptMgr::OnQuestStatusChange(Player* player, uint32 questId)
 {
     FOREACH_SCRIPT(PlayerScript)->OnQuestStatusChange(player, questId);
+}
+
+void ScriptMgr::OnModifyPower(Player* player, Powers power, int32 oldValue, int32& newValue, bool regen, bool after)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnModifyPower(player, power, oldValue, newValue, regen, after);
+}
+
+void ScriptMgr::OnPlayerTakeDamage(Player* player, uint32 damage, SpellSchoolMask schoolMask)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnTakeDamage(player, damage, schoolMask);
+}
+
+void ScriptMgr::OnSceneStart(Player* player, uint32 scenePackageId, uint32 sceneInstanceId)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnSceneStart(player, scenePackageId, sceneInstanceId);
+}
+
+void ScriptMgr::OnSceneTriggerEvent(Player* player, uint32 sceneInstanceId, std::string p_Event)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnSceneTriggerEvent(player, sceneInstanceId, p_Event);
+}
+
+void ScriptMgr::OnSceneCancel(Player* player, uint32 sceneInstanceId)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnSceneCancel(player, sceneInstanceId);
+}
+
+void ScriptMgr::OnSceneComplete(Player* player, uint32 sceneInstanceId)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnSceneComplete(player, sceneInstanceId);
 }
 
 void ScriptMgr::OnPlayerRepop(Player* player)
@@ -2113,6 +2420,22 @@ void ScriptMgr::OnPlayerChoiceResponse(Player* player, uint32 choiceId, uint32 r
 {
     FOREACH_SCRIPT(PlayerScript)->OnPlayerChoiceResponse(player, choiceId, responseId);
 }
+
+void ScriptMgr::OnCooldownStart(Player* player, SpellInfo const* spellInfo, uint32 itemId, int32& cooldown, uint32& categoryId, int32& categoryCooldown)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnCooldownStart(player, spellInfo, itemId, cooldown, categoryId, categoryCooldown);
+}
+
+void ScriptMgr::OnChargeRecoveryTimeStart(Player* player, uint32 chargeCategoryId, int32& chargeRecoveryTime)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnChargeRecoveryTimeStart(player, chargeCategoryId, chargeRecoveryTime);
+}
+
+void ScriptMgr::OnPlayerStartChallengeMode(Player* player, uint8 level, uint8 affix1, uint8 affix2, uint8 affix3)
+{
+    FOREACH_SCRIPT(PlayerScript)->OnStartChallengeMode(player, level, affix1, affix2, affix3);
+}
+
 
 // Account
 void ScriptMgr::OnAccountLogin(uint32 accountId)
@@ -2143,6 +2466,21 @@ void ScriptMgr::OnPasswordChange(uint32 accountId)
 void ScriptMgr::OnFailedPasswordChange(uint32 accountId)
 {
     FOREACH_SCRIPT(AccountScript)->OnFailedPasswordChange(accountId);
+}
+
+// Rest
+void ScriptMgr::OnRestGetReceived(std::string url, RestResponse& response)
+{
+    FOR_SCRIPTS(RestScript, itr, end)
+        if (itr->second->GetName() == url)
+            itr->second->OnGet(response);
+}
+
+void ScriptMgr::OnRestPostReceived(std::string url, boost::property_tree::ptree tree, RestResponse& response)
+{
+    FOR_SCRIPTS(RestScript, itr, end)
+        if (itr->second->GetName() == url)
+            itr->second->OnPost(tree, response);
 }
 
 // Guild
@@ -2273,6 +2611,14 @@ void ScriptMgr::OnConversationCreate(Conversation* conversation, Unit* creator)
     tmpscript->OnConversationCreate(conversation, creator);
 }
 
+void ScriptMgr::OnConversationRemove(Conversation* conversation, Unit* creator)
+{
+    ASSERT(conversation);
+
+    GET_SCRIPT(ConversationScript, conversation->GetScriptId(), tmpscript);
+    tmpscript->OnConversationRemove(conversation, creator);
+}
+
 // Scene
 void ScriptMgr::OnSceneStart(Player* player, uint32 sceneInstanceID, SceneTemplate const* sceneTemplate)
 {
@@ -2299,6 +2645,7 @@ void ScriptMgr::OnSceneCancel(Player* player, uint32 sceneInstanceID, SceneTempl
 
     GET_SCRIPT(SceneScript, sceneTemplate->ScriptId, tmpscript);
     tmpscript->OnSceneCancel(player, sceneInstanceID, sceneTemplate);
+    tmpscript->OnSceneEnd(player, sceneInstanceID, sceneTemplate);
 }
 
 void ScriptMgr::OnSceneComplete(Player* player, uint32 sceneInstanceID, SceneTemplate const* sceneTemplate)
@@ -2308,6 +2655,7 @@ void ScriptMgr::OnSceneComplete(Player* player, uint32 sceneInstanceID, SceneTem
 
     GET_SCRIPT(SceneScript, sceneTemplate->ScriptId, tmpscript);
     tmpscript->OnSceneComplete(player, sceneInstanceID, sceneTemplate);
+    tmpscript->OnSceneEnd(player, sceneInstanceID, sceneTemplate);
 }
 
 void ScriptMgr::OnQuestStatusChange(Player* player, Quest const* quest, QuestStatus oldStatus, QuestStatus newStatus)

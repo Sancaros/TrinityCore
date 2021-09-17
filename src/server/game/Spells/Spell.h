@@ -288,7 +288,7 @@ class TC_GAME_API SpellCastTargets
         float GetSpeedXY() const { return m_speed * std::cos(m_pitch); }
         float GetSpeedZ() const { return m_speed * std::sin(m_pitch); }
 
-        void SetCaster(WorldObject* caster);
+        void SetCaster(Unit* caster);
         void Update(WorldObject* caster);
         void OutDebug() const;
         std::string GetTargetString() const { return m_strTarget; }
@@ -379,6 +379,7 @@ class TC_GAME_API Spell
         void EffectOpenLock();
         void EffectSummonChangeItem();
         void EffectProficiency();
+        void EffectApplyAreaAura();
         void EffectSummonType();
         void EffectLearnSpell();
         void EffectDispel();
@@ -492,6 +493,7 @@ class TC_GAME_API Spell
         void EffectEnableBattlePets();
         void EffectLaunchQuestChoice();
         void EffectUncageBattlePet();
+        void EffectGrantBattlePetLevel();
         void EffectCreateHeirloomItem();
         void EffectUpgradeHeirloom();
         void EffectApplyEnchantIllusion();
@@ -507,6 +509,7 @@ class TC_GAME_API Spell
         void EffectLearnAzeriteEssencePower();
         void EffectCreatePrivateConversation();
         void EffectSendChatMessage();
+        void EffectSetChromieTime();
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 
@@ -937,6 +940,7 @@ class TC_GAME_API Spell
 
         // effect helpers
         void SummonGuardian(SpellEffectInfo const* effect, uint32 entry, SummonPropertiesEntry const* properties, uint32 numSummons, ObjectGuid privateObjectOwner);
+        void CalculateJumpSpeeds(SpellEffectInfo const* effInfo, float dist, float& speedxy, float& speedz);
 
         void UpdateSpellCastDataTargets(WorldPackets::Spells::SpellCastData& data);
         void UpdateSpellCastDataAmmo(WorldPackets::Spells::SpellAmmo& data);
@@ -955,7 +959,15 @@ class TC_GAME_API Spell
         // and in same time need aura data and after aura deleting.
         SpellInfo const* m_triggeredByAuraSpell;
 
+        bool m_skipCheck;
         std::unique_ptr<PathGenerator> m_preGeneratedPath;
+
+        std::vector<SpellLogEffectPowerDrainParams> _powerDrainTargets[MAX_SPELL_EFFECTS];
+        std::vector<SpellLogEffectExtraAttacksParams> _extraAttacksTargets[MAX_SPELL_EFFECTS];
+        std::vector<SpellLogEffectDurabilityDamageParams> _durabilityDamageTargets[MAX_SPELL_EFFECTS];
+        std::vector<SpellLogEffectGenericVictimParams> _genericVictimTargets[MAX_SPELL_EFFECTS];
+        std::vector<SpellLogEffectTradeSkillItemParams> _tradeSkillTargets[MAX_SPELL_EFFECTS];
+        std::vector<SpellLogEffectFeedPetParams> _feedPetTargets[MAX_SPELL_EFFECTS];
 
         std::vector<SpellLogEffect> _executeLogEffects;
 

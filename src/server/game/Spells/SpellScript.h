@@ -44,6 +44,7 @@ class SpellScript;
 class Unit;
 class WorldLocation;
 class WorldObject;
+struct SpellPowerCost;
 struct SpellDestination;
 struct SpellModifier;
 struct SpellValue;
@@ -175,12 +176,16 @@ enum SpellScriptHookType
     SPELL_SCRIPT_HOOK_CHECK_CAST,
     SPELL_SCRIPT_HOOK_BEFORE_CAST,
     SPELL_SCRIPT_HOOK_ON_CAST,
+    SPELL_SCRIPT_HOOK_ON_SUMMON,
     SPELL_SCRIPT_HOOK_AFTER_CAST,
     SPELL_SCRIPT_HOOK_CALC_CRIT_CHANCE
 };
 
 #define HOOK_SPELL_HIT_START SPELL_SCRIPT_HOOK_EFFECT_HIT
 #define HOOK_SPELL_HIT_END SPELL_SCRIPT_HOOK_AFTER_HIT + 1
+#define HOOK_SPELL_START SPELL_SCRIPT_HOOK_EFFECT
+#define HOOK_SPELL_END SPELL_SCRIPT_HOOK_CHECK_CAST + 1
+#define HOOK_SPELL_COUNT HOOK_SPELL_END - HOOK_SPELL_START
 
 class TC_GAME_API SpellScript : public _SpellScript
 {
@@ -188,6 +193,8 @@ class TC_GAME_API SpellScript : public _SpellScript
     // DO NOT OVERRIDE THESE IN SCRIPTS
     public:
         #define SPELLSCRIPT_FUNCTION_TYPE_DEFINES(CLASSNAME) \
+            typedef void(CLASSNAME::*SpellOnSummonFnType)(Creature* summon); \
+            typedef void(CLASSNAME::*SpellOnTakePowerFnType)(SpellPowerCost& powerCost); \
             typedef SpellCastResult(CLASSNAME::*SpellCheckCastFnType)(); \
             typedef void(CLASSNAME::*SpellEffectFnType)(SpellEffIndex); \
             typedef void(CLASSNAME::*SpellBeforeHitFnType)(SpellMissInfo missInfo); \
@@ -196,7 +203,8 @@ class TC_GAME_API SpellScript : public _SpellScript
             typedef void(CLASSNAME::*SpellOnCalcCritChanceFnType)(Unit const* victim, float& chance); \
             typedef void(CLASSNAME::*SpellObjectAreaTargetSelectFnType)(std::list<WorldObject*>&); \
             typedef void(CLASSNAME::*SpellObjectTargetSelectFnType)(WorldObject*&); \
-            typedef void(CLASSNAME::*SpellDestinationTargetSelectFnType)(SpellDestination&);
+            typedef void(CLASSNAME::*SpellDestinationTargetSelectFnType)(SpellDestination&); \
+            typedef void(CLASSNAME::*SpellOnTakePowerFnType)(SpellPowerCost& powerCost); 
 
         SPELLSCRIPT_FUNCTION_TYPE_DEFINES(SpellScript)
 
@@ -216,6 +224,24 @@ class TC_GAME_API SpellScript : public _SpellScript
                 SpellCastResult Call(SpellScript* spellScript);
             private:
                 SpellCheckCastFnType _checkCastHandlerScript;
+        };
+
+        class TC_GAME_API OnSummonHandler
+        {
+        public:
+            OnSummonHandler(SpellOnSummonFnType OnSummonHandlerScript);
+            void Call(SpellScript* spellScript, Creature* creature);
+        private:
+            SpellOnSummonFnType _onSummonHandlerScript;
+        };
+
+        class TC_GAME_API OnTakePowerHandler
+        {
+        public:
+            OnTakePowerHandler(SpellOnTakePowerFnType OnTakePowerHandlerScript);
+            void Call(SpellScript* spellScript, SpellPowerCost& powerCost);
+        private:
+            SpellOnTakePowerFnType _onTakePowerHandlerScript;
         };
 
         class TC_GAME_API EffectHandler : public  _SpellScript::EffectNameCheck, public _SpellScript::EffectHook
@@ -298,6 +324,8 @@ class TC_GAME_API SpellScript : public _SpellScript
 
         #define SPELLSCRIPT_FUNCTION_CAST_DEFINES(CLASSNAME) \
         class CastHandlerFunction : public SpellScript::CastHandler { public: CastHandlerFunction(SpellCastFnType _pCastHandlerScript) : SpellScript::CastHandler((SpellScript::SpellCastFnType)_pCastHandlerScript) { } }; \
+        class OnSummonHandlerFunction : public SpellScript::OnSummonHandler { public: OnSummonHandlerFunction(SpellOnSummonFnType _onSummonHandlerScript) : SpellScript::OnSummonHandler((SpellScript::SpellOnSummonFnType)_onSummonHandlerScript) {} }; \
+        class OnTakePowerHandlerFunction : public SpellScript::OnTakePowerHandler { public: OnTakePowerHandlerFunction(SpellOnTakePowerFnType _onTakePowerHandlerScript) : SpellScript::OnTakePowerHandler((SpellScript::SpellOnTakePowerFnType)_onTakePowerHandlerScript) {} }; \
         class CheckCastHandlerFunction : public SpellScript::CheckCastHandler { public: CheckCastHandlerFunction(SpellCheckCastFnType _checkCastHandlerScript) : SpellScript::CheckCastHandler((SpellScript::SpellCheckCastFnType)_checkCastHandlerScript) { } }; \
         class EffectHandlerFunction : public SpellScript::EffectHandler { public: EffectHandlerFunction(SpellEffectFnType _pEffectHandlerScript, uint8 _effIndex, uint16 _effName) : SpellScript::EffectHandler((SpellScript::SpellEffectFnType)_pEffectHandlerScript, _effIndex, _effName) { } }; \
         class HitHandlerFunction : public SpellScript::HitHandler { public: HitHandlerFunction(SpellHitFnType _pHitHandlerScript) : SpellScript::HitHandler((SpellScript::SpellHitFnType)_pHitHandlerScript) { } }; \
@@ -379,6 +407,17 @@ class TC_GAME_API SpellScript : public _SpellScript
         // where function is void function(WorldObject*& target)
         HookList<ObjectTargetSelectHandler> OnObjectTargetSelect;
         #define SpellObjectTargetSelectFn(F, I, N) ObjectTargetSelectHandlerFunction(&F, I, N)
+
+        // example: OnEffectSummon += SpellOnEffectSummonFn(class::function);
+    // where function is void function(Creature* creature)
+        HookList<OnSummonHandler> OnEffectSummon;
+        #define SpellOnEffectSummonFn(F) OnSummonHandlerFunction(&F)
+
+        // example: OnTakePower += SpellOnTakePowerFn(class::function);
+        // where function is void function(SpellPowerCost& powerCost)
+        HookList<OnTakePowerHandler> OnTakePower;
+        #define SpellOnTakePowerFn(F) OnTakePowerHandlerFunction(&F)
+
 
         // example: OnDestinationTargetSelect += SpellDestinationTargetSelectFn(class::function, EffectIndexSpecifier, TargetsNameSpecifier);
         // where function is void function(SpellDestination& target)

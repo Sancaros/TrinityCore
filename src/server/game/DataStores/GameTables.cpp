@@ -27,6 +27,8 @@
 GameTable<GtArtifactKnowledgeMultiplierEntry>   sArtifactKnowledgeMultiplierGameTable;
 GameTable<GtArtifactLevelXPEntry>               sArtifactLevelXPGameTable;
 GameTable<GtBarberShopCostBaseEntry>            sBarberShopCostBaseGameTable;
+GameTable<GtBattlePetXPEntry>                   sBattlePetXPTable;
+GameTable<GtBattlePetTypeDamageModEntry>        sBattlePetTypeDamageModTable;
 GameTable<GtBaseMPEntry>                        sBaseMPGameTable;
 GameTable<GtCombatRatingsEntry>                 sCombatRatingsGameTable;
 GameTable<GtCombatRatingsMultByILvl>            sCombatRatingsMultByILvlGameTable;
@@ -112,6 +114,8 @@ void LoadGameTables(std::string const& dataPath)
     LOAD_GT(sArtifactKnowledgeMultiplierGameTable, "ArtifactKnowledgeMultiplier.txt");
     LOAD_GT(sArtifactLevelXPGameTable, "ArtifactLevelXP.txt");
     LOAD_GT(sBarberShopCostBaseGameTable, "BarberShopCostBase.txt");
+    LOAD_GT(sBattlePetXPTable, "BattlePetXP.txt");
+    LOAD_GT(sBattlePetTypeDamageModTable, "BattlePetTypeDamageMod.txt");
     LOAD_GT(sBaseMPGameTable, "BaseMp.txt");
     LOAD_GT(sCombatRatingsGameTable, "CombatRatings.txt");
     LOAD_GT(sCombatRatingsMultByILvlGameTable, "CombatRatingsMultByILvl.txt");

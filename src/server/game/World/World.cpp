@@ -28,10 +28,10 @@
 #include "AuctionHouseMgr.h"
 #include "AuthenticationPackets.h"
 #include "BattlefieldMgr.h"
+#include "BattlePetSystem.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetRpcErrorCodes.h"
 #include "BattlePayData.h"
-#include "BattlePetMgr.h"
 #include "BlackMarketMgr.h"
 #include "CalendarMgr.h"
 #include "Channel.h"
@@ -96,11 +96,13 @@
 #include "WardenCheckMgr.h"
 #include "WaypointManager.h"
 #include "WeatherMgr.h"
+#include "WildBattlePet.h"
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
 
 #include <boost/algorithm/string.hpp>
+#include <Globals\BattlePetDataStore.h>
 
 TC_GAME_API std::atomic<bool> World::m_stopEvent(false);
 TC_GAME_API uint8 World::m_ExitCode = SHUTDOWN_EXIT_CODE;
@@ -2400,7 +2402,8 @@ void World::SetInitialWorldSettings()
     sObjectMgr->LoadRealmNames();
 
     TC_LOG_INFO("server.loading", "Loading battle pets info...");
-    BattlePetMgr::Initialize();
+    sBattlePetDataStore->Initialize();
+    sWildBattlePetMgr->Load();
 
     TC_LOG_INFO("server.loading", "Loading scenarios");
     sScenarioMgr->LoadDB2Data();
@@ -2737,6 +2740,8 @@ void World::Update(uint32 diff)
         m_timers[WUPDATE_GUILDSAVE].Reset();
         sGuildMgr->SaveGuilds();
     }
+
+    sPetBattleSystem->Update(diff);
 
     // update the instance reset times
     sInstanceSaveMgr->Update();

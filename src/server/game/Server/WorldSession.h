@@ -40,13 +40,14 @@
 #include <Server\Packets\QuestPackets.h>
 
 class BattlepayManager;
-class BattlePetMgr;
+class BattlePet;
 class BlackMarketEntry;
 class CollectionMgr;
 class Creature;
 class InstanceSave;
 class Item;
 class LoginQueryHolder;
+class PetBattle;
 class Player;
 class Unit;
 class Warden;
@@ -58,12 +59,15 @@ struct ChrCustomizationReqEntry;
 struct DeclinedName;
 struct ItemTemplate;
 struct MovementInfo;
-struct Petition;
+struct PetBattleRequest;
 struct Position;
+struct Petition;
 enum class AuctionCommand : int8;
 enum class AuctionResult : int8;
 enum InventoryResult : uint8;
 enum class StableResult : uint8;
+enum class BattlePetError : uint16;
+
 namespace Battlepay
 {
     struct Purchase;
@@ -220,13 +224,19 @@ namespace WorldPackets
 
     namespace BattlePet
     {
-        class BattlePetRequestJournal;
-        class BattlePetSetBattleSlot;
-        class BattlePetModifyName;
-        class BattlePetDeletePet;
-        class BattlePetSetFlags;
-        class BattlePetSummon;
-        class CageBattlePet;
+        class NullCmsg;
+        class Query;
+        class BattlePetGuidRead;
+        class ModifyName;
+        class SetBattleSlot;
+        class SetFlags;
+        class RequestWild;
+        class RequestPVP;
+        class ReplaceFrontPet;
+        class QueueProposeMatchResult;
+        class LeaveQueue;
+        class RequestUpdate;
+        class PetBattleInput;
     }
 
     namespace BlackMarket
@@ -341,6 +351,7 @@ namespace WorldPackets
     namespace Collections
     {
         class CollectionItemSetFavorite;
+        class BattlePetClearFanfare;
     }
 
     namespace Combat
@@ -668,6 +679,12 @@ namespace WorldPackets
         class PetAction;
         class PetCancelAura;
         class PetSetAction;
+    }
+
+    namespace PetBattle
+    {
+        class RequestWild;
+        class RequestUpdate;
     }
 
     namespace Petition
@@ -1208,7 +1225,7 @@ class TC_GAME_API WorldSession
         bool IsARecruiter() const { return isRecruiter; }
 
         // Battle Pets
-        BattlePetMgr* GetBattlePetMgr() const { return _battlePetMgr.get(); }
+        PetBattle* GetBattlePetMgr() const { return _battlePetMgr.get(); }
 
         CollectionMgr* GetCollectionMgr() const { return _collectionMgr.get(); }
 
@@ -1794,6 +1811,7 @@ class TC_GAME_API WorldSession
 
         // Collections
         void HandleCollectionItemSetFavorite(WorldPackets::Collections::CollectionItemSetFavorite& collectionItemSetFavorite);
+        void HandleBattlePetClearFanfare(WorldPackets::Collections::BattlePetClearFanfare& packet);
 
         // Transmogrification
         void HandleTransmogrifyItems(WorldPackets::Transmogrification::TransmogrifyItems& transmogrifyItems);
@@ -1881,13 +1899,55 @@ class TC_GAME_API WorldSession
         void HandleGarrisonRecruitFollower(WorldPackets::Garrison::GarrisonRecruitFollower& packet);
 
         // Battle Pets
-        void HandleBattlePetRequestJournal(WorldPackets::BattlePet::BattlePetRequestJournal& battlePetRequestJournal);
-        void HandleBattlePetSetBattleSlot(WorldPackets::BattlePet::BattlePetSetBattleSlot& battlePetSetBattleSlot);
-        void HandleBattlePetModifyName(WorldPackets::BattlePet::BattlePetModifyName& battlePetModifyName);
-        void HandleBattlePetDeletePet(WorldPackets::BattlePet::BattlePetDeletePet& battlePetDeletePet);
-        void HandleBattlePetSetFlags(WorldPackets::BattlePet::BattlePetSetFlags& battlePetSetFlags);
-        void HandleBattlePetSummon(WorldPackets::BattlePet::BattlePetSummon& battlePetSummon);
-        void HandleCageBattlePet(WorldPackets::BattlePet::CageBattlePet& cageBattlePet);
+        void HandleBattlePetSetFlags(WorldPackets::BattlePet::SetFlags& packet);
+        void HandleBattlePetModifyName(WorldPackets::BattlePet::ModifyName& packet);
+        void HandleBattlePetNameQuery(WorldPackets::BattlePet::Query& packet);
+        void HandleCageBattlePet(WorldPackets::BattlePet::BattlePetGuidRead& packet);
+        void HandleBattlePetSetSlot(WorldPackets::BattlePet::SetBattleSlot& packet);
+        void HandleBattlePetSummon(WorldPackets::BattlePet::BattlePetGuidRead& packet);
+        void HandleBattlePetUpdateNotify(WorldPackets::BattlePet::BattlePetGuidRead& packet);
+        void HandlePetBattleRequestWild(WorldPackets::BattlePet::RequestWild& packet);
+        void HandlePetBattleRequestUpdate(WorldPackets::BattlePet::RequestUpdate& packet);
+        void HandlePetBattleInput(WorldPackets::BattlePet::PetBattleInput& packet);
+        void HandlePetBattleFinalNotify(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandlePetBattleQuitNotify(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandleBattlePetDelete(WorldPackets::BattlePet::BattlePetGuidRead& packet);
+        void HandleBattlePetRequestJournal(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandleBattlePetJournalLock(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandleJoinPetBattleQueue(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandlePetBattleScriptErrorNotify(WorldPackets::BattlePet::NullCmsg& packet);
+        void HandleBattlePetDeletePetCheat(WorldPackets::BattlePet::BattlePetGuidRead& packet);
+        void HandlePetBattleRequestPVP(WorldPackets::BattlePet::RequestPVP& packet);
+        void HandleReplaceFrontPet(WorldPackets::BattlePet::ReplaceFrontPet& packet);
+        void HanldeQueueProposeMatchResult(WorldPackets::BattlePet::QueueProposeMatchResult& packet);
+        void HandleBattlePetLeaveQueue(WorldPackets::BattlePet::LeaveQueue& packet);
+        void SendBattlePetUpdates(BattlePet* pet = nullptr, bool add = false);
+        void SendBattlePetTrapLevel();
+        void SendBattlePetJournalLockAcquired();
+        void SendBattlePetJournalLockDenied();
+        void SendBattlePetJournal();
+        void SendBattlePetDeleted(ObjectGuid battlePetGUID);
+        void SendBattlePetRevoked(ObjectGuid battlePetGUID);
+        void SendBattlePetRestored(ObjectGuid battlePetGUID);
+        void SendBattlePetsHealed();
+        void SendBattlePetLicenseChanged();
+        void SendBattlePetError(BattlePetError result, uint32 creatureID);
+        void SendBattlePetCageDateError(uint32 secondsUntilCanCage);
+
+        void SendPetBattleSlotUpdates(bool newSlotUnlocked = false);
+        void SendPetBattleRequestFailed(uint8 p_Reason);
+        void SendPetBattlePvPChallenge(PetBattleRequest* petBattleRequest);
+        void SendPetBattleFinalizeLocation(PetBattleRequest* petBattleRequest);
+        void SendPetBattleInitialUpdate(PetBattle* petBattle);
+        void SendPetBattleFirstRound(PetBattle* petBattle);
+        void SendPetBattleRoundResult(PetBattle* petBattle);
+        void SendPetBattleReplacementMade(PetBattle* petBattle);
+        void SendPetBattleFinalRound(PetBattle* petBattle);
+        void SendPetBattleFinished();
+        void SendPetBattleChatRestricted();
+        void SendPetBattleQueueProposeMatch();
+        void SendPetBattleQueueStatus(uint32 p_TicketTime, uint32 p_TicketID, uint32 p_Status, uint32 p_AvgWaitTime);
+
 
         // Warden
         void HandleWardenData(WorldPackets::Warden::WardenData& packet);
@@ -2039,6 +2099,7 @@ class TC_GAME_API WorldSession
         bool m_playerLogout;                                // code processed in LogoutPlayer
         bool m_playerRecentlyLogout;
         bool m_playerSave;
+        bool m_isPetBattleJournalLocked;
         LocaleConstant m_sessionDbcLocale;
         LocaleConstant m_sessionDbLocaleIndex;
         std::atomic<uint32> m_latency;
@@ -2056,7 +2117,7 @@ class TC_GAME_API WorldSession
         bool forceExit;
         ObjectGuid m_currentBankerGUID;
 
-        std::unique_ptr<BattlePetMgr> _battlePetMgr;
+        std::unique_ptr<PetBattle> _battlePetMgr;
 
         std::unique_ptr<CollectionMgr> _collectionMgr;
 

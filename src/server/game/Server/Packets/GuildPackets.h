@@ -1000,6 +1000,18 @@ namespace WorldPackets
             uint32 StackCount = 0;
         };
 
+        class GuildChallengeCompleted final : public ServerPacket
+        {
+        public:
+            GuildChallengeCompleted() : ServerPacket(SMSG_GUILD_CHALLENGE_COMPLETED, 4 * 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 ChallengeType = 0;
+            int32 CurrentCount = 0;
+            int32 MaxCount = 0;
+            int32 GoldAwarded = 0;
+        };
         class GuildBankLogQuery final : public ClientPacket
         {
         public:

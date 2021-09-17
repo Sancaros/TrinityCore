@@ -159,6 +159,7 @@ namespace WorldPackets
 
             ObjectGuid Mailbox;
             int32 MailID = 0;
+            bool BiReceipt = false;
         };
 
         class MailDelete final : public ClientPacket

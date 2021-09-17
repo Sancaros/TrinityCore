@@ -21,7 +21,6 @@
 #include "AzeriteItem.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
-#include "BattlePetMgr.h"
 #include "CollectionMgr.h"
 #include "Containers.h"
 #include "Creature.h"
@@ -1125,6 +1124,116 @@ bool CriteriaHandler::IsCompletedCriteriaTree(CriteriaTree const* tree)
     }
 
     return false;
+}
+
+bool CriteriaHandler::CheckCompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer)
+{
+    if (!CanCompleteCriteriaTree(tree))
+        return false;
+
+    uint64 requiredCount = tree->Entry->Amount;
+    switch (CriteriaTreeOperator(tree->Entry->Operator))
+    {
+    case CriteriaTreeOperator::Complete:
+        if (!tree->Criteria || !IsCompletedCriteria(tree->Criteria, requiredCount))
+            return false;
+        break;
+    case CriteriaTreeOperator::NotComplete:
+        if (tree->Criteria && IsCompletedCriteria(tree->Criteria, requiredCount))
+            return false;
+        break;
+    case CriteriaTreeOperator::CompleteAll:
+        for (CriteriaTree const* node : tree->Children)
+            if (!CheckCompletedCriteriaTree(node, referencePlayer))
+                return false;
+        break;
+    case CriteriaTreeOperator::Sum:
+    {
+        uint64 progress = 0;
+        CriteriaMgr::WalkCriteriaTree(tree, [this, &progress](CriteriaTree const* criteriaTree)
+        {
+            if (criteriaTree->Criteria)
+                if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(criteriaTree->Criteria))
+                    progress += criteriaProgress->Counter;
+        });
+        if (progress < requiredCount)
+            return false;
+        break;
+    }
+    case CriteriaTreeOperator::Highest:
+    {
+        uint64 progress = 0;
+        CriteriaMgr::WalkCriteriaTree(tree, [this, &progress](CriteriaTree const* criteriaTree)
+        {
+            if (criteriaTree->Criteria)
+                if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(criteriaTree->Criteria))
+                    if (criteriaProgress->Counter > progress)
+                        progress = criteriaProgress->Counter;
+        });
+        if (progress < requiredCount)
+            return false;
+        break;
+    }
+    case CriteriaTreeOperator::StartedAtLeast:
+    {
+        uint64 progress = 0;
+        bool progressDone = false;
+        for (CriteriaTree const* node : tree->Children)
+            if (node->Criteria)
+                if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(node->Criteria))
+                    if (criteriaProgress->Counter >= 1)
+                        if (++progress >= requiredCount)
+                        {
+                            progressDone = true;
+                            break;
+                        }
+
+        if (!progressDone)
+            return false;
+        break;
+    }
+    case CriteriaTreeOperator::CompleteAtLeast:
+    {
+        bool progressDone = false;
+        uint64 progress = 0;
+        for (CriteriaTree const* node : tree->Children)
+            if (CheckCompletedCriteriaTree(node, referencePlayer))
+                if (++progress >= requiredCount)
+                {
+                    progressDone = true;
+                    break;
+                }
+
+        if (!progressDone)
+            return false;
+        break;
+    }
+    case CriteriaTreeOperator::ProgressBar:
+    {
+        uint64 progress = 0;
+        CriteriaMgr::WalkCriteriaTree(tree, [this, &progress](CriteriaTree const* criteriaTree)
+        {
+            if (criteriaTree->Criteria)
+                if (CriteriaProgress const* criteriaProgress = GetCriteriaProgress(criteriaTree->Criteria))
+                    progress += criteriaProgress->Counter * criteriaTree->Entry->Amount;
+        });
+        if (progress < requiredCount)
+            return false;
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (_completedCriteriaTree.find(tree->ID) == _completedCriteriaTree.end())
+        CompletedCriteriaTree(tree, referencePlayer);
+
+    return true;
+}
+
+bool CriteriaHandler::CheckCompletedCriteriaTree(uint32 Criteriatreeid, Player* referencePlayer)
+{
+    return CheckCompletedCriteriaTree(sCriteriaMgr->GetCriteriaTree(Criteriatreeid), referencePlayer);
 }
 
 bool CriteriaHandler::CanUpdateCriteriaTree(Criteria const* criteria, CriteriaTree const* tree, Player* referencePlayer) const
