@@ -1,5 +1,5 @@
 /*
- * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ * Copyright 2021 KyrianCore
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,19 +15,9 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is where scripts' loading functions should be declared:
+void AddSC_AlliedRaces();
 
-void AddSC_XpWeekend();
-void AddSC_solocraft();
-void AddSC_custom_npcs();
-void AddSC_custom_player_script();
-
-// The name of this function should match:
-// void Add${NameOfDirectory}Scripts()
-void AddCustomScripts()
+void AddAlliedRacesScripts()
 {
-	AddSC_XpWeekend();
-	AddSC_solocraft();
-    AddSC_custom_npcs();
-    AddSC_custom_player_script();
+	AddSC_AlliedRaces();
 }

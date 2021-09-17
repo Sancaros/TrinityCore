@@ -454,6 +454,7 @@ struct TC_GAME_API SpellClickInfo
 };
 
 typedef std::multimap<uint32, SpellClickInfo> SpellClickInfoContainer;
+typedef std::pair<SpellClickInfoContainer::const_iterator, SpellClickInfoContainer::const_iterator> SpellClickInfoMapBounds;
 
 struct AreaTriggerStruct
 {

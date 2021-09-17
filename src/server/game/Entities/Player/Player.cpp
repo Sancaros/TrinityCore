@@ -26024,6 +26024,16 @@ void Player::SetMover(Unit* target)
     SendDirectMessage(packet.Write());
 }
 
+void Player::SetPersonnalXpRate(float personnalXPRate)
+{
+    _PersonnalXpRate = personnalXPRate;
+
+    CharacterDatabasePreparedStatement* statement = CharacterDatabase.GetPreparedStatement(CHAR_UPD_XP_RATE);
+    statement->setFloat(0, personnalXPRate);
+    statement->setUInt64(1, GetGUID().GetCounter());
+    CharacterDatabase.Execute(statement);
+}
+
 void Player::UpdateZoneDependentAuras(uint32 newZone)
 {
     // Some spells applied at enter into zone (with subzones), aura removed in UpdateAreaDependentAuras that called always at zone->area update
