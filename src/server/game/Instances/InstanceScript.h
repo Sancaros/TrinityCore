@@ -437,7 +437,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         uint32 _temporaryEntranceId;
         uint32 _combatResurrectionTimer;
         uint8 _combatResurrectionCharges; // the counter for available battle resurrections
-        bool _combatResurrectionTimerStarted;
+        uint32 _combatResurrectionTimerStarted;
         Optional<Position> _checkPointPosition;
         Challenge* _challenge;
 

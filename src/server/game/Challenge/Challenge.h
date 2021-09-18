@@ -112,8 +112,8 @@ public:
     bool HasAffix(Affixes affix);
 
     uint32 GetChallengeTimerToNow() const;
-    void ModChallengeTimer(uint32 timer);
-    uint32 GetChallengeTimer();
+    void ModChallengeTimer(int16 timer);
+    int16 GetChallengeTimer();
 
     void ResetGo();
     void SendStartTimer(Player* player = nullptr);

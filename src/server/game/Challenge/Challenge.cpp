@@ -569,7 +569,7 @@ uint32 Challenge::GetChallengeTimerToNow() const
     });
 }
 */
-uint32 Challenge::GetChallengeTimer()
+int16 Challenge::GetChallengeTimer()
 {
     if (!_challengeTimer)
         return 0;
@@ -577,7 +577,7 @@ uint32 Challenge::GetChallengeTimer()
     return _challengeTimer / IN_MILLISECONDS;
 }
 
-void Challenge::ModChallengeTimer(uint32 timer)
+void Challenge::ModChallengeTimer(int16 timer)
 {
     if (!timer)
         return;
