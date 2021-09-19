@@ -1361,13 +1361,3 @@ int32 PetBattle::GetForfeitHealthPenalityPct()
         return 0;
     return 10;
 }
-
-uint32 PetBattle::GetPetUniqueSpeciesCount() const
-{
-    std::set<uint32> speciesIds;
-    std::transform(_pets.begin(), _pets.end(), std::inserter(speciesIds, speciesIds.end()), [](std::pair<uint64 const, BattlePet> const& pet)
-        {
-            return pet.second.PacketInfo.Species;
-        });
-    return speciesIds.size();
-}

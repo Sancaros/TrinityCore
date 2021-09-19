@@ -1225,7 +1225,7 @@ class TC_GAME_API WorldSession
         bool IsARecruiter() const { return isRecruiter; }
 
         // Battle Pets
-        PetBattle* GetBattlePetMgr() const { return _battlePetMgr.get(); }
+        BattlePet* GetBattlePetMgr() const { return _battlePetMgr.get(); }
 
         CollectionMgr* GetCollectionMgr() const { return _collectionMgr.get(); }
 
@@ -2117,7 +2117,7 @@ class TC_GAME_API WorldSession
         bool forceExit;
         ObjectGuid m_currentBankerGUID;
 
-        std::unique_ptr<PetBattle> _battlePetMgr;
+        std::unique_ptr<BattlePet> _battlePetMgr;
 
         std::unique_ptr<CollectionMgr> _collectionMgr;
 

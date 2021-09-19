@@ -21,6 +21,7 @@
 #include "AzeriteItem.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
+#include "BattlePet.h"
 #include "CollectionMgr.h"
 #include "Containers.h"
 #include "Creature.h"
@@ -754,7 +755,7 @@ void CriteriaHandler::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*
                 break;
             }
             case CriteriaType::UniquePetsOwned:
-                SetCriteriaProgress(criteria, referencePlayer->GetSession()->GetBattlePetMgr()->GetPetUniqueSpeciesCount(), referencePlayer);
+                /*SetCriteriaProgress(criteria, referencePlayer->GetSession()->GetBattlePetMgr()->GetPetUniqueSpeciesCount(), referencePlayer);*/
                 break;
             case CriteriaType::GuildAttainedLevel:
                 SetCriteriaProgress(criteria, miscValue1, referencePlayer);
@@ -1960,8 +1961,10 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
                 return false;
             break;
         case ModifierTreeType::BattlePetTeamLevel: // 34
-            for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
-                if (slot.Pet.Level < reqValue)
+            //for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
+              //  if (slot.Pet.Level < reqValue)
+                //    return false;
+				if (!referencePlayer)
                     return false;
             break;
         case ModifierTreeType::PlayerIsNotInParty: // 35
@@ -2180,8 +2183,8 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
             break;
         }
         case ModifierTreeType::UniqueBattlePetsEqualOrGreaterThan: // 77
-            if (referencePlayer->GetSession()->GetBattlePetMgr()->GetPetUniqueSpeciesCount() < reqValue)
-                return false;
+            /*if (referencePlayer->GetSession()->GetBattlePetMgr()->GetPetUniqueSpeciesCount() < reqValue)
+                return false;*/
             break;
         case ModifierTreeType::BattlePetType: // 78
         {
@@ -2778,21 +2781,21 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
         case ModifierTreeType::BattlePetTeamWithSpeciesEqualOrGreaterThan: // 151
         {
             uint32 count = 0;
-            for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
-                if (slot.Pet.Species == secondaryAsset)
-                    ++count;
-            if (count < reqValue)
+            //for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
+              //  if (slot.Pet.Species == secondaryAsset)
+              //      ++count;
+          //  if (count < reqValue)
                 return false;
             break;
         }
         case ModifierTreeType::BattlePetTeamWithTypeEqualOrGreaterThan: // 152
         {
             uint32 count = 0;
-            for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
-                if (BattlePetSpeciesEntry const* species = sBattlePetSpeciesStore.LookupEntry(slot.Pet.Species))
-                    if (species->PetTypeEnum == int32(secondaryAsset))
-                        ++count;
-            if (count < reqValue)
+         //   for (WorldPackets::BattlePet::BattlePetSlot const& slot : referencePlayer->GetSession()->GetBattlePetMgr()->GetSlots())
+            //    if (BattlePetSpeciesEntry const* species = sBattlePetSpeciesStore.LookupEntry(slot.Pet.Species))
+               //     if (species->PetTypeEnum == secondaryAsset)
+           //             ++count;
+          //  if (count < reqValue)
                 return false;
             break;
         }

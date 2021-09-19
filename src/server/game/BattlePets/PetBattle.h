@@ -335,14 +335,6 @@ public:
 class PetBattle
 {
 public:
-    struct BattlePet
-    {
-        void CalculateStats();
-
-        WorldPackets::BattlePet::BattlePet PacketInfo;
-        PetBattleStatus SaveInfo = PET_BATTLE_STATUS_CREATION;
-    };
-
     PetBattle();
     ~PetBattle();
 
@@ -364,7 +356,7 @@ public:
     void SetPetState(uint32 sourcePetID, uint32 targetPetID, uint32 fromAbilityEffectID, uint32 stateID, int32 value, bool fromCapture = false, uint32 flags = 0);
     void Kill(int8 killer, int8 target, uint32 killerAbibilityEffectID, bool fromCapture = false, uint32 flags = 0);
     void Catch(int8 p_Catcher, int8 p_CatchedTarget, uint32 fromAbilityEffectID);
-
+    
     uint32 GetFirstAttackingTeam();
 
     int32 GetForfeitHealthPenalityPct();
@@ -398,15 +390,8 @@ public:
     int8 CatchedPetId;
     ObjectGuid InitialWildPetGUID;
 
-    WorldPackets::BattlePet::BattlePetSlot* GetSlot(uint8 slot) { return slot < _slots.size() ? &_slots[slot] : nullptr; }
-    std::vector<WorldPackets::BattlePet::BattlePetSlot> const& GetSlots() const { return _slots; }
-
-    uint32 GetPetUniqueSpeciesCount() const;
-    bool HasJournalLock() const { return true; }
-
 private:
     IntervalTimer m_UpdateTimer;
-
     std::unordered_map<uint64 /*battlePetGuid*/, BattlePet> _pets;
     std::vector<WorldPackets::BattlePet::BattlePetSlot> _slots;
 

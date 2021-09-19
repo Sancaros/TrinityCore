@@ -213,10 +213,31 @@ enum BattlePetState
     NUM_BATTLE_PET_STATES
 };
 
+enum BattlePetSaveInfo
+{
+    BATTLE_PET_UNCHANGED = 0,
+    BATTLE_PET_CHANGED = 1,
+    BATTLE_PET_NEW = 2,
+    BATTLE_PET_REMOVED = 3
+};
+
 class BattlePet
 {
     public:
+        struct BattlePetCal
+        {
+            void CalculateStats();
+
+            WorldPackets::BattlePet::BattlePet PacketInfo;
+            BattlePetSaveInfo SaveInfo = BATTLE_PET_UNCHANGED;
+        };
+
         virtual ~BattlePet() = default;
+
+        //add new fuction
+        uint32 GetPetUniqueSpeciesCount() const;
+        std::vector<WorldPackets::BattlePet::BattlePetSlot> const& GetSlots() const { return _slots; }
+        bool HasJournalLock() const { return true; }
 
         void Load(Field* fields);
         void CloneFrom(std::shared_ptr<BattlePet> & p_BattlePet);
@@ -249,6 +270,17 @@ class BattlePet
         std::string DeclinedNames[MAX_DECLINED_NAME_CASES]; ///< Declined names
         bool needSave = false;
         bool needDelete = false;
+private:
+         WorldSession* _owner;
+         uint16 _trapLevel = 0;
+         std::unordered_map<uint64 /*battlePetGuid*/, BattlePet> _pets;
+         std::vector<WorldPackets::BattlePet::BattlePetSlot> _slots;
+
+         // hash no longer required in C++14
+         static std::unordered_map<uint16 /*BreedID*/, std::unordered_map<BattlePetState /*state*/, int32 /*value*/, std::hash<std::underlying_type<BattlePetState>::type> >> _battlePetBreedStates;
+         static std::unordered_map<uint32 /*SpeciesID*/, std::unordered_map<BattlePetState /*state*/, int32 /*value*/, std::hash<std::underlying_type<BattlePetState>::type> >> _battlePetSpeciesStates;
+         static std::unordered_map<uint32 /*SpeciesID*/, std::unordered_set<uint8 /*breed*/>> _availableBreedsPerSpecies;
+         static std::unordered_map<uint32 /*SpeciesID*/, uint8 /*quality*/> _defaultQualityPerSpecies;
 };
 
 #endif // BattlePet_h__

@@ -30,6 +30,60 @@
 #include "GameTables.h"
 #include "WorldSession.h"
 
+void BattlePet::BattlePetCal::CalculateStats()
+{
+    float health = 0.0f;
+    float power = 0.0f;
+    float speed = 0.0f;
+
+    // get base breed stats
+    auto breedState = _battlePetBreedStates.find(PacketInfo.Breed);
+    if (breedState == _battlePetBreedStates.end()) // non existing breed id
+        return;
+
+    health = breedState->second[BATTLE_PET_STATE_Stat_Stamina];
+    power = breedState->second[BATTLE_PET_STATE_Stat_Power];
+    speed = breedState->second[BATTLE_PET_STATE_Stat_Speed];
+
+    // modify stats depending on species - not all pets have this
+    auto speciesState = _battlePetSpeciesStates.find(PacketInfo.Species);
+    if (speciesState != _battlePetSpeciesStates.end())
+    {
+        health += speciesState->second[BATTLE_PET_STATE_Stat_Stamina];
+        power += speciesState->second[BATTLE_PET_STATE_Stat_Power];
+        speed += speciesState->second[BATTLE_PET_STATE_Stat_Speed];
+    }
+
+    // modify stats by quality
+    for (BattlePetBreedQualityEntry const* battlePetBreedQuality : sBattlePetBreedQualityStore)
+    {
+        if (battlePetBreedQuality->QualityEnum == PacketInfo.Quality)
+        {
+            health *= battlePetBreedQuality->StateMultiplier;
+            power *= battlePetBreedQuality->StateMultiplier;
+            speed *= battlePetBreedQuality->StateMultiplier;
+            break;
+        }
+        // TOOD: add check if pet has existing quality
+    }
+
+    // scale stats depending on level
+    health *= PacketInfo.Level;
+    power *= PacketInfo.Level;
+    speed *= PacketInfo.Level;
+
+    // set stats
+    // round, ceil or floor? verify this
+    PacketInfo.MaxHealth = uint32((round(health / 20) + 100));
+    PacketInfo.Power = uint32(round(power / 100));
+    PacketInfo.Speed = uint32(round(speed / 100));
+}
+
+std::unordered_map<uint16 /*BreedID*/, std::unordered_map<BattlePetState /*state*/, int32 /*value*/, std::hash<std::underlying_type<BattlePetState>::type> >> BattlePet::_battlePetBreedStates;
+std::unordered_map<uint32 /*SpeciesID*/, std::unordered_map<BattlePetState /*state*/, int32 /*value*/, std::hash<std::underlying_type<BattlePetState>::type> >> BattlePet::_battlePetSpeciesStates;
+std::unordered_map<uint32 /*SpeciesID*/, std::unordered_set<uint8 /*breed*/>> BattlePet::_availableBreedsPerSpecies;
+std::unordered_map<uint32 /*SpeciesID*/, uint8 /*quality*/> BattlePet::_defaultQualityPerSpecies;
+
 void BattlePet::Load(Field* fields)
 {
     JournalID           = ObjectGuid::Create<HighGuid::BattlePet>(fields[0].GetUInt64());
@@ -442,3 +496,12 @@ void BattlePetInstance::UpdateOriginalInstance(Player* player)
         player->GetSession()->SendBattlePetUpdates(OriginalBattlePet.get());
 }
 
+/*uint32 BattlePet::GetPetUniqueSpeciesCount() const
+{
+    std::set<uint32> speciesIds;
+    std::transform(_pets.begin(), _pets.end(), std::inserter(speciesIds, speciesIds.end()), [](std::pair<uint64 const, BattlePetCal> const& pet)
+        {
+            return pet.second.PacketInfo.Species;
+        });
+    return speciesIds.size();
+}*/
