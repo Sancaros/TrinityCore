@@ -762,7 +762,7 @@ void OpcodeTable::Initialize()
     DEFINE_HANDLER(CMSG_REQUEST_RAID_INFO,                                  STATUS_LOGGEDIN,  PROCESS_THREADUNSAFE, &WorldSession::HandleRequestRaidInfoOpcode);
     DEFINE_HANDLER(CMSG_REQUEST_RATED_PVP_INFO,                             STATUS_LOGGEDIN,  PROCESS_THREADUNSAFE, &WorldSession::HandleRequestRatedPvpInfo);
     DEFINE_HANDLER(CMSG_REQUEST_REALM_GUILD_MASTER_INFO,                    STATUS_UNHANDLED, PROCESS_THREADUNSAFE, &WorldSession::Handle_NULL);
-    DEFINE_HANDLER(CMSG_REQUEST_RESEARCH_HISTORY,                           STATUS_UNHANDLED, PROCESS_THREADUNSAFE, &WorldSession::Handle_NULL);
+    DEFINE_HANDLER(CMSG_REQUEST_RESEARCH_HISTORY,                           STATUS_UNHANDLED, PROCESS_INPLACE,      &WorldSession::Handle_NULL);
     DEFINE_HANDLER(CMSG_REQUEST_SCHEDULED_PVP_INFO,                         STATUS_UNHANDLED, PROCESS_THREADUNSAFE, &WorldSession::Handle_NULL);
     DEFINE_HANDLER(CMSG_REQUEST_STABLED_PETS,                               STATUS_LOGGEDIN,  PROCESS_THREADUNSAFE, &WorldSession::HandleRequestStabledPets);
     DEFINE_HANDLER(CMSG_REQUEST_VEHICLE_EXIT,                               STATUS_LOGGEDIN,  PROCESS_INPLACE,      &WorldSession::HandleRequestVehicleExit);
