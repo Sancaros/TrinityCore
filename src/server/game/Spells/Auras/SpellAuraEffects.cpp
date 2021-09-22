@@ -1571,6 +1571,9 @@ void AuraEffect::HandleSpiritOfRedemption(AuraApplication const* aurApp, uint8 m
     {
         if (target->GetTypeId() == TYPEID_PLAYER)
         {
+            // disable breath/etc timers
+            target->ToPlayer()->StopMirrorTimers();
+
             // set stand state (expected in this form)
             if (!target->IsStandState())
                 target->SetStandState(UNIT_STAND_STATE_STAND);
@@ -2162,12 +2165,14 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
 
     Unit* target = aurApp->GetTarget();
 
-    //Prevent handling aura twice
     AuraType type = GetAuraType();
+
+    // Prevent handling aura twice
     if (apply ? target->GetAuraEffectsByType(type).size() > 1 : target->HasAuraType(type))
         return;
 
-    void(*flagChangeFunc)(Unit* u) = nullptr;
+    void(*flagAddFn)(Unit* u) = nullptr;
+    void(*flagRemoveFn)(Unit* u) = nullptr;
 
     uint32 slot;
     WeaponAttackType attType;
@@ -2175,25 +2180,25 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
     {
         case SPELL_AURA_MOD_DISARM:
             if (apply)
-                flagChangeFunc = [](Unit* u) { u->AddUnitFlag(UNIT_FLAG_DISARMED); };
+                flagAddFn = [](Unit* u) { u->AddUnitFlag(UNIT_FLAG_DISARMED); };
             else
-                flagChangeFunc = [](Unit* u) { u->RemoveUnitFlag(UNIT_FLAG_DISARMED); };
+                flagRemoveFn = [](Unit* u) { u->RemoveUnitFlag(UNIT_FLAG_DISARMED); };
             slot = EQUIPMENT_SLOT_MAINHAND;
             attType = BASE_ATTACK;
             break;
         case SPELL_AURA_MOD_DISARM_OFFHAND:
             if (apply)
-                flagChangeFunc = [](Unit* u) { u->AddUnitFlag2(UNIT_FLAG2_DISARM_OFFHAND); };
+                flagAddFn = [](Unit* u) { u->AddUnitFlag2(UNIT_FLAG2_DISARM_OFFHAND); };
             else
-                flagChangeFunc = [](Unit* u) { u->RemoveUnitFlag2(UNIT_FLAG2_DISARM_OFFHAND); };
+                flagRemoveFn = [](Unit* u) { u->RemoveUnitFlag2(UNIT_FLAG2_DISARM_OFFHAND); };
             slot = EQUIPMENT_SLOT_OFFHAND;
             attType = OFF_ATTACK;
             break;
         case SPELL_AURA_MOD_DISARM_RANGED:
             if (apply)
-                flagChangeFunc = [](Unit* u) { u->AddUnitFlag2(UNIT_FLAG2_DISARM_RANGED); };
+                flagAddFn = [](Unit* u) { u->AddUnitFlag2(UNIT_FLAG2_DISARM_RANGED); };
             else
-                flagChangeFunc = [](Unit* u) { u->RemoveUnitFlag2(UNIT_FLAG2_DISARM_RANGED); };
+                flagRemoveFn = [](Unit* u) { u->RemoveUnitFlag2(UNIT_FLAG2_DISARM_RANGED); };
             slot = EQUIPMENT_SLOT_MAINHAND;
             attType = RANGED_ATTACK;
             break;
@@ -2201,9 +2206,9 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
             return;
     }
 
-    // set/remove flag before weapon bonuses so it's properly reflected in CanUseAttackType
-    if (flagChangeFunc)
-        flagChangeFunc(target);
+    // if disarm aura is to be removed, remove the flag first to reapply damage/aura mods
+    if (flagRemoveFn)
+        flagRemoveFn(target);
 
     // Handle damage modification, shapeshifted druids are not affected
     if (target->GetTypeId() == TYPEID_PLAYER && !target->IsInFeralForm())
@@ -2222,6 +2227,10 @@ void AuraEffect::HandleAuraModDisarm(AuraApplication const* aurApp, uint8 mode, 
             }
         }
     }
+
+    // if disarm effects should be applied, wait to set flag until damage mods are unapplied
+    if (flagAddFn)
+        flagAddFn(target);
 
     if (target->GetTypeId() == TYPEID_UNIT && target->ToCreature()->GetCurrentEquipmentId())
         target->UpdateDamagePhysical(attType);
@@ -3954,6 +3963,25 @@ void AuraEffect::HandleAuraModWeaponCritPercent(AuraApplication const* aurApp, u
         return;
 
     target->UpdateAllWeaponDependentCritAuras();
+}
+
+void AuraEffect::HandleModHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const
+{
+    if (!(mode & (AURA_EFFECT_HANDLE_CHANGE_AMOUNT_MASK | AURA_EFFECT_HANDLE_STAT)))
+        return;
+
+    Unit* target = aurApp->GetTarget();
+
+    if (target->GetTypeId() == TYPEID_PLAYER)
+    {
+        target->ToPlayer()->UpdateMeleeHitChances();
+        target->ToPlayer()->UpdateRangedHitChances();
+    }
+    else
+    {
+        target->m_modMeleeHitChance += (apply) ? GetAmount() : (-GetAmount());
+        target->m_modRangedHitChance += (apply) ? GetAmount() : (-GetAmount());
+    }
 }
 
 void AuraEffect::HandleModSpellHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const
@@ -6009,6 +6037,21 @@ void AuraEffect::HandleStoreTeleportReturnPoint(AuraApplication const* aurApp, u
         playerTarget->AddStoredAuraTeleportLocation(GetSpellInfo()->Id);
     else if (!playerTarget->GetSession()->isLogingOut())
         playerTarget->RemoveStoredAuraTeleportLocation(GetSpellInfo()->Id);
+}
+
+void AuraEffect::HandleModVisibilityRange(AuraApplication const* auraApp, uint8 mode, bool apply) const
+{
+    if (!(mode & AURA_EFFECT_HANDLE_REAL))
+        return;
+
+    auto target = auraApp->GetTarget();
+    if (!target)
+        return;
+
+    if (apply)
+        target->SetRWVisibilityRange(GetAmount());
+    else
+        target->SetRWVisibilityRange(0.0f);
 }
 
 template TC_GAME_API void AuraEffect::GetTargetList(std::list<Unit*>&) const;

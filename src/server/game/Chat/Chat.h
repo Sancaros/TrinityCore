@@ -22,6 +22,7 @@
 #include "SharedDefines.h"
 #include "StringFormat.h"
 #include <vector>
+#include <boost/any.hpp>
 
 class ChatHandler;
 class Creature;
@@ -128,7 +129,7 @@ class TC_GAME_API ChatHandler
         bool GetPlayerGroupAndGUIDByName(const char* cname, Player*& player, Group*& group, ObjectGuid& guid, bool offline = false);
         std::string extractPlayerNameFromLink(char* text);
         // select by arg (name/link) or in-game selection online/offline player or self if a creature is selected
-        bool extractPlayerTarget(char* args, Player** player, ObjectGuid* player_guid = nullptr, std::string* player_name = nullptr);
+        bool extractPlayerTarget(char* args, Player** player, ObjectGuid* player_guid = nullptr, std::string* player_name = nullptr, bool sendError = true);
 
         std::string playerLink(std::string const& name) const { return m_session ? "|cffffffff|Hplayer:"+name+"|h["+name+"]|h|r" : name; }
         std::string GetNameLink(Player* chr) const;
@@ -173,6 +174,74 @@ class TC_GAME_API CliHandler : public ChatHandler
     private:
         void* m_callbackArg;
         Print* m_print;
+};
+
+class TC_GAME_API CommandArgs
+{
+public:
+    enum CommandArgsType
+    {
+        ARG_INT,
+        ARG_UINT,
+        ARG_FLOAT,
+        ARG_STRING,
+        ARG_UNIT,
+        ARG_PLAYER,
+
+        ARG_OPTIONAL_BEGIN,
+
+        ARG_INT_OPTIONAL,
+        ARG_UINT_OPTIONAL,
+        ARG_FLOAT_OPTIONAL,
+        ARG_STRING_OPTIONAL,
+        ARG_UNIT_OPTIONAL,
+        ARG_PLAYER_OPTIONAL,
+    };
+
+    struct PlayerResult
+    {
+        Player* PlayerPtr = nullptr;
+        ObjectGuid Guid;
+        std::string Name;
+    };
+
+    CommandArgs(ChatHandler* handler, char const* args) : _validArgs(false), _handler(handler), _charArgs(args) { }
+    CommandArgs(ChatHandler* handler, char const* args, std::initializer_list<CommandArgsType> argsType) : _validArgs(false), _handler(handler), _charArgs(args), _pos(0)
+    {
+        Initialize(argsType);
+    }
+
+    bool ValidArgs() const { return _validArgs; }
+    void Initialize(std::initializer_list<CommandArgsType> argsType);
+
+    void InitializeArgsVector(std::vector<std::string>& argsVector);
+    void CheckOptionalArgs(std::vector<CommandArgsType>& argsTypeVector, uint8 argsVectorSize);
+
+    uint32 Count() { return _args.size(); }
+
+    template<typename T>
+    T GetNextArg() { return GetArg<T>(_pos++); }
+
+    template<typename T>
+    T GetArg(uint8 index, T defaultValue = T())
+    {
+        ASSERT(index < _argsTypeVector.size());
+
+        if (_argsTypeVector[index] <= ARG_OPTIONAL_BEGIN)
+            ASSERT(index < _args.size());
+        else if (index >= _args.size())
+            return defaultValue;
+
+        return boost::any_cast<T>(_args[index]);
+    }
+
+private:
+    bool _validArgs;
+    ChatHandler* _handler;
+    char const* _charArgs;
+    std::vector<CommandArgsType> _argsTypeVector;
+    std::vector<boost::any> _args;
+    uint8 _pos;
 };
 
 class TC_GAME_API AddonChannelCommandHandler : public ChatHandler

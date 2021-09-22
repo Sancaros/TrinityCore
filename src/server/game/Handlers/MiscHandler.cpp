@@ -1097,6 +1097,40 @@ void WorldSession::HandleViolenceLevel(WorldPackets::Misc::ViolenceLevel& /*viol
     // do something?
 }
 
+void WorldSession::HandlePlayerSelectFactionOpcode(WorldPackets::Misc::PlayerSelectFaction& playerSelectFaction)
+{
+    if (_player->getRace() != RACE_PANDAREN_NEUTRAL)
+        return;
+
+    if (playerSelectFaction.SelectedFaction == WorldPackets::Misc::PlayerSelectFaction::Values::Horde)
+    {
+        _player->SetRace(RACE_PANDAREN_HORDE);
+        _player->setFactionForRace(RACE_PANDAREN_HORDE);
+        _player->SaveToDB();
+        WorldLocation location(1, 1366.730f, -4371.248f, 26.070f, 3.1266f);
+        _player->TeleportTo(location);
+        _player->SetHomebind(location, 363);
+        _player->LearnSpell(669, false); // Language Orcish
+        _player->LearnSpell(108127, false); // Language Pandaren
+    }
+    else if (playerSelectFaction.SelectedFaction == WorldPackets::Misc::PlayerSelectFaction::Values::Alliance)
+    {
+        _player->SetRace(RACE_PANDAREN_ALLIANCE);
+        _player->setFactionForRace(RACE_PANDAREN_ALLIANCE);
+        _player->SaveToDB();
+        WorldLocation location(0, -9096.236f, 411.380f, 92.257f, 3.649f);
+        _player->TeleportTo(location);
+        _player->SetHomebind(location, 9);
+        _player->LearnSpell(668, false); // Language Common
+        _player->LearnSpell(108127, false); // Language Pandaren
+    }
+
+    if (_player->GetQuestStatus(31450) == QUEST_STATUS_INCOMPLETE)
+        _player->KilledMonsterCredit(64594);
+
+    _player->SendMovieStart(116);
+}
+
 void WorldSession::HandleObjectUpdateFailedOpcode(WorldPackets::Misc::ObjectUpdateFailed& objectUpdateFailed)
 {
     TC_LOG_ERROR("network", "Object update failed for %s for player %s (%s)", objectUpdateFailed.ObjectGUID.ToString().c_str(), GetPlayerName().c_str(), _player->GetGUID().ToString().c_str());
@@ -1241,3 +1275,28 @@ void WorldSession::HandleChromieTimeSelectExpansionOpcode(WorldPackets::Misc::Ch
         WorldPackets::Misc::ChromieTimeSelectExpansionSuccess wExpansion;
         SendPacket(wExpansion.Write());
  }
+
+void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction)
+{
+    if (_player->getRace() != RACE_PANDAREN_NEUTRAL)
+        return;
+
+    if (selectFaction.FactionChoice == JOIN_ALLIANCE)
+    {
+        _player->SetRace(RACE_PANDAREN_ALLIANCE);
+        _player->setFactionForRace(RACE_PANDAREN_ALLIANCE);
+        _player->SaveToDB();
+        _player->LearnSpell(668, false);            // Language Common
+        _player->LearnSpell(108130, false);         // Language Pandaren Alliance
+        _player->CastSpell(_player, 113244, true);  // Faction Choice Trigger Spell: Alliance
+    }
+    else if (selectFaction.FactionChoice == JOIN_HORDE)
+    {
+        _player->SetRace(RACE_PANDAREN_HORDE);
+        _player->setFactionForRace(RACE_PANDAREN_HORDE);
+        _player->SaveToDB();
+        _player->LearnSpell(669, false);            // Language Orcish
+        _player->LearnSpell(108131, false);         // Language Pandaren Horde
+        _player->CastSpell(_player, 113245, true);  // Faction Choice Trigger Spell: Horde
+    }
+}

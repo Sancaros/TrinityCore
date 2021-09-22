@@ -171,6 +171,23 @@ namespace WorldPackets
             int8 ViolenceLvl = -1; ///< 0 - no combat effects, 1 - display some combat effects, 2 - blood, 3 - bloody, 4 - bloodier, 5 - bloodiest
         };
 
+        class PlayerSelectFaction final : public ClientPacket
+        {
+        public:
+            PlayerSelectFaction(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
+
+            void Read() override;
+
+            // DestrinyFrame.xml : lua function NeutralPlayerSelectFaction
+            enum Values
+            {
+                Horde       = 0,
+                Alliance    = 1
+            };
+
+            uint32 SelectedFaction = -1; ///< 0 - horde, 1 - alliance
+        };
+
         class TimeSyncRequest final : public ServerPacket
         {
         public:
@@ -815,6 +832,47 @@ namespace WorldPackets
             int32 Unk = 0;
         };
 
+        struct ReqResearchHistory
+        {
+            uint32 id = 0;
+            uint32 time = 0;
+            uint32 count = 0;
+        };
+
+        class ResearchHistory final : public ClientPacket
+        {
+        public:
+
+            ResearchHistory(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_RESEARCH_HISTORY, std::move(packet)) { }
+
+            void Read() override;
+
+            ReqResearchHistory resHistory;
+        };
+
+        class ResearchSetupHistory final : public ServerPacket
+        {
+        public:
+
+            ResearchSetupHistory() : ServerPacket(SMSG_SETUP_RESEARCH_HISTORY) { }
+
+            WorldPacket const* Write() override;
+
+            WorldPackets::Misc::ReqResearchHistory researchHistory;
+            std::vector<ReqResearchHistory> ResearchHistory;
+        };
+
+        class ResearchComplete final : public ServerPacket
+        {
+        public:
+            ResearchComplete() : ServerPacket(SMSG_RESEARCH_COMPLETE) { }
+
+            WorldPacket const* Write() override;
+
+            WorldPackets::Misc::ReqResearchHistory researchHistory;
+            std::vector<ReqResearchHistory> ResearchHistory;
+        };
+
         class MountSpecial final : public ClientPacket
         {
         public:
@@ -916,6 +974,25 @@ namespace WorldPackets
             ObjectGuid SourceGuid;
         };
 
+
+        class FactionSelectUI final : public ServerPacket
+        {
+        public:
+            FactionSelectUI() : ServerPacket(SMSG_SHOW_NEUTRAL_PLAYER_FACTION_SELECT_UI, 0) { }
+
+            WorldPacket const* Write() override { return &_worldPacket; }
+        };
+
+        class FactionSelect final : public ClientPacket
+        {
+        public:
+            FactionSelect(WorldPacket&& packet) : ClientPacket(CMSG_NEUTRAL_PLAYER_SELECT_FACTION, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 FactionChoice = 0;
+        };
+
         class StartTimer final : public ServerPacket
         {
         public:
@@ -1012,14 +1089,6 @@ namespace WorldPackets
             ElaspedTimer Timer;
         };
 
-        class FactionSelectUI final : public ServerPacket
-        {
-        public:
-            FactionSelectUI() : ServerPacket(SMSG_SHOW_NEUTRAL_PLAYER_FACTION_SELECT_UI, 0) { }
-
-            WorldPacket const* Write() override { return &_worldPacket; }
-        };
-
         class SetTaskComplete final : public ServerPacket
         {
         public:
@@ -1079,25 +1148,6 @@ namespace WorldPackets
             int32 MaxWeeklyQuantity = 0;
         };
 
-        struct ReqResearchHistory
-        {
-            uint32 id = 0;
-            uint32 time = 0;
-            uint32 count = 0;
-        };
-
-        class ResearchSetupHistory final : public ServerPacket
-        {
-        public:
-
-            ResearchSetupHistory() : ServerPacket(SMSG_SETUP_RESEARCH_HISTORY) { }
-
-            WorldPacket const* Write() override;
-
-            WorldPackets::Misc::ReqResearchHistory researchHistory;
-            std::vector<ReqResearchHistory> ResearchHistory;
-        };
-
         class PlayerSkinned final : public ServerPacket
         {
         public:
@@ -1147,23 +1197,6 @@ namespace WorldPackets
                 uint32 UniqueID = 0;
                 uint32 DataSize = 0;
                 std::vector<uint8> Unk2;
-            };
-
-            struct ResearchHistory
-            {
-                int32 ProjectID = 0;
-                int32 CompletionCount = 0;
-                time_t FirstCompleted = time_t(0);
-            };
-
-            class ResearchComplete final : public ServerPacket
-            {
-            public:
-                ResearchComplete() : ServerPacket(SMSG_RESEARCH_COMPLETE, 12) { }
-
-                WorldPacket const* Write() override;
-
-                ResearchHistory Research;
             };
 
             class IslandOnQueue final : public ClientPacket

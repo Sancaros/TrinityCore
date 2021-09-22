@@ -313,6 +313,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             Item::ItemInstance Loot;
+            uint32 EntityId = 0;
             uint64 Quantity = 1;
             uint32 CurrencyID = 0;
             uint32 ToastType = 0;

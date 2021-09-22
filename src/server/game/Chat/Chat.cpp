@@ -334,14 +334,38 @@ bool ChatHandler::ExecuteCommandInTable(std::vector<ChatCommand> const& table, c
                         zoneName = zone->AreaName[locale];
                 }
 
+                Unit* target = player->GetSelectedUnit();
+                Player* playerTarget = target ? target->ToPlayer(): nullptr;
+
                 sLog->outCommand(m_session->GetAccountId(), "Command: %s [Player: %s (%s) (Account: %u) X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%s)]",
                     fullcmd.c_str(), player->GetName().c_str(), player->GetGUID().ToString().c_str(),
                     m_session->GetAccountId(), player->GetPositionX(), player->GetPositionY(),
                     player->GetPositionZ(), player->GetMapId(),
                     player->FindMap() ? player->FindMap()->GetMapName() : "Unknown",
                     areaId, areaName.c_str(), zoneName.c_str(),
-                    (player->GetSelectedUnit()) ? player->GetSelectedUnit()->GetName().c_str() : "",
+                    target ? target->GetName().c_str() : "",
                     guid.ToString().c_str());
+
+                uint8 index = 0;
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_LOG_GM_COMMAND);
+                stmt->setUInt32(index++, player->GetSession()->GetAccountId());
+                stmt->setString(index++, player->GetSession()->GetBattlenetAccountName());
+                stmt->setUInt32(index++, player->GetGUID().GetCounter());
+                stmt->setString(index++, player->GetName());
+                stmt->setString(index++, player->GetSession()->GetRemoteAddress());
+                stmt->setUInt32(index++, !playerTarget ? 0  : playerTarget->GetSession()->GetAccountId());
+                stmt->setString(index++, !playerTarget ? "" : playerTarget->GetSession()->GetBattlenetAccountName());
+                stmt->setUInt32(index++, !playerTarget ? 0  : playerTarget->GetGUID().GetCounter());
+                stmt->setString(index++, !playerTarget ? "" : playerTarget->GetName());
+                stmt->setString(index++, !playerTarget ? "" : playerTarget->GetSession()->GetRemoteAddress());
+                stmt->setString(index++, Trinity::StringFormat("Command: %s [X: %f Y: %f Z: %f Map: %u (%s) Area: %u (%s) Zone: %s Selected: %s (%s)]",
+                                                               fullcmd.c_str(),
+                                                               player->GetPositionX(), player->GetPositionY(), player->GetPositionZ(), player->GetMapId(),
+                                                               player->FindMap() ? player->FindMap()->GetMapName() : "Unknown",
+                                                               areaId, areaName.c_str(), zoneName.c_str(),
+                                                               target ? target->GetName().c_str() : "",
+                                                               guid.ToString().c_str()));
+                CharacterDatabase.Execute(stmt);
             }
         }
         // some commands have custom error messages. Don't send the default one in these cases.
@@ -975,15 +999,18 @@ std::string ChatHandler::extractPlayerNameFromLink(char* text)
     return name;
 }
 
-bool ChatHandler::extractPlayerTarget(char* args, Player** player, ObjectGuid* player_guid /*= nullptr*/, std::string* player_name /*= nullptr*/)
+bool ChatHandler::extractPlayerTarget(char* args, Player** player, ObjectGuid* player_guid /*= nullptr*/, std::string* player_name /*= nullptr*/, bool sendError /*= true*/)
 {
     if (args && *args)
     {
         std::string name = extractPlayerNameFromLink(args);
         if (name.empty())
         {
-            SendSysMessage(LANG_PLAYER_NOT_FOUND);
-            SetSentErrorMessage(true);
+            if (sendError)
+            {
+                SendSysMessage(LANG_PLAYER_NOT_FOUND);
+                SetSentErrorMessage(true);
+            }
             return false;
         }
 
@@ -1020,8 +1047,11 @@ bool ChatHandler::extractPlayerTarget(char* args, Player** player, ObjectGuid* p
     // some from req. data must be provided (note: name is empty if player does not exist)
     if ((!player || !*player) && (!player_guid || !*player_guid) && (!player_name || player_name->empty()))
     {
-        SendSysMessage(LANG_PLAYER_NOT_FOUND);
-        SetSentErrorMessage(true);
+        if (sendError)
+        {
+            SendSysMessage(LANG_PLAYER_NOT_FOUND);
+            SetSentErrorMessage(true);
+        }
         return false;
     }
 
@@ -1196,6 +1226,164 @@ LocaleConstant CliHandler::GetSessionDbcLocale() const
 LocaleConstant CliHandler::GetSessionDbLocaleIndex() const
 {
     return sObjectMgr->GetDBCLocaleIndex();
+}
+
+void CommandArgs::Initialize(std::initializer_list<CommandArgsType> argsType)
+{
+    try
+    {
+        std::vector<CommandArgsType> argsTypeVector = std::vector<CommandArgsType>(argsType);
+        _argsTypeVector = argsTypeVector;
+
+        if (!_charArgs || !*_charArgs)
+        {
+            if (argsTypeVector.size())
+                throw std::invalid_argument("");
+
+            _validArgs = true;
+            return;
+        }
+
+        std::vector<std::string> argsVector;
+        InitializeArgsVector(argsVector);
+        CheckOptionalArgs(argsTypeVector, argsVector.size());
+
+        // Finally, we cast all our args to their types
+        for (uint8 typeIndex = 0, argIndex = 0; typeIndex < argsTypeVector.size(); ++typeIndex, ++argIndex)
+        {
+            switch (argsTypeVector[typeIndex])
+            {
+                case ARG_INT:
+                case ARG_INT_OPTIONAL:
+                    _args.push_back(int32(atoi(argsVector[argIndex].c_str())));
+                    break;
+                case ARG_UINT:
+                case ARG_UINT_OPTIONAL:
+                {
+                    int value = atoi(argsVector[argIndex].c_str());
+                    if (value < 0)
+                        return;
+
+                    _args.push_back(uint32(value));
+                    break;
+                }
+                case ARG_FLOAT:
+                case ARG_FLOAT_OPTIONAL:
+                    _args.push_back(float(atof(argsVector[argIndex].c_str())));
+                    break;
+                case ARG_STRING:
+                case ARG_STRING_OPTIONAL:
+                    _args.push_back(argsVector[argIndex]);
+                    break;
+                case ARG_UNIT:
+                case ARG_UNIT_OPTIONAL:
+                {
+                    PlayerResult result;
+                    if (_handler->extractPlayerTarget((char*)argsVector[argIndex].c_str(), &result.PlayerPtr, &result.Guid, &result.Name) && result.PlayerPtr)
+                        _args.push_back((Unit*)result.PlayerPtr);
+                    else if (Unit* selectedUnit = _handler->getSelectedUnit())
+                    {
+                        --argIndex;
+                        _args.push_back((Unit*)selectedUnit);
+                    }
+                    break;
+                }
+                case ARG_PLAYER:
+                case ARG_PLAYER_OPTIONAL:
+                {
+                    PlayerResult result;
+                    _handler->extractPlayerTarget((char*)argsVector[argIndex].c_str(), &result.PlayerPtr, &result.Guid, &result.Name);
+                    _args.push_back(result);
+                    break;
+                }
+                case ARG_OPTIONAL_BEGIN:
+                    ASSERT(false, "Cannot use ARG_OPTIONAL_BEGIN as arg type");
+                default:
+                    break;
+            }
+        }
+
+        _validArgs = true;
+    }
+    // Catch potential boost exception
+    catch (std::exception e)
+    {
+        _validArgs = false;
+    }
+}
+
+// Split args by spaces, expect for quoted args
+void CommandArgs::InitializeArgsVector(std::vector<std::string>& argsVector)
+{
+    std::ostringstream arg;
+    uint32 argsLength = strlen(_charArgs);
+
+    for (size_t i = 0; i < argsLength; i++)
+    {
+        char c = _charArgs[i];
+        if (c == ' ')
+        {
+            argsVector.push_back(arg.str());
+            arg.str("");
+            arg.clear();
+        }
+        else if (c == '\"')
+        {
+            ++i;
+            while (i < argsLength && _charArgs[i] != '\"')
+                arg << _charArgs[i++];
+        }
+        else if (c == '|')
+        {
+            while (i < argsLength && (i <= 1 || _charArgs[i - 1] != '|' || _charArgs[i] != 'r'))
+                arg << _charArgs[i++];
+
+            arg << 'r';
+        }
+        else
+            arg << _charArgs[i];
+    }
+
+    if (arg.str().size() != 0)
+        argsVector.push_back(arg.str());
+}
+
+// If we have less parameter than expected, check if any of them is optional
+// and reduce argsTypeVector accordingly
+void CommandArgs::CheckOptionalArgs(std::vector<CommandArgsType>& argsTypeVector, uint8 argsVectorSize)
+{
+    uint8 argsTypeVectorSize = argsTypeVector.size();
+
+    // Check if any parameter is optionnal
+    if (argsVectorSize == argsTypeVectorSize)
+        return;
+
+    if (argsVectorSize > argsTypeVectorSize)
+        throw std::invalid_argument("");
+
+    uint8 optionalCount = uint8(std::count_if(argsTypeVector.begin(), argsTypeVector.end(), [](CommandArgsType const& type)
+    {
+        return type > ARG_OPTIONAL_BEGIN;
+    }));
+
+    int8 argsDiff = argsTypeVectorSize - argsVectorSize;
+
+    if (optionalCount < argsDiff)
+        throw std::invalid_argument("");
+
+    for (uint8 i = argsTypeVectorSize; i != 0; --i)
+    {
+        auto itr = argsTypeVector.begin();
+        std::advance(itr, i - 1);
+
+        if (*itr > ARG_OPTIONAL_BEGIN)
+        {
+            argsTypeVector.erase(itr);
+
+            if (--argsDiff <= 0)
+                break;
+        }
+    }
 }
 
 std::string const AddonChannelCommandHandler::PREFIX = "TrinityCore";

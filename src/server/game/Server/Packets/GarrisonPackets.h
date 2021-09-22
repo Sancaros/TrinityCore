@@ -630,6 +630,18 @@ namespace WorldPackets
             std::vector <GarrisonFollower> followers;
         };
 
+        class GarrisonStartMission final : public ClientPacket
+        {
+        public:
+            GarrisonStartMission(WorldPacket&& packet) : ClientPacket(CMSG_GARRISON_START_MISSION, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid NpcGUID;
+            uint32 MissionID = 0;
+            std::vector<uint64 /* dbID */> Followers;
+        };
+		
         class GarrisonStartMissionResult final : public ServerPacket
         {
         public:

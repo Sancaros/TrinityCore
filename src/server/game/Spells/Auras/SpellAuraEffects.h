@@ -22,6 +22,7 @@
 
 class AuraEffect;
 class Unit;
+class Aura;
 
 typedef void(AuraEffect::*pAuraEffectHandler)(AuraApplication const* aurApp, uint8 mode, bool apply) const;
 
@@ -151,6 +152,7 @@ class TC_GAME_API AuraEffect
         void HandlePhase(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandlePhaseGroup(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandlePhaseAlwaysVisible(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        void HandleModVisibilityRange(AuraApplication const* aurApp, uint8 mode, bool apply) const;
 
         //  unit model
         void HandleAuraModShapeshift(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -262,6 +264,7 @@ class TC_GAME_API AuraEffect
         void HandleAuraModBlockPercent(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraModRegenInterrupt(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraModWeaponCritPercent(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        void HandleModHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModSpellHitChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModSpellCritChance(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraModCritPct(AuraApplication const* aurApp, uint8 mode, bool apply) const;

@@ -47,6 +47,7 @@
 #include "InstanceScript.h"
 #include "Item.h"
 #include "Language.h"
+#include "LFGMgr.h"
 #include "Log.h"
 #include "LootMgr.h"
 #include "Map.h"

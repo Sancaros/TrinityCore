@@ -97,6 +97,7 @@
 #include "WaypointManager.h"
 #include "WeatherMgr.h"
 #include "WildBattlePet.h"
+#include "WorldQuestMgr.h"
 #include "WhoListStorage.h"
 #include "WorldSession.h"
 #include "WorldSocket.h"
@@ -2270,7 +2271,6 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Item loot...");
     sLootItemStorage->LoadStorageFromDB();
 
-
     TC_LOG_INFO("server.loading", "Loading Zones script names...");
     sObjectMgr->LoadZoneScriptNames();
 
@@ -2303,6 +2303,8 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_GUILDSAVE].SetInterval(getIntConfig(CONFIG_GUILD_SAVE_INTERVAL) * MINUTE * IN_MILLISECONDS);
 
     m_timers[WUPDATE_BLACKMARKET].SetInterval(10 * IN_MILLISECONDS);
+
+    m_timers[WUPDATE_WORLD_QUEST].SetInterval(1 * MINUTE * IN_MILLISECONDS);
 
     blackmarket_timer = 0;
 
@@ -2411,7 +2413,11 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading scenario poi data");
     sScenarioMgr->LoadScenarioPOI();
-
+	
+	// load world quests
+    TC_LOG_INFO("server.loading", "Loading active world quests...");
+    sWorldQuestMgr->LoadActiveWorldQuests();
+	
     // load battle pay
     TC_LOG_INFO("server.loading", "Loading battlepay data...");
     sBattlePayDataStore->Initialize();
@@ -2625,6 +2631,12 @@ void World::Update(uint32 diff)
         m_timers[WUPDATE_CHECK_FILECHANGES].Reset();
     }
 
+    if (m_timers[WUPDATE_WORLD_QUEST].Passed())
+    {
+        sWorldQuestMgr->Update();
+        m_timers[WUPDATE_WORLD_QUEST].Reset();
+    }
+
     /// <li> Handle session updates when the timer has passed
     sWorldUpdateTime.RecordUpdateTimeReset();
     UpdateSessions(diff);
@@ -2646,6 +2658,8 @@ void World::Update(uint32 diff)
         stmt->setUInt32(3, uint32(GameTime::GetStartTime()));
 
         LoginDatabase.Execute(stmt);
+
+        TC_LOG_INFO("metric", "Online Players : %u", GetActiveSessionCount());
     }
 
     /// <li> Clean logs table

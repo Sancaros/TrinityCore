@@ -104,7 +104,7 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 
 /// WorldSession constructor
 WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time,
-    std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter):
+    std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter, std::string&& battlenetAccountName):
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
@@ -114,6 +114,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     _accountId(id),
     _accountName(std::move(name)),
     _battlenetAccountId(battlenetAccountId),
+    _battlenetAccountName(std::move(battlenetAccountName)),
     m_accountExpansion(expansion),
     m_expansion(std::min<uint8>(expansion, sWorld->getIntConfig(CONFIG_EXPANSION))),
     _os(os),
@@ -1000,6 +1001,8 @@ public:
     {
         GLOBAL_ACCOUNT_TOYS = 0,
         GLOBAL_ACCOUNT_BATTLE_PETS,
+        BATTLE_PETS,
+        BATTLE_PET_SLOTS,
         GLOBAL_ACCOUNT_HEIRLOOMS,
         GLOBAL_REALM_CHARACTER_COUNTS,
         MOUNTS,
@@ -1019,7 +1022,14 @@ public:
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(GLOBAL_ACCOUNT_TOYS, stmt) && ok;
 
-     
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PETS);
+        stmt->setUInt32(0, battlenetAccountId);
+        ok = SetPreparedQuery(BATTLE_PETS, stmt) && ok;
+
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PET_SLOTS);
+        stmt->setUInt32(0, battlenetAccountId);
+        ok = SetPreparedQuery(BATTLE_PET_SLOTS, stmt) && ok;
+
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_HEIRLOOMS);
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(GLOBAL_ACCOUNT_HEIRLOOMS, stmt) && ok;

@@ -350,6 +350,8 @@ private:
     ImmunityInfo _immunityInfo;
 };
 
+typedef std::vector<SpellEffectInfo const*> SpellEffectInfoVector;
+
 typedef std::vector<SpellXSpellVisualEntry const*> SpellVisualVector;
 typedef std::unordered_map<uint32, SpellVisualVector> SpellVisualMap;
 
@@ -579,6 +581,7 @@ class TC_GAME_API SpellInfo
         uint32 GetEffectMechanicMask(SpellEffIndex effIndex) const;
         uint32 GetSpellMechanicMaskByEffectMask(uint32 effectMask) const;
         Mechanics GetEffectMechanic(SpellEffIndex effIndex) const;
+        //bool HasAnyEffectMechanic() const;
         uint32 GetDispelMask() const;
         static uint32 GetDispelMask(DispelType type);
         uint32 GetExplicitTargetMask() const;
@@ -642,6 +645,9 @@ class TC_GAME_API SpellInfo
     private:
         // loading helpers
         void _InitializeExplicitTargetMask();
+        bool _IsPositiveEffect(uint32 effIndex, bool deep) const;
+        bool _IsPositiveSpell() const;
+        static bool _IsPositiveTarget(uint32 targetA, uint32 targetB);
         void _InitializeSpellPositivity();
         void _LoadSpellSpecific();
         void _LoadAuraState();
@@ -650,6 +656,7 @@ class TC_GAME_API SpellInfo
 
         // unloading helpers
         void _UnloadImplicitTargetConditionLists();
+        void _UnloadSpellEffects();
 
     private:
         std::vector<SpellEffectInfo> _effects;

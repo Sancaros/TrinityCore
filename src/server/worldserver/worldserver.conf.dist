@@ -74,7 +74,7 @@ RealmID = 1
 #        Example:     "@prefix@/share/trinitycore"
 #        Default:     "."
 
-DataDir = "."
+DataDir = "./Data"
 
 #
 #    LogsDir
@@ -83,7 +83,7 @@ DataDir = "."
 #                     Logs directory must exists, or log file creation will be disabled.
 #        Default:     "" - (Log files will be stored in the current path)
 
-LogsDir = ""
+LogsDir = "./Logs"
 
 #
 #    LoginDatabaseInfo
@@ -108,10 +108,10 @@ LogsDir = ""
 #    Don't open port on firewall to external connections (it belongs to mysql, not to wow server).
 #    The username you choose must have permisions to create/alter/rename tables.
 
-LoginDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;auth"
-WorldDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;world"
-CharacterDatabaseInfo = "127.0.0.1;3306;trinity;trinity;characters"
-HotfixDatabaseInfo    = "127.0.0.1;3306;trinity;trinity;hotfixes"
+LoginDatabaseInfo     = "127.0.0.1;3304;root;admin;auth8"
+WorldDatabaseInfo     = "127.0.0.1;3304;root;admin;world8"
+CharacterDatabaseInfo = "127.0.0.1;3304;root;admin;characters8"
+HotfixDatabaseInfo    = "127.0.0.1;3304;root;admin;hotfixes8"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -234,7 +234,7 @@ MySQLExecutable = ""
 #                     "/home/trinity/IP2LOCATION-LITE-DB1.CSV"
 #        Default:     ""  - (Disabled)
 
-IPLocationFile = ""
+IPLocationFile = "./IP2LOCATION-LITE-DB1.CSV"
 
 #
 ###################################################################################################
@@ -249,7 +249,7 @@ IPLocationFile = ""
 #        Default:     0  - (Selected by OS)
 #                     1+ - (Bit mask value of selected processors)
 
-UseProcessors = 0
+UseProcessors = 3
 
 #
 #    ProcessPriority
@@ -259,7 +259,7 @@ UseProcessors = 0
 #        Default:     0 - (Normal)
 #                     1 - (High)
 
-ProcessPriority = 0
+ProcessPriority = 1
 
 #
 #    RealmsStateUpdateDelay
@@ -400,7 +400,7 @@ PlayerSave.Stats.MinLevel = 0
 #        Default:     1 - (Enabled, Only save on logout)
 #                     0 - (Disabled, Save on every player save)
 
-PlayerSave.Stats.SaveOnlyOnLogout = 1
+PlayerSave.Stats.SaveOnlyOnLogout = 0
 
 #
 #    DisconnectToleranceInterval
@@ -415,7 +415,7 @@ DisconnectToleranceInterval = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-mmap.enablePathFinding = 0
+mmap.enablePathFinding = 1
 
 #
 #    vmap.enableLOS
@@ -453,6 +453,17 @@ DetectPosCollision = 1
 #                     0 - (Disabled, may break some boss encounters)
 
 CheckGameObjectLoS = 1
+
+#
+#    TargetPosRecalculateRange
+#        Description: Max distance from movement target point (+moving unit size) and targeted
+#                     object (+size) after that new target movement point calculated.
+#        Range:       0.5-5.0
+#        Default:     1.5
+#                     0.5 - (Minimum, Contact Range, More sensitive reaction to target movement)
+#                     5.0 - (Maximum, Melee attack range, Less CPU usage)
+
+TargetPosRecalculateRange = 1.5
 
 #
 #    UpdateUptimeInterval
@@ -682,7 +693,7 @@ StrictPetNames = 0
 #                     10  - (ptBR)
 #                     11  - (itIT)
 
-DBC.Locale = 0
+DBC.Locale = 4
 
 #
 #    DeclinedNames
@@ -1241,7 +1252,7 @@ BeepAtStart = 1
 #        Example:     "Welcome to John's Server!@This server is proud to be powered by Trinity Core."
 #        Default:     "Welcome to a Trinity Core server."
 
-Motd = "Welcome to a Trinity Core server."
+Motd = "欢迎来到魔兽传奇-正式服，正在修复中."
 
 #
 #    Server.LoginInfo
@@ -1257,7 +1268,22 @@ Server.LoginInfo = 0
 #        Default:     0 - (Unlimited)
 
 Command.LookupMaxResults = 0
+# Dungeon Finder
+#
+#   DungeonFinder.DebugJoin
+#       Description: Allow DungeonFinder usage with 1 player.
+#                    You can also use ".debug lfg on" in game.
+#       Default:     1 - (Enabled)
+#                    0 - (Disabled)
 
+DungeonFinder.DebugJoin = 1
+
+#   DungeonFinder.UnlockAll
+#       Description: Unlock all DungeonFinder dungeons and raids on dungeon finder.
+#       Default:     1 - (Enabled)
+#                    0 - (Disabled)
+
+DungeonFinder.UnlockAll = 1
 #
 #     DungeonFinder.OptionsMask
 #        Description: Dungeon and raid finder system.
@@ -1337,7 +1363,31 @@ FeatureSystem.CharacterUndelete.Cooldown = 2592000
 
 #
 ###################################################################################################
+Pvp.FactionBalance.Pct5 = 0.600000
+Pvp.FactionBalance.Pct10 = 0.700000
+Dungeon.ActiveStep = 0
+###################################################################################################
+# Solo LFG #
+#############
+#    SoloLFG.Announce
+#        Description: Announce the module.
+#        Default:     1  - (Enabled)
+#                     0  - (Disabled)
 
+SoloLFG.Announce = 1
+
+#
+#
+#     LFG.SoloMode
+#        Description: This module allow to use LFG with 1-4 players.
+#                     Possible useful in offline play or on low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+LFG.SoloMode = 1
+SoloLFG.Enable = 1
+#
+###################################################################################################
 ###################################################################################################
 # UPDATE SETTINGS
 #
@@ -1552,7 +1602,7 @@ Warden.BanDuration = 86400
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AllowTwoSide.Interaction.Calendar = 0
+AllowTwoSide.Interaction.Calendar = 1
 
 #
 #    AllowTwoSide.Interaction.Channel
@@ -1560,7 +1610,7 @@ AllowTwoSide.Interaction.Calendar = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AllowTwoSide.Interaction.Channel = 0
+AllowTwoSide.Interaction.Channel = 1
 
 #
 #    AllowTwoSide.Interaction.Group
@@ -1568,7 +1618,7 @@ AllowTwoSide.Interaction.Channel = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AllowTwoSide.Interaction.Group = 0
+AllowTwoSide.Interaction.Group = 1
 
 #
 #    AllowTwoSide.Interaction.Guild
@@ -1576,7 +1626,7 @@ AllowTwoSide.Interaction.Group = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AllowTwoSide.Interaction.Guild = 0
+AllowTwoSide.Interaction.Guild = 1
 
 #
 #    AllowTwoSide.Interaction.Auction
@@ -1592,7 +1642,7 @@ AllowTwoSide.Interaction.Auction = 1
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AllowTwoSide.Trade = 0
+AllowTwoSide.Trade = 1
 
 #
 #    TalentsInspecting
@@ -2117,7 +2167,7 @@ GM.StartLevel = 1
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-GM.AllowInvite = 0
+GM.AllowInvite = 1
 
 #
 #    GM.LowerSecurity
@@ -2598,7 +2648,7 @@ Stats.Limits.Crit  = 95.0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-AutoBroadcast.On = 0
+AutoBroadcast.On = 1
 
 #
 #    AutoBroadcast.Center
@@ -2635,7 +2685,7 @@ Battleground.CastDeserter = 1
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-Battleground.QueueAnnouncer.Enable = 0
+Battleground.QueueAnnouncer.Enable = 1
 
 #
 #    Battleground.QueueAnnouncer.PlayerOnly
@@ -2689,7 +2739,7 @@ Battleground.PremadeGroupWaitForMatch = 1800000
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-Battleground.GiveXPForKills = 0
+Battleground.GiveXPForKills = 1
 
 #
 #    Battleground.Random.ResetHour
@@ -2895,7 +2945,7 @@ Arena.AutoDistributeInterval = 7
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-Arena.QueueAnnouncer.Enable = 0
+Arena.QueueAnnouncer.Enable = 1
 
 #
 #    Arena.ArenaSeason.ID
@@ -3122,6 +3172,13 @@ CharDelete.KeepDays = 30
 
 #
 ###################################################################################################
+#    ConsoleErrorLogging
+#        Description: Show errors on console on/off.
+#                     If disabled, errors will still be saved to log files.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+ConsoleErrorLogging = 0
 
 ###################################################################################################
 # CUSTOM SERVER OPTIONS
@@ -3137,7 +3194,7 @@ CharDelete.KeepDays = 30
 #                       bugs out and doesn't switch the check mark. It has no effect on the actual tracking though).
 #                     * The minimap dots are yellow for both resources.
 
-AllowTrackBothResources = 0
+AllowTrackBothResources = 1
 
 #
 #    PlayerStart.AllReputation
@@ -3173,7 +3230,7 @@ PlayerStart.MapsExplored = 0
 #        Default:     0  - (Disabled)
 #                     1+ - (Enabled)
 
-HonorPointsAfterDuel = 0
+HonorPointsAfterDuel = 1
 
 #
 #    ResetDuelCooldowns
@@ -3181,14 +3238,14 @@ HonorPointsAfterDuel = 0
 #        Default:     0  - (Disabled)
 #                     1  - (Enabled)
 
-ResetDuelCooldowns = 0
+ResetDuelCooldowns = 1
 
 #    ResetDuelHealthMana
 #        Description: Reset health and mana before duel starts and restore them when duel ends.
 #        Default:     0  - (Disabled)
 #                     1  - (Enabled)
 
-ResetDuelHealthMana = 0
+ResetDuelHealthMana = 1
 
 #
 #    PvPToken.Enable
@@ -3197,7 +3254,7 @@ ResetDuelHealthMana = 0
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-PvPToken.Enable = 0
+PvPToken.Enable = 1
 
 #
 #    PvPToken.MapAllowType
@@ -3381,7 +3438,218 @@ GameObject.CheckInvalidPosition = 0
 
 #
 ###################################################################################################
+FeatureSystem.WarMode.Enabled = 1
+###################################################################################################
+#  ELUNA SETTINGS
+#
+#   Eluna.Enabled
+#       Description: Enable or disable Eluna LuaEngine
+#       Default:    true  - (enabled)
+#                   false - (disabled)
+#
+#   Eluna.TraceBack
+#       Description: Sets whether to use debug.traceback function on a lua error or not.
+#                    Notice that you can redefine the function.
+#       Default:    false - (use default error output)
+#                   true  - (use debug.traceback function)
+#
+#   Eluna.ScriptPath
+#       Description: Sets the location of the script folder to load scripts from
+#                    The path can be relative or absolute.
+#       Default:    "lua_scripts"
+#
 
+Eluna.Enabled = true
+Eluna.TraceBack = false
+Eluna.ScriptPath = "lua_scripts"
+
+#
+###################################################################################################
+###################################################################################################
+# SOLOCRAFT #
+#############
+#
+#     Solocraft.Enable
+#        Description: Solocraft trying to keep the balance in dungeons and raids, 
+#		 based on group size. It feels a little hacky, but good for low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Solocraft.Enable = 1
+
+# Announce the module when the player logs in?
+
+Solocraft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+Solocraft.Dungeon = 5
+Solocraft.Heroic = 10
+Solocraft.Mythic = 15
+Solocraft.Raid10 = 10
+Solocraft.Raid25 = 15
+Solocraft.Raid30 = 25
+Solocraft.Raid40 = 30
+
+#
+###################################################################################################
+###################################################################################################
+#FlexCraft  #
+#############
+#
+#	  FlexCraft Is flexible Instance\Dungeon\Raid Scaling. Unlike Solocraft. It allows individual 
+#		adjustments. 
+#		DISABLED SOLOCRAFT if you are using ANY FLEXCRAFT SETTINGS to prevent Conflict.
+#
+#
+#     HealthCraft.Enable
+#        Description: HealthCraft is Health Scaling in dungeons and raids, 
+#		 based on group size. It feels a little hacky, but good for low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+HealthCraft.Enable = 1
+
+# Announce the module when the player logs in?
+
+HealthCraft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+HealthCraft.Dungeon = 5
+HealthCraft.Heroic = 10
+HealthCraft.Mythic = 15
+HealthCraft.Raid10 = 10
+HealthCraft.Raid25 = 25
+HealthCraft.Raid30 = 30
+HealthCraft.Raid40 = 40
+
+#     UnitModcraft.Enable
+#        Description: UnitModcraft is damage and spell scaling in dungeons and raids, 
+#		 based on group size. It feels a little hacky, but good for low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+UnitModcraft.Enable = 1
+
+# Announce the module when the player logs in?
+
+UnitModcraft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+UnitModcraft.Dungeon = 2
+UnitModcraft.Heroic = 5
+UnitModcraft.Mythic = 7
+UnitModcraft.Raid10 = 2
+UnitModcraft.Raid25 = 10
+UnitModcraft.Raid30 = 15
+UnitModcraft.Raid40 = 25
+
+#     Combat.Rating.Craft.Enable
+#        Description: Combat.Rating.Craft is the CR rating that some skills dungeons and raids, 
+#		 or abilities rely on with that do not fall under unit mods based on group size. It feels 
+#		 a little hacky, but good for low populated servers.
+#
+#        Default:     0 (disabled)
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Combat.Rating.Craft.Enable = 1
+
+# Announce the module when the player logs in?
+
+Combat.Rating.Craft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+Combat.Rating.Craft.Dungeon = 5
+Combat.Rating.Craft.Heroic = 10
+Combat.Rating.Craft.Mythic = 15
+Combat.Rating.Craft.Raid10 = 10
+Combat.Rating.Craft.Raid25 = 20
+Combat.Rating.Craft.Raid30 = 25
+Combat.Rating.Craft.Raid40 = 30
+
+#     Spell.Craft.Enable
+#        Description: Spell Craft is damage and spell scaling in dungeons and raids, 
+#         based on group size. It feels a little hacky, but good for low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Spell.Craft.Enable = 1
+
+# Announce the module when the player logs in?
+
+Spell.Craft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+Spell.Craft.Dungeon = 2
+Spell.Craft.Heroic = 5
+Spell.Craft.Mythic = 10
+Spell.Craft.Raid10 = 5
+Spell.Craft.Raid25 = 10
+Spell.Craft.Raid30 = 25
+Spell.Craft.Raid40 = 30
+
+
+#     Leech.Craft.Enable
+#        Description: Leech scaling in dungeons and raids, 
+#         based on group size. It feels a little hacky, but good for low populated servers.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Leech.Craft.Enable = 1
+
+# Announce the module when the player logs in?
+
+Leech.Craft.Announce = 0
+
+# Difficulty Multipliers
+# Defaults: 5, 10, 15, 10, 25, 30, 40
+
+Leech.Craft.Dungeon = 5
+Leech.Craft.Heroic = 10
+Leech.Craft.Mythic = 15
+Leech.Craft.Raid10 = 10
+Leech.Craft.Raid25 = 25
+Leech.Craft.Raid30 = 30
+Leech.Craft.Raid40 = 40
+
+#      
+#
+#
+#    Hastecraft.enabled
+#        Description: Enable to Hastecraft V3 Module.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Hastecraft.enabled = 0
+
+#	Hastecraft.Announce
+#        Description: Enable Announcement to Hastecraft V3 Module.
+#        Default:     0 (disabled)
+#                     1 (enabled)
+
+Hastecraft.Announce = 0
+
+#	Hastecraft Value
+#        Description: Multiplies the Player Haste both in world and in instances.
+#					  If Character exceeds 16 million haste combined, no haste will be on the stats.
+#        Default:     0 (disabled)
+#                     
+
+HastecraftMelee = 100000000
+HastecraftRanged = 10000000
+HastecraftSpell = 10000000
+#
+###################################################################################################
+#KyrianCORE discord : https://discord.gg/CZDUnEGK9a
 ###################################################################################################
 # AUCTION HOUSE BOT SETTINGS
 #
@@ -3407,7 +3675,7 @@ AuctionHouseBot.Update.Interval = 20
 #       Default:     0 - (Disabled)
 #                    1 - (Enabled)
 
-AuctionHouseBot.Seller.Enabled = 0
+AuctionHouseBot.Seller.Enabled = 1
 
 #
 #    AuctionHouseBot.Alliance.Items.Amount.Ratio
@@ -3803,7 +4071,7 @@ AuctionHouseBot.Class.RandomStackRatio.Glyph = 0
 #       Default:     0 - (Disabled)
 #                    1 - (Enabled)
 
-AuctionHouseBot.Buyer.Enabled = 0
+AuctionHouseBot.Buyer.Enabled = 1
 
 #
 #    AuctionHouseBot.Buyer.FACTION.Enabled
@@ -3903,7 +4171,45 @@ BlackMarket.UpdatePeriod = 24
 #
 #
 ###################################################################################################
+###################################################################################################
+# Dynamic XP Rate #
+#
+#
+#    Dynamic.XP.Rate
+#        Description: XP rate changed for Fridays, Saturdays ad Sundays for different level ranges.
+#
+#        DynamicXP.Enable: 1 (Enable)
+#                          0 (Disable) Default
+#
 
+DynamicXP.Enable = 1
+
+#
+###################################################################################################
+#
+BattlePay.Enabled = 1
+FeatureSystem.BattlePay.Available = 0
+ArgusWowEnable = 1
+Guild.SaveInterval = 15
+BattlePay.Currency = 1
+Pvp.FactionBalance.LevelCheckDiff = 0
+Pvp.FactionBalance.Pct2 = 0.800000
+Pvp.FactionBalance.Overwhelming = 0.900000
+Challenge.Key.Reset = 7
+Challenge.Enabled = 1
+###################################################################################################
+# Group Looting
+#
+#   Group.Loot.Roll.Enabled
+#       Description: Enable\Disable group loot rolling
+#                    NOTE: EXPERIMENTAL! Might crash server!
+#       Default:     0 - (Disabled)
+#                    1 - (Enabled)
+
+Group.Loot.Roll.Enabled = 0
+
+#
+###################################################################################################
 ###################################################################################################
 # LOGGING SYSTEM SETTINGS
 #
@@ -4206,75 +4512,3 @@ Metric.OverallStatusInterval = 1
 
 #
 ###################################################################################################
-
-###################################################################################################
-#
-#    Guild.SaveInterval
-#        Description: Enable/Disable Guild Save Interval time
-#        Default:     0 - (Disabled)
-#                     15 - (Enabled)
-
-Guild.SaveInterval = 15
-
-###################################################################################################
-
-###################################################################################################
-
-#
-#    FeatureSystem.BattlePay.Available
-#        Description: Enable/Disable
-#        Default:     0 - (Disabled)
-#                     1 - (Enabled)
-#
-#    BattlePay.Enabled
-#        Description: Enable/Disable
-#        Default:     0 - (Disabled)
-#                     1 - (Enabled)
-#
-#    BattlePay.Currency
-#        Description: Enable/Disable
-#        Default:     0 - (Disabled)
-#                     1 - (Enabled)
-
-FeatureSystem.BattlePay.Available = 1
-
-BattlePay.Enabled = 1
-
-BattlePay.Currency = 1
-
-###################################################################################################
-
-###################################################################################################
-
-#
-#    ConsoleErrorLogging
-#        Description: Enable/Disable Errors shown in Server Console
-#        Default:     0 - (Disabled)
-#                     1 - (Enabled)
-
-ConsoleErrorLogging = 1
-
-###################################################################################################
-
-###################################################################################################
-#Missing name Pvp.FactionBalance.LevelCheckDiff
-
-Pvp.FactionBalance.LevelCheckDiff = 1
-
-#Missing name Pvp.FactionBalance.Pct5
-
-Pvp.FactionBalance.Pct5 = 0.600000
-
-#Missing name Pvp.FactionBalance.Pct10
-
-Pvp.FactionBalance.Pct10 = 0.700000
-
-#Missing name Pvp.FactionBalance.Pct2
-
-Pvp.FactionBalance.Pct2 = 0.800000
-
-#Missing name Pvp.FactionBalance.Overwhelming
-
-Pvp.FactionBalance.Overwhelming = 0.900000
-###################################################################################################
-

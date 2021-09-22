@@ -562,6 +562,7 @@ namespace WorldPackets
     {
         class SetSelection;
         class ViolenceLevel;
+        class PlayerSelectFaction;
         class TimeSyncResponse;
         class TutorialSetFlag;
         class SetDungeonDifficulty;
@@ -570,6 +571,8 @@ namespace WorldPackets
         class ReclaimCorpse;
         class RepopRequest;
         class RequestCemeteryList;
+        class ResearchHistory;
+        class ResearchSetupHistory;
         class ResurrectResponse;
         class StandStateChange;
         class ServerTimeOffsetRequest;
@@ -589,7 +592,9 @@ namespace WorldPackets
         class SetTaxiBenchmarkMode;
         class MountSetFavorite;
         class CloseInteraction;
+        class FactionSelect;
         class ChromieTimeSelectExpansion;
+        class SetWarMode;
         class DiscardedTimeSyncAcks;
         class IslandOpenNpc;
         class IslandAzeriteXpGain;
@@ -1032,7 +1037,7 @@ class TC_GAME_API WorldSession
 {
     public:
         WorldSession(uint32 id, std::string&& name, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time,
-            std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter);
+            std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter, std::string&& battlenetAccountName);
         ~WorldSession();
 
         bool PlayerLoading() const { return !m_playerLoading.IsEmpty(); }
@@ -1070,6 +1075,7 @@ class TC_GAME_API WorldSession
         ObjectGuid GetAccountGUID() const { return ObjectGuid::Create<HighGuid::WowAccount>(GetAccountId()); }
         std::string const& GetAccountName() const { return _accountName; }
         uint32 GetBattlenetAccountId() const { return _battlenetAccountId; }
+        std::string GetBattlenetAccountName() const { return _battlenetAccountName; }
         ObjectGuid GetBattlenetAccountGUID() const { return ObjectGuid::Create<HighGuid::BNetAccount>(GetBattlenetAccountId()); }
         Player* GetPlayer() const { return _player; }
         std::string const& GetPlayerName() const;
@@ -1828,6 +1834,7 @@ class TC_GAME_API WorldSession
         void HandleQueryQuestCompletionNPCs(WorldPackets::Query::QueryQuestCompletionNPCs& queryQuestCompletionNPCs);
         void HandleQuestPOIQuery(WorldPackets::Query::QuestPOIQuery& questPoiQuery);
         void HandleViolenceLevel(WorldPackets::Misc::ViolenceLevel& violenceLevel);
+        void HandlePlayerSelectFactionOpcode(WorldPackets::Misc::PlayerSelectFaction& playerSelectFaction);
         void HandleObjectUpdateFailedOpcode(WorldPackets::Misc::ObjectUpdateFailed& objectUpdateFailed);
         void HandleObjectUpdateRescuedOpcode(WorldPackets::Misc::ObjectUpdateRescued& objectUpdateRescued);
         void HandleRequestCategoryCooldowns(WorldPackets::Spells::RequestCategoryCooldowns& requestCategoryCooldowns);
@@ -1835,6 +1842,7 @@ class TC_GAME_API WorldSession
         void HandleChromieTimeSelectExpansionOpcode(WorldPackets::Misc::ChromieTimeSelectExpansion& selectExpansion);
         void HandleDiscardedTimeSyncAcks(WorldPackets::Misc::DiscardedTimeSyncAcks& packet);
         void HandleIslandQueue(WorldPackets::Misc::IslandOnQueue& packet);
+        void HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction);
 
         // Adventure Journal
         void HandleAdventureJournalOpenQuest(WorldPackets::AdventureJournal::AdventureJournalOpenQuest& openQuest);
@@ -2079,6 +2087,7 @@ class TC_GAME_API WorldSession
         uint32 _accountId;
         std::string _accountName;
         uint32 _battlenetAccountId;
+        std::string _battlenetAccountName;
         uint8 m_accountExpansion;
         uint8 m_expansion;
         std::string _os;

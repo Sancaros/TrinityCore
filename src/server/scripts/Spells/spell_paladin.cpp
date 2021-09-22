@@ -21,16 +21,19 @@
  * Scriptnames of files in this file should be prefixed with "spell_pal_".
  */
 
+#include "AreaTrigger.h"
 #include "ScriptMgr.h"
 #include "DB2Stores.h"
 #include "Group.h"
 #include "Player.h"
 #include "Random.h"
+#include "AreaTriggerAI.h"
 #include "Spell.h"
+#include "SpellScript.h"
 #include "SpellAuraEffects.h"
 #include "SpellHistory.h"
 #include "SpellMgr.h"
-#include "SpellScript.h"
+
 
 enum PaladinSpells
 {
@@ -42,10 +45,12 @@ enum PaladinSpells
     SPELL_PALADIN_BLESSING_OF_LOWER_CITY_PALADIN = 37879,
     SPELL_PALADIN_BLESSING_OF_LOWER_CITY_PRIEST  = 37880,
     SPELL_PALADIN_BLESSING_OF_LOWER_CITY_SHAMAN  = 37881,
+    SPELL_PALADIN_CONSECRATION_REDUCE_SPEED = 204242,
     SPELL_PALADIN_BLINDING_LIGHT_EFFECT          = 105421,
     SPELL_PALADIN_CONCENTRACTION_AURA            = 19746,
     SPELL_PALADIN_DIVINE_PURPOSE_PROC            = 90174,
     SPELL_PALADIN_DIVINE_STEED_HUMAN             = 221883,
+    SPELL_PALADIN_CONSECRATION_DAMAGE = 81297,
     SPELL_PALADIN_DIVINE_STEED_DRAENEI           = 221887,
     SPELL_PALADIN_DIVINE_STEED_BLOODELF          = 221886,
     SPELL_PALADIN_DIVINE_STEED_TAUREN            = 221885,
@@ -63,6 +68,7 @@ enum PaladinSpells
     SPELL_PALADIN_HOLY_MENDING                   = 64891,
     SPELL_PALADIN_HOLY_POWER_ARMOR               = 28790,
     SPELL_PALADIN_HOLY_POWER_ATTACK_POWER        = 28791,
+    SPELL_PALADIN_CONSECRATED_GROUND = 204054,
     SPELL_PALADIN_HOLY_POWER_SPELL_POWER         = 28793,
     SPELL_PALADIN_HOLY_POWER_MP5                 = 28795,
     SPELL_PALADIN_HOLY_SHOCK_R1                  = 20473,
@@ -254,6 +260,68 @@ class spell_pal_blessing_of_protection : public SpellScript
         OnCheckCast += SpellCheckCastFn(spell_pal_blessing_of_protection::CheckForbearance);
         AfterHit += SpellHitFn(spell_pal_blessing_of_protection::TriggerForbearance);
     }
+};
+
+
+
+// Consecration - 26573 (retribution)
+// Consecration - 205228 (protection)
+struct at_pal_consecration : AreaTriggerAI
+{
+    at_pal_consecration(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+
+    void OnInitialize() override
+    {
+        timer = 1 * IN_MILLISECONDS;
+    }
+
+    void OnUnitEnter(Unit* unit) override
+    {
+        Unit* caster = at->GetCaster();
+        if (!caster || !unit)
+            return;
+
+        if (!caster->IsValidAttackTarget(unit))
+            return;
+
+        if (!unit->HasAura(SPELL_PALADIN_CONSECRATION_REDUCE_SPEED, caster->GetGUID()))
+            caster->CastSpell(unit, SPELL_PALADIN_CONSECRATION_REDUCE_SPEED, true);
+    }
+
+    void OnUnitExit(Unit* unit) override
+    {
+        Unit* caster = at->GetCaster();
+        if (!caster || !unit)
+            return;
+
+        if (unit->HasAura(SPELL_PALADIN_CONSECRATION_REDUCE_SPEED, caster->GetGUID()))
+            unit->RemoveAura(SPELL_PALADIN_CONSECRATION_REDUCE_SPEED, caster->GetGUID());
+    }
+
+    void OnUpdate(uint32 diff) override
+    {
+        Unit* caster = at->GetCaster();
+        if (!caster)
+            return;
+
+        if (timer <= diff)
+        {
+            SpellCastTargets targets;
+            targets.SetDst(at->GetPosition());
+           // caster->CastSpell(targets, sSpellMgr->GetSpellInfo(SPELL_PALADIN_CONSECRATION_DAMAGE), nullptr);
+
+            // Consecrated Ground
+            if (caster->HasAura(SPELL_PALADIN_CONSECRATED_GROUND))
+             //   caster->CastSpell(targets, sSpellMgr->GetSpellInfo(SPELL_PALADIN_CONSECRATED_GROUND), nullptr);
+
+            timer = 1 * IN_MILLISECONDS;
+        }
+        else
+            timer -= diff;
+    }
+
+private:
+    uint32 timer;
 };
 
 // 115750 - Blinding Light
@@ -1035,6 +1103,8 @@ class spell_pal_t8_2p_bonus : public SpellScriptLoader
 
                 ASSERT(spellInfo->GetMaxTicks() > 0);
                 amount /= spellInfo->GetMaxTicks();
+                // Add remaining ticks to damage done
+                amount += target->GetRemainingPeriodicAmount(caster->GetGUID(), SPELL_PALADIN_HOLY_MENDING, SPELL_AURA_PERIODIC_HEAL);
 
                 CastSpellExtraArgs args(aurEff);
                 args.AddSpellBP0(amount);

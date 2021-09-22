@@ -546,6 +546,22 @@ WorldPacket const* GarrisonAddMissionResult::Write()
     return &_worldPacket;
 }
 
+void GarrisonStartMission::Read()
+{
+    _worldPacket >> NpcGUID;
+
+    uint32 followerCount = 0;
+    _worldPacket >> followerCount;
+    _worldPacket >> MissionID;
+
+    for (uint32 i = 0; i < followerCount; ++i)
+    {
+        uint64 followerDbID;
+        _worldPacket >> followerDbID;
+        Followers.push_back(followerDbID);
+    }
+}
+
 WorldPacket const* GarrisonCompleteMissionResult::Write()
 {
     _worldPacket << Result;

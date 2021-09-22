@@ -411,6 +411,89 @@ class item_generic_limit_chance_above_60 : public ItemScript
         }
 };
 
+//500500
+class item_level_boost_50 : public ItemScript
+{
+public:
+    item_level_boost_50() : ItemScript("item_level_boost_50") { }
+
+    bool OnRemove(Player* player, Item* /*item*/) override
+    {
+        if (player->getLevel() < 50)
+        {
+            player->SetLevel(50);
+            player->SetFullHealth();
+            player->SetFullPower(player->GetPowerType());
+            player->AddItem(182716, 4);
+            player->ModifyMoney(25000000, false);
+            switch (player->getClass())
+            {
+            case CLASS_WARRIOR:
+            case CLASS_PALADIN:
+            case CLASS_DEATH_KNIGHT:
+                player->AddItem(164438, 1);
+                player->AddItem(164440, 1);
+                player->AddItem(164435, 1);
+                player->AddItem(164437, 1);
+                player->AddItem(164439, 1);
+                player->AddItem(164441, 1);
+                player->AddItem(164442, 1);
+                player->AddItem(164436, 1);
+                break;
+            case CLASS_HUNTER:
+            case CLASS_SHAMAN:
+                player->AddItem(164399, 1);
+                player->AddItem(164401, 1);
+                player->AddItem(164402, 1);
+                player->AddItem(164395, 1);
+                player->AddItem(164400, 1);
+                player->AddItem(164398, 1);
+                player->AddItem(164396, 1);
+                player->AddItem(164397, 1);
+                break;
+            case CLASS_MAGE:
+            case CLASS_WARLOCK:
+                player->AddItem(146786, 1);
+                player->AddItem(146791, 1);
+                player->AddItem(146789, 1);
+                player->AddItem(146785, 1);
+                player->AddItem(146788, 1);
+                player->AddItem(146790, 1);
+                player->AddItem(146792, 1);
+                player->AddItem(146787, 1);
+                break;
+            case CLASS_PRIEST:
+                break;
+            case CLASS_ROGUE:
+            case CLASS_DEMON_HUNTER:
+            case CLASS_MONK:
+                player->AddItem(160166, 1);
+                player->AddItem(160168, 1);
+                player->AddItem(160167, 1);
+                player->AddItem(160169, 1);
+                player->AddItem(160164, 1);
+                player->AddItem(160163, 1);
+                player->AddItem(160162, 1);
+                player->AddItem(160165, 1);
+                break;
+            case CLASS_DRUID:
+                player->AddItem(164559, 1);
+                player->AddItem(164561, 1);
+                player->AddItem(164560, 1);
+                player->AddItem(164562, 1);
+                player->AddItem(164557, 1);
+                player->AddItem(164556, 1);
+                player->AddItem(164555, 1);
+                player->AddItem(164558, 1);
+                break;
+            }
+            player->SaveToDB();
+        }
+
+        return true;
+    }
+};
+
 void AddSC_item_scripts()
 {
     new item_only_for_flight();
@@ -424,4 +507,5 @@ void AddSC_item_scripts()
     new item_dehta_trap_smasher();
     new item_captured_frog();
     new item_generic_limit_chance_above_60();
+    RegisterItemScript(item_level_boost_50);
 }

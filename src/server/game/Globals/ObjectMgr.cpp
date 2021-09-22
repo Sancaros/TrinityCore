@@ -4967,6 +4967,9 @@ void ObjectMgr::LoadQuests()
         }
     }
 
+    sWorldQuestMgr->LoadWorldQuestTemplates();
+    sWorldQuestMgr->LoadWorldQuestRewardTemplates();
+	
     // Make all paragon reward quests repeatable
     for (ParagonReputationEntry const* paragonReputation : sParagonReputationStore)
         if (Quest const* quest = GetQuestTemplate(paragonReputation->QuestID))

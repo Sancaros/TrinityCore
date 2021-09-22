@@ -27,6 +27,7 @@
 #include "GossipDef.h"
 #include "Group.h"
 #include "Log.h"
+#include "LootMgr.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
@@ -34,7 +35,9 @@
 #include "QuestPackets.h"
 #include "ReputationMgr.h"
 #include "ScriptMgr.h"
+#include "UnitAI.h"
 #include "World.h"
+#include "WorldPacket.h"
 #include "WorldQuestMgr.h"
 
 void WorldSession::HandleQuestgiverStatusQueryOpcode(WorldPackets::Quest::QuestGiverStatusQuery& packet)
@@ -723,10 +726,7 @@ void WorldSession::HandleQuestgiverStatusMultipleQuery(WorldPackets::Quest::Ques
 void WorldSession::HandleRequestWorldQuestUpdate(WorldPackets::Quest::RequestWorldQuestUpdate& /*packet*/)
 {
     WorldPackets::Quest::WorldQuestUpdateResponse response;
-
-    /// @todo: 7.x Has to be implemented
-    //response.WorldQuestUpdates.push_back(WorldPackets::Quest::WorldQuestUpdateInfo(lastUpdate, questID, timer, variableID, value));
-
+    sWorldQuestMgr->BuildPacket(GetPlayer(), response);
     SendPacket(response.Write());
 }
 

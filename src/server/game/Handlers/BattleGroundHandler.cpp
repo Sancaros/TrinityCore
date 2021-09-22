@@ -731,7 +731,7 @@ void WorldSession::JoinBracket(uint8 slot, uint8 rolesMask /*= ROLES_DEFAULT*/)
 
     uint32 joinTime = 0;
     uint32 avgTime = 0;
-    GroupQueueInfo* ginfo;
+
     GroupJoinBattlegroundResult err = ERR_BATTLEGROUND_NONE;
     Group* grp = player->GetGroup();
     if (!grp || grp->GetLeaderGUID() != player->GetGUID())
@@ -739,6 +739,7 @@ void WorldSession::JoinBracket(uint8 slot, uint8 rolesMask /*= ROLES_DEFAULT*/)
 
     BattlegroundQueue& bgQueue = sBattlegroundMgr->GetBattlegroundQueue(bgQueueTypeId);
 
+    GroupQueueInfo* ginfo = bgQueue.AddGroup(_player, nullptr, bgTypeId, bracketEntry, 0, false, false, 0, 0);;
     ObjectGuid errorGuid;
     //  err = grp->CanJoinBattlegroundQueue(bg, bgQueueTypeId, Jointype, Jointype, true, slot, errorGuid);
     if (!err)
@@ -748,7 +749,6 @@ void WorldSession::JoinBracket(uint8 slot, uint8 rolesMask /*= ROLES_DEFAULT*/)
      //   matchmakerRating = grp->GetAverageMMR(BracketType(slot));
         //  WorldPackets::Battleground::IgnorMapInfo ignore;
         // 
-        GroupQueueInfo* ginfo = bgQueue.AddGroup(_player, nullptr, bgTypeId, bracketEntry, 0, false, false, 0, 0);
          // ginfo = bgQueue.AddGroup(player, grp, bgTypeId, bracketEntry, Jointype, true, false, ignore, matchmakerRating);
         //  avgTime = bgQueue.GetAverageQueueWaitTime(ginfo, bracketEntry->GetBracketId());
         joinTime = ginfo->JoinTime;

@@ -129,6 +129,11 @@ void WorldPackets::Misc::ViolenceLevel::Read()
     _worldPacket >> ViolenceLvl;
 }
 
+void WorldPackets::Misc::PlayerSelectFaction::Read()
+{
+    _worldPacket >> SelectedFaction;
+}
+
 WorldPacket const* WorldPackets::Misc::TimeSyncRequest::Write()
 {
     _worldPacket << SequenceIndex;
@@ -634,6 +639,36 @@ WorldPacket const* WorldPackets::Misc::AccountHeirloomUpdate::Write()
     return &_worldPacket;
 }
 
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Misc::ReqResearchHistory const& resHistory)
+{
+    data << resHistory.id;
+    data << resHistory.time;
+    data << resHistory.count;
+
+    return data;
+}
+
+void WorldPackets::Misc::ResearchHistory::Read()
+{
+    _worldPacket << resHistory;
+}
+
+WorldPacket const* WorldPackets::Misc::ResearchSetupHistory::Write()
+{
+    _worldPacket << int32(ResearchHistory.size());
+
+    for (auto const& Research : ResearchHistory)
+        _worldPacket << Research;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Misc::ResearchComplete::Write()
+{
+    _worldPacket << researchHistory;
+    return &_worldPacket;
+}
+
 void WorldPackets::Misc::MountSpecial::Read()
 {
     SpellVisualKitIDs.resize(_worldPacket.read<uint32>());
@@ -715,6 +750,11 @@ void WorldPackets::Misc::MountSetFavorite::Read()
 void WorldPackets::Misc::CloseInteraction::Read()
 {
     _worldPacket >> SourceGuid;
+}
+
+void WorldPackets::Misc::FactionSelect::Read()
+{
+    _worldPacket >> FactionChoice;
 }
 
 WorldPacket const* WorldPackets::Misc::StartTimer::Write()
@@ -833,16 +873,6 @@ WorldPacket const* WorldPackets::Misc::SetMaxWeeklyQuantity::Write()
     return &_worldPacket;
 }
 
-WorldPacket const* WorldPackets::Misc::ResearchSetupHistory::Write()
-{
-    _worldPacket << int32(ResearchHistory.size());
-
-  //  for (auto const& Research : ResearchHistory)
-   //     _worldPacket << Research;
-
-    return &_worldPacket;
-}
-
 WorldPacket const* WorldPackets::Misc::PlayerSkinned::Write()
 {
     _worldPacket.WriteBit(FreeRepop);
@@ -876,22 +906,6 @@ WorldPacket const* WorldPackets::Misc::MapObjEvents::Write()
     _worldPacket << static_cast<uint32>(Unk2.size());
     for (auto const& itr : Unk2)
         _worldPacket << itr;
-
-    return &_worldPacket;
-}
-
-ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Misc::ResearchHistory const& researchHistory)
-{
-    data << researchHistory.ProjectID;
-    data << uint32(researchHistory.FirstCompleted);
-    data << researchHistory.CompletionCount;
-
-    return data;
-}
-
-WorldPacket const* WorldPackets::Misc::ResearchComplete::Write()
-{
-    _worldPacket << Research;
 
     return &_worldPacket;
 }

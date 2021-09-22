@@ -20,6 +20,7 @@
 
 #include "SpellAuraDefines.h"
 #include "SpellInfo.h"
+#include "Unit.h"
 
 class SpellInfo;
 struct SpellModifier;
@@ -171,6 +172,7 @@ class TC_GAME_API Aura
         static int32 CalcMaxDuration(SpellInfo const* spellInfo, WorldObject* caster);
         int32 GetDuration() const { return m_duration; }
         void SetDuration(int32 duration, bool withMods = false);
+        void ModDuration(int32 duration, bool withMods = false) { SetDuration(GetDuration() + duration, withMods); }
         void RefreshDuration(bool withMods = false);
         void RefreshTimers(bool resetPeriodicTimer);
         bool IsExpired() const { return !GetDuration() && !m_dropEvent; }

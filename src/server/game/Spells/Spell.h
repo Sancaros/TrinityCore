@@ -584,6 +584,7 @@ class TC_GAME_API Spell
 
         int32 CalculateDamage(SpellEffectInfo const& spellEffectInfo, Unit const* target, float* var = nullptr) const;
 
+        bool HaveTargetsForEffect(uint8 effect) const;
         void Delayed();
         void DelayedChannel();
         uint32 getState() const { return m_spellState; }
@@ -719,6 +720,10 @@ class TC_GAME_API Spell
         std::vector<SpellPowerCost> const& GetPowerCost() const { return m_powerCost; }
         bool HasPowerTypeCost(Powers power) const;
 
+        Optional<int32> GetPowerTypeCostAmount(Powers power) const;
+        SpellPowerCost const* GetPowerCost(Powers power) const;
+        float GetSpellPowerCostModifier(Powers power) const;
+
         bool UpdatePointers();                              // must be used at call Spell code after time delay (non triggered spell cast/update spell call/etc)
 
         void CleanupTargetList();
@@ -847,6 +852,7 @@ class TC_GAME_API Spell
             SpellMissInfo MissCondition = SPELL_MISS_NONE;
             SpellMissInfo ReflectResult = SPELL_MISS_NONE;
 
+            uint32 effectMask;
             bool IsAlive = false;
             bool IsCrit = false;
 
@@ -870,6 +876,8 @@ class TC_GAME_API Spell
 
             ObjectGuid TargetGUID;
             uint64 TimeDelay = 0ULL;
+            uint32 effectMask;
+            bool   processed;
         };
         std::vector<GOTargetInfo> m_UniqueGOTargetInfo;
 
@@ -878,6 +886,7 @@ class TC_GAME_API Spell
             void DoTargetSpellHit(Spell* spell, SpellEffectInfo const& spellEffectInfo) override;
 
             Item* TargetItem = nullptr;
+            uint32 effectMask;
         };
         std::vector<ItemTargetInfo> m_UniqueItemInfo;
 
@@ -909,6 +918,7 @@ class TC_GAME_API Spell
         void CallScriptOnCastHandlers();
         void CallScriptAfterCastHandlers();
         SpellCastResult CallScriptCheckCastHandlers();
+        void PrepareScriptHitHandlers();
         bool CallScriptEffectHandlers(SpellEffIndex effIndex, SpellEffectHandleMode mode);
         void CallScriptSuccessfulDispel(SpellEffIndex effIndex);
         void CallScriptBeforeHitHandlers(SpellMissInfo missInfo);

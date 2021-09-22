@@ -142,6 +142,7 @@ enum AreaFlags
 
 enum AreaFlags2
 {
+    AREA_FLAG_GARRISON              = 0x00000020,
     AREA_FLAG_2_DONT_SHOW_SANCTUARY = 0x00000200,                // Hides sanctuary status from zone text color (Script_GetZonePVPInfo)
     AREA_FLAG_2_CAN_ENABLE_WAR_MODE = 0x00001000,                // Allows enabling war mode
 };
@@ -760,6 +761,11 @@ enum MapFlags
     MAP_FLAG_FLEX_LOCKING           = 0x8000, // All difficulties share completed encounters lock, not bound to a single instance id
                                               // heroic difficulty flag overrides it and uses instance id bind
     MAP_FLAG_GARRISON               = 0x4000000
+};
+
+enum MapFlags2
+{
+    MAP_FLAG2_WORLD_PVP             = 0x40,
 };
 
 enum AbilytyLearnType
@@ -1563,7 +1569,8 @@ enum TaxiNodeFlags
 {
     TAXI_NODE_FLAG_ALLIANCE             = 0x01,
     TAXI_NODE_FLAG_HORDE                = 0x02,
-    TAXI_NODE_FLAG_USE_FAVORITE_MOUNT   = 0x10
+    TAXI_NODE_FLAG_USE_FAVORITE_MOUNT   = 0x10,
+    TAXI_NODE_FLAG_ARGUS                = 0x20
 };
 
 enum TaxiPathNodeFlags

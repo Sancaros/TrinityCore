@@ -1105,6 +1105,12 @@ enum Language
     LANG_VULPERA           = 285
 };
 
+enum FactionSelection
+{
+    JOIN_HORDE      = 0,
+    JOIN_ALLIANCE   = 1
+};
+
 enum TeamId
 {
     TEAM_ALLIANCE = 0,
