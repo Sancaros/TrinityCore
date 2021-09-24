@@ -18,6 +18,7 @@
 #include "Log.h"
 #include "AppenderConsole.h"
 #include "AppenderFile.h"
+#include "AppenderGraylog.h"
 #include "Common.h"
 #include "Config.h"
 #include "Errors.h"
@@ -34,6 +35,7 @@ Log::Log() : AppenderId(0), lowestLogLevel(LOG_LEVEL_FATAL), _ioContext(nullptr)
     m_logsTimestamp = "_" + GetTimestampStr();
     RegisterAppender<AppenderConsole>();
     RegisterAppender<AppenderFile>();
+    RegisterAppender<AppenderGraylog>();
 }
 
 Log::~Log()
@@ -337,10 +339,10 @@ void Log::outCharDump(char const* str, uint32 accountId, uint64 guid, char const
     write(std::move(msg));
 }
 
-void Log::SetRealmId(uint32 id)
+void Log::SetRealmId(uint32 id, std::string name)
 {
     for (auto it = appenders.begin(); it != appenders.end(); ++it)
-        it->second->setRealmId(id);
+        it->second->setRealmId(id, name);
 }
 
 void Log::Close()

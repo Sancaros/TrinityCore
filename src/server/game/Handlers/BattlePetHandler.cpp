@@ -297,7 +297,7 @@ void WorldSession::HandlePetBattleRequestWild(WorldPackets::BattlePet::RequestWi
 
     SendPetBattleFinalizeLocation(battleRequest);
 
-    _player->SetFacingTo(_player->GetAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_2]));
+    _player->SetFacingTo(_player->GetAbsoluteAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_2]));
     _player->SetRooted(true);
 
     auto battle = sPetBattleSystem->CreateBattle();
@@ -446,8 +446,8 @@ void WorldSession::HandlePetBattleRequestUpdate(WorldPackets::BattlePet::Request
         _player->GetSession()->SendPetBattleFinalizeLocation(battleRequest);
         opposant->GetSession()->SendPetBattleFinalizeLocation(battleRequest);
 
-        _player->SetFacingTo(_player->GetAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_1]));
-        opposant->SetFacingTo(_player->GetAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_2]));
+        _player->SetFacingTo(_player->GetAbsoluteAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_1]));
+        opposant->SetFacingTo(_player->GetAbsoluteAngle(&battleRequest->TeamPosition[PET_BATTLE_TEAM_2]));
         _player->SetRooted(true);
         opposant->SetRooted(true);
 

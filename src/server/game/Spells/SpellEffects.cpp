@@ -2030,7 +2030,7 @@ void Spell::EffectSummonType()
                             // randomize position for multiple summons
                             pos = caster->GetRandomPoint(*destTarget, radius);
 
-                        summon = caster->SummonCreature(entry, pos, summonType, duration, 0, privateObjectOwner);
+                        summon = caster->SummonCreature(entry, pos, summonType, duration, 0, m_spellInfo->Id, privateObjectOwner);
                         if (!summon)
                             continue;
 
@@ -2038,7 +2038,6 @@ void Spell::EffectSummonType()
                         {
                             summon->SetOwnerGUID(caster->GetGUID());
                             summon->SetFaction(caster->GetFaction());
-                            summon->SetCreatedBySpell(m_spellInfo->Id);
                         }
 
                         ExecuteLogEffectSummonObject(SpellEffectName(effectInfo->Effect), summon);
@@ -2249,7 +2248,7 @@ void Spell::EffectDistract()
         unitTarget->GetMotionMaster()->MoveDistract(damage * IN_MILLISECONDS);
 
     unitTarget->StopMoving();
-    unitTarget->SetFacingTo(unitTarget->GetAngle(destTarget));
+    unitTarget->SetFacingTo(unitTarget->GetAbsoluteAngle(destTarget));
 }
 
 void Spell::EffectPickPocket()
@@ -5100,7 +5099,7 @@ void Spell::SummonGuardian(SpellEffectInfo const* effect, uint32 entry, SummonPr
             summon->SetFaction(unitCaster->GetFaction());
 
         if (summon->HasUnitTypeMask(UNIT_MASK_MINION) && m_targets.HasDst())
-            ((Minion*)summon)->SetFollowAngle(unitCaster->GetAngle(summon));
+            ((Minion*)summon)->SetFollowAngle(unitCaster->GetAbsoluteAngle(summon));
 
         if (summon->GetEntry() == 27893)
         {

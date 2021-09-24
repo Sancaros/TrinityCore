@@ -2444,7 +2444,7 @@ void World::SetInitialWorldSettings()
 
     TC_METRIC_EVENT("events", "World initialized", "World initialized in " + std::to_string(startupDuration / 60000) + " minutes " + std::to_string((startupDuration % 60000) / 1000) + " seconds");
 
-    sLog->SetRealmId(realm.Id.Realm);
+    sLog->SetRealmId(realm.Id.Realm, realm.Name);
 }
 
 void World::SetFactionBalanceForce(TeamId team, FactionOutnumberReward reward)
