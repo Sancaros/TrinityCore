@@ -500,6 +500,23 @@ void WorldPackets::Guild::GuildChangeNameRequest::Read()
     NewName = _worldPacket.ReadString(nameLen);
 }
 
+WorldPacket const* WorldPackets::Guild::GuildChangeNameResult::Write()
+{
+    _worldPacket.WriteBit(Success);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Guild::GuildNameChanged::Write()
+{
+    _worldPacket << GuildGUID;
+    _worldPacket.WriteBits(GuildName.length(), 7);
+    _worldPacket.FlushBits();
+    _worldPacket.WriteString(GuildName);
+
+    return &_worldPacket;
+}
+
 WorldPacket const* WorldPackets::Guild::GuildFlaggedForRename::Write()
 {
     _worldPacket.WriteBit(FlagSet);
@@ -964,14 +981,4 @@ void WorldPackets::Guild::GuildSetAchievementTracking::Read()
 
     for (uint32& achievementID : AchievementIDs)
         _worldPacket >> achievementID;
-}
-
-WorldPacket const* WorldPackets::Guild::GuildNameChanged::Write()
-{
-    _worldPacket << GuildGUID;
-    _worldPacket.WriteBits(GuildName.length(), 7);
-    _worldPacket.FlushBits();
-    _worldPacket.WriteString(GuildName);
-
-    return &_worldPacket;
 }

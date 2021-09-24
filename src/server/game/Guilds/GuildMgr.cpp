@@ -61,6 +61,11 @@ ObjectGuid::LowType GuildMgr::GenerateGuildId()
 }
 
 // Guild collection
+GuildChallengeRewardData const& GuildMgr::GetGuildChallengeRewardData() const
+{
+    return _challengeRewardData;
+}
+
 Guild* GuildMgr::GetGuildById(ObjectGuid::LowType guildId) const
 {
     GuildContainer::const_iterator itr = GuildStore.find(guildId);
@@ -495,6 +500,26 @@ void GuildMgr::LoadGuilds()
         }
 
         TC_LOG_INFO("server.loading", ">> Validated data of loaded guilds in %u ms", GetMSTimeDiffToNow(oldMSTime));
+    }
+
+    /// 12. Loading guild challenges
+    TC_LOG_INFO("misc", "Loading guild challenges...");
+    {
+        auto oldMSTime = getMSTime();
+        if (auto result = CharacterDatabase.Query(CharacterDatabase.GetPreparedStatement(CHAR_LOAD_GUILD_CHALLENGES)))
+        {
+            uint32 count = 0;
+            do
+            {
+                auto fields = result->Fetch();
+                if (auto guild = GetGuildById(fields[0].GetInt32()))
+                    guild->LoadGuildChallengesFromDB(fields);
+
+                ++count;
+            } while (result->NextRow());
+
+            TC_LOG_INFO("server.loading", ">> Loaded %u guild challenges in %u ms", count, GetMSTimeDiffToNow(oldMSTime));
+        }
     }
 }
 

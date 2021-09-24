@@ -355,6 +355,29 @@ WorldPacket const* WorldPackets::Battleground::PVPMatchInitialize::Write()
     return &_worldPacket;
 }
 
+void WorldPackets::Battleground::StartWargame::Read()
+{
+    _worldPacket >> OpposingPartyMember;
+    _worldPacket >> OpposingPartyMemberVirtualRealmAddress;
+    _worldPacket >> UnkShort;
+    _worldPacket >> QueueID;
+    TournamentRules = _worldPacket.ReadBit();
+}
+
+WorldPacket const* WorldPackets::Battleground::CheckWargameEntry::Write()
+{
+    _worldPacket << OpposingPartyMember;
+    _worldPacket << RealmID;
+    _worldPacket << UnkShort;
+    _worldPacket << OpposingPartyUserServer;
+    _worldPacket << OpposingPartyBnetAccountID;
+    _worldPacket << QueueID;
+    _worldPacket << TimeoutSeconds;
+    _worldPacket << TournamentRules;
+
+    return &_worldPacket;
+}
+
 WorldPacket const* WorldPackets::Battleground::PVPMatchComplete::Write()
 {
     _worldPacket << uint8(Winner);

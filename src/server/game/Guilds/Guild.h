@@ -43,6 +43,11 @@ namespace WorldPackets
     }
 }
 
+enum GuildFlags
+{
+    GUILD_FLAG_RENAME = 0x01
+};
+
 enum GuildMisc
 {
     GUILD_BANK_MAX_TABS                 = 8,                    // send by client for money log also
@@ -238,6 +243,17 @@ struct GuildReward
 
 uint32 const MinNewsItemLevel = 353;
 
+enum GuildChallengeType
+{
+    ChallengeNone,
+    ChallengeDungeon,
+    ChallengeRaid,
+    ChallengeRatedBG,
+    ChallengeScenario,
+    ChallengeDungeonChallenge,
+
+    ChallengeMax
+};
 // Guild Challenge
 #define GUILD_CHALLENGES_TYPES 6
 
@@ -732,6 +748,7 @@ class TC_GAME_API Guild
         uint64 GetBankMoney() const { return m_bankMoney; }
 
         bool SetName(std::string const& name);
+        void SetRename(bool apply);
 
         // Handle client commands
         void HandleRoster(WorldSession* session);
@@ -752,6 +769,7 @@ class TC_GAME_API Guild
         void HandleRemoveMember(WorldSession* session, ObjectGuid guid);
         void HandleUpdateMemberRank(WorldSession* session, ObjectGuid guid, bool demote);
         void HandleSetMemberRank(WorldSession* session, ObjectGuid guid, ObjectGuid setterGuid, uint32 rank);
+        void HandleShiftRank(WorldSession* session, uint32 id, bool up);
         void HandleAddNewRank(WorldSession* session, std::string const& name);
         void HandleRemoveRank(WorldSession* session, uint8 rankId);
         void HandleMemberDepositMoney(WorldSession* session, uint64 amount, bool cashFlow = false);
@@ -775,6 +793,7 @@ class TC_GAME_API Guild
         void SendMoneyInfo(WorldSession* session) const;
         void SendLoginInfo(WorldSession* session);
         void SendNewsUpdate(WorldSession* session) const;
+        void CompleteGuildChallenge(uint32 type);
 
         // Send events
         void SendEventAwayChanged(ObjectGuid const& memberGuid, bool afk, bool dnd);
@@ -794,6 +813,7 @@ class TC_GAME_API Guild
         void LoadBankTabFromDB(Field* fields);
         bool LoadBankEventLogFromDB(Field* fields);
         bool LoadBankItemFromDB(Field* fields);
+        bool LoadGuildChallengesFromDB(Field* fields);
         bool Validate();
 
         // Broadcasts
@@ -846,10 +866,12 @@ class TC_GAME_API Guild
     protected:
         ObjectGuid::LowType m_id;
         std::string m_name;
+        uint32 m_flags;
         ObjectGuid m_leaderGuid;
         std::string m_motd;
         std::string m_info;
         time_t m_createdDate;
+        std::vector<uint32> m_ChallengeCount;
 
         EmblemInfo m_emblemInfo;
         uint32 m_accountsNumber;
@@ -939,5 +961,6 @@ class TC_GAME_API Guild
         void _SendBankContentUpdate(MoveItemData* pSrc, MoveItemData* pDest) const;
         void _SendBankContentUpdate(uint8 tabId, SlotIds slots) const;
         void SendGuildRanksUpdate(ObjectGuid setterGuid, ObjectGuid targetGuid, uint32 rank);
+        void SendGuildEventRanksUpdated();
 };
 #endif

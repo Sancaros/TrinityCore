@@ -25,6 +25,15 @@
 
 class Guild;
 struct GuildReward;
+struct GuildChallengeReward
+{
+    uint32 Gold;
+    uint32 ChallengeCount;
+    uint32 Gold2;
+};
+typedef std::vector<GuildChallengeReward> GuildChallengeRewardData;
+
+
 
 class TC_GAME_API GuildMgr
 {
@@ -57,13 +66,14 @@ public:
     void SetNextGuildId(ObjectGuid::LowType Id) { NextGuildId = Id; }
 
     std::vector<GuildReward> const& GetGuildRewards() const { return GuildRewards; }
-
+    GuildChallengeRewardData const& GetGuildChallengeRewardData() const;
     void ResetTimes(bool week);
 protected:
     typedef std::unordered_map<ObjectGuid::LowType, Guild*> GuildContainer;
     ObjectGuid::LowType NextGuildId;
     GuildContainer GuildStore;
     std::vector<GuildReward> GuildRewards;
+    GuildChallengeRewardData _challengeRewardData;
 };
 
 #define sGuildMgr GuildMgr::instance()

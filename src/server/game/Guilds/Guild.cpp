@@ -1108,6 +1108,7 @@ InventoryResult Guild::BankMoveItemData::CanStore(Item* pItem, bool swap)
 Guild::Guild():
     m_id(UI64LIT(0)),
     m_leaderGuid(),
+    m_flags(0),
     m_createdDate(0),
     m_accountsNumber(0),
     m_bankMoney(0),
@@ -1116,6 +1117,10 @@ Guild::Guild():
     m_achievementMgr(this)
 {
     memset(&m_bankEventLog, 0, (GUILD_BANK_MAX_TABS + 1) * sizeof(LogHolder*));
+
+    m_ChallengeCount.resize(ChallengeMax);
+    for (uint8 i = 0; i < ChallengeMax; ++i)
+        m_ChallengeCount[i] = 0;
 }
 
 Guild::~Guild()
@@ -1156,6 +1161,7 @@ bool Guild::Create(Player* pLeader, std::string const& name)
     m_id = sGuildMgr->GenerateGuildId();
     m_leaderGuid = pLeader->GetGUID();
     m_name = name;
+    m_flags = 0;
     m_info = "";
     m_motd = "No message set.";
     m_bankMoney = 0;
@@ -1176,6 +1182,7 @@ bool Guild::Create(Player* pLeader, std::string const& name)
     stmt->setUInt64(  index, m_id);
     stmt->setString(++index, name);
     stmt->setUInt64(++index, m_leaderGuid.GetCounter());
+    stmt->setUInt32(++index, m_flags);
     stmt->setString(++index, m_info);
     stmt->setString(++index, m_motd);
     stmt->setUInt64(++index, uint32(m_createdDate));
@@ -1201,6 +1208,15 @@ bool Guild::Create(Player* pLeader, std::string const& name)
         sScriptMgr->OnGuildCreate(this, pLeader, name);
     }
 
+    for (uint8 i = 1; i < ChallengeMax; ++i)
+    {
+        auto statement = CharacterDatabase.GetPreparedStatement(CHAR_INIT_GUILD_CHALLENGES);
+        statement->setInt32(0, GetId());
+        statement->setInt32(1, i);
+        CharacterDatabase.Execute(statement);
+    }
+
+    SendGuildEventRanksUpdated();
     return ret;
 }
 
@@ -1249,6 +1265,10 @@ void Guild::Disband()
     trans->Append(stmt);
 
     stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_GUILD_EVENTLOGS);
+    stmt->setUInt64(0, m_id);
+    trans->Append(stmt);
+
+    stmt = CharacterDatabase.GetPreparedStatement(CHAR_REMOVE_GUILD_CHALLENGES);
     stmt->setUInt64(0, m_id);
     trans->Append(stmt);
 
@@ -1915,6 +1935,26 @@ void Guild::HandleSetMemberRank(WorldSession* session, ObjectGuid targetGuid, Ob
     SendGuildRanksUpdate(setterGuid, targetGuid, rank);
 }
 
+void Guild::HandleShiftRank(WorldSession* /*session*/, uint32 id, bool up)
+{
+    uint32 nextID = up ? id - 1 : id + 1;
+
+    RankInfo* rankinfo = GetRankInfo(id);
+    RankInfo* rankinfo2 = GetRankInfo(nextID);
+
+    if (!rankinfo || !rankinfo2)
+        return;
+
+    RankInfo tmp = NULL;
+    tmp = *rankinfo2;
+    rankinfo2->SetName(rankinfo->GetName());
+    rankinfo2->SetRights(rankinfo->GetRights());
+    rankinfo->SetName(tmp.GetName());
+    rankinfo->SetRights(tmp.GetRights());
+
+    SendGuildEventRanksUpdated();
+}
+
 void Guild::HandleAddNewRank(WorldSession* session, std::string const& name)
 {
     uint8 size = _GetRanksSize();
@@ -2291,6 +2331,37 @@ void Guild::SendEventBankMoneyChanged() const
     BroadcastPacket(eventPacket.Write());
 }
 
+void Guild::CompleteGuildChallenge(uint32 challengeType)
+{
+    if (challengeType >= ChallengeMax)
+        return;
+
+    auto reards = sGuildMgr->GetGuildChallengeRewardData();
+    if (m_ChallengeCount[challengeType] >= reards[challengeType].ChallengeCount)
+        return;
+
+    m_ChallengeCount[challengeType]++;
+
+    auto stmt = CharacterDatabase.GetPreparedStatement(CHAR_COMPLETE_GUILD_CHALLENGE);
+    stmt->setInt32(0, m_ChallengeCount[challengeType]);
+    stmt->setInt32(1, GetId());
+    stmt->setInt32(2, challengeType);
+    CharacterDatabase.Execute(stmt);
+
+    auto trans = CharacterDatabase.BeginTransaction();
+    _ModifyBankMoney(trans, reards[challengeType].Gold2 * GOLD, true);
+    CharacterDatabase.CommitTransaction(trans);
+
+    WorldPackets::Guild::GuildChallengeCompleted completed;
+    completed.ChallengeType = challengeType;
+    completed.CurrentCount = m_ChallengeCount[challengeType];
+    completed.MaxCount = reards[challengeType].ChallengeCount;
+    completed.GoldAwarded = reards[challengeType].Gold2;
+    BroadcastPacket(completed.Write());
+
+    HandleGuildRequestChallengeUpdate(nullptr);
+}
+
 void Guild::SendEventMOTD(WorldSession* session, bool broadcast) const
 {
     WorldPackets::Guild::GuildEventMotd eventPacket;
@@ -2367,6 +2438,7 @@ bool Guild::LoadFromDB(Field* fields)
     m_id            = fields[0].GetUInt64();
     m_name          = fields[1].GetString();
     m_leaderGuid    = ObjectGuid::Create<HighGuid::Player>(fields[2].GetUInt64());
+    m_flags         = fields[3].GetUInt32();
 
     if (!m_emblemInfo.LoadFromDB(fields))
     {
@@ -2520,6 +2592,14 @@ bool Guild::LoadBankItemFromDB(Field* fields)
     return m_bankTabs[tabId]->LoadItemFromDB(fields);
 }
 
+bool Guild::LoadGuildChallengesFromDB(Field* fields)
+{
+    if (fields[1].GetInt32() >= ChallengeMax)
+        return false;
+
+    m_ChallengeCount[fields[1].GetInt32()] = fields[2].GetInt32();
+    return true;
+}
 // Validates guild data loaded from database. Returns false if guild should be deleted.
 bool Guild::Validate()
 {
@@ -3470,6 +3550,12 @@ void Guild::SendBankList(WorldSession* session, uint8 tabId, bool fullUpdate) co
     session->SendPacket(packet.Write());
 }
 
+void Guild::SendGuildEventRanksUpdated()
+{
+    BroadcastPacket(WorldPackets::Guild::GuildEventRanksUpdated().Write());
+}
+
+
 void Guild::SendGuildRanksUpdate(ObjectGuid setterGuid, ObjectGuid targetGuid, uint32 rank)
 {
     Member* member = GetMember(targetGuid);
@@ -3550,4 +3636,21 @@ void Guild::HandleNewsSetSticky(WorldSession* session, uint32 newsId, bool stick
     newsPacket.NewsEvents.reserve(1);
     news->WritePacket(newsPacket);
     session->SendPacket(newsPacket.Write());
+}
+
+void Guild::SetRename(bool apply)
+{
+    if (apply)
+        m_flags |= GUILD_FLAG_RENAME;
+    else
+        m_flags &= ~GUILD_FLAG_RENAME;
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_GUILD_FLAGS);
+    stmt->setUInt32(0, m_flags);
+    stmt->setUInt64(1, m_id);
+    CharacterDatabase.Execute(stmt);
+
+    WorldPackets::Guild::GuildFlaggedForRename flagged;
+    flagged.FlagSet = apply;
+    BroadcastPacket(flagged.Write());
 }

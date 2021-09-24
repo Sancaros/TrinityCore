@@ -191,13 +191,16 @@ namespace WorldPackets
         class BattlefieldListRequest;
         class GetPVPOptionsEnabled;
         class RequestBattlefieldStatus;
+        class RequestScheduledPVPInfo;
         class ReportPvPPlayerAFK;
         class RequestPVPRewards;
         class RequestRatedPvpInfo;
+        class RequestPvpBrawlInfo;
         class RequestConquestFormulaConstants;
         class BattlemasterJoinBrawl;
         class AcceptWargameInvite;
         class BattlemasterJoinArenaSkirmish;
+        class StartWargame;
     }
 
     namespace Battlenet
@@ -429,6 +432,7 @@ namespace WorldPackets
         class GuildEventLogQuery;
         class GuildBankRemainingWithdrawMoneyQuery;
         class GuildPermissionsQuery;
+        class GuildShiftRank;
         class GuildSetRankPermissions;
         class GuildBankActivate;
         class GuildBankQueryTab;
@@ -461,6 +465,7 @@ namespace WorldPackets
         class GuildChallengeUpdateRequest;
         class SaveGuildEmblem;
         class GuildSetAchievementTracking;
+        class GuildChangeNameRequest;
     }
 
     namespace GuildFinder
@@ -1440,6 +1445,7 @@ class TC_GAME_API WorldSession
         void HandleGuildOfficerRemoveMember(WorldPackets::Guild::GuildOfficerRemoveMember& packet);
         void HandleGuildAcceptInvite(WorldPackets::Guild::AcceptGuildInvite& invite);
         void HandleGuildDeclineInvitation(WorldPackets::Guild::GuildDeclineInvitation& decline);
+        void HandleGuildChangeNameRequest(WorldPackets::Guild::GuildChangeNameRequest& packet);
         void HandleGuildEventLogQuery(WorldPackets::Guild::GuildEventLogQuery& packet);
         void HandleGuildGetRoster(WorldPackets::Guild::GuildGetRoster& packet);
         void HandleRequestGuildRewardsList(WorldPackets::Guild::RequestGuildRewardsList& packet);
@@ -1457,6 +1463,7 @@ class TC_GAME_API WorldSession
         void HandleGuildSetMemberNote(WorldPackets::Guild::GuildSetMemberNote& packet);
         void HandleGuildGetRanks(WorldPackets::Guild::GuildGetRanks& packet);
         void HandleGuildQueryNews(WorldPackets::Guild::GuildQueryNews& newsQuery);
+        void HandleGuildShiftRank(WorldPackets::Guild::GuildShiftRank& packet);
         void HandleGuildSetRankPermissions(WorldPackets::Guild::GuildSetRankPermissions& packet);
         void HandleGuildAddRank(WorldPackets::Guild::GuildAddRank& packet);
         void HandleGuildDeleteRank(WorldPackets::Guild::GuildDeleteRank& packet);
@@ -1693,9 +1700,11 @@ class TC_GAME_API WorldSession
         void HandleHearthAndResurrect(WorldPackets::Battleground::HearthAndResurrect& hearthAndResurrect);
         void HandleRequestBattlefieldStatusOpcode(WorldPackets::Battleground::RequestBattlefieldStatus& requestBattlefieldStatus);
         void HandleRequestConquestFormulaConstants(WorldPackets::Battleground::RequestConquestFormulaConstants& requestConquestFormulaConstants);
+        void HandleRequestScheduledPVPInfo(WorldPackets::Battleground::RequestScheduledPVPInfo& pvpBrawlInfo);
         void HandleBattlemasterJoinBrawl(WorldPackets::Battleground::BattlemasterJoinBrawl& packet);
         void JoinBracket(uint8 slot, uint8 rolesMask = ROLES_DEFAULT);
         void HandleAcceptWargameInvite(WorldPackets::Battleground::AcceptWargameInvite& packet);
+        void HandleStartWarGame(WorldPackets::Battleground::StartWargame& packet);
         void HandleBattlemasterJoinArenaSkirmish(WorldPackets::Battleground::BattlemasterJoinArenaSkirmish& BattlemasterJoinArenaSkirmish);
 
         // Battlefield

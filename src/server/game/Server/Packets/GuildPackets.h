@@ -1195,6 +1195,16 @@ namespace WorldPackets
             Array<uint32, 10> AchievementIDs;
         };
 
+        class GuildChangeNameResult final : public ServerPacket
+        {
+        public:
+            GuildChangeNameResult() : ServerPacket(SMSG_GUILD_CHANGE_NAME_RESULT, 1) { }
+
+            WorldPacket const* Write() override;
+
+            bool Success = true;
+        };
+
         class GuildNameChanged final : ServerPacket
         {
         public:

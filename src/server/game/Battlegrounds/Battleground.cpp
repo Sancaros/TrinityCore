@@ -514,7 +514,7 @@ inline void Battleground::_ProcessJoin(uint32 diff)
             {
                 if (Player* player = ObjectAccessor::FindPlayer(itr->first))
                 {
-                    player->RemoveAurasDueToSpell(SPELL_PREPARATION);
+                    player->RemoveAurasDueToSpell(SPELL_BG_PREPARATION);
                     player->ResetAllPowers();
                 }
             }
@@ -1104,7 +1104,7 @@ void Battleground::AddPlayer(Player* player)
     {
         if (GetStatus() == STATUS_WAIT_JOIN)                 // not started yet
         {
-            player->CastSpell(player, SPELL_PREPARATION, true);   // reduces all mana cost of spells.
+            player->CastSpell(player, SPELL_BG_PREPARATION, true);   // reduces all mana cost of spells.
 
             Seconds countdownMaxForBGType = Seconds(isArena() ? ARENA_COUNTDOWN_MAX : BATTLEGROUND_COUNTDOWN_MAX);
 

@@ -24,8 +24,22 @@
 #include "GuildPackets.h"
 #include "Log.h"
 #include "ObjectMgr.h"
+#include "Opcodes.h"
 #include "Player.h"
 #include "World.h"
+#include "WorldPacket.h"
+
+inline Guild* _GetPlayerGuild(WorldSession* session, bool sendError = false)
+{
+    if (ObjectGuid::LowType guildId = session->GetPlayer()->GetGuildId())
+        if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+            return guild;
+
+    if (sendError)
+        Guild::SendCommandResult(session, GUILD_COMMAND_CREATE_GUILD, ERR_GUILD_PLAYER_NOT_IN_GUILD);
+
+    return nullptr;
+}
 
 void WorldSession::HandleGuildQueryOpcode(WorldPackets::Guild::QueryGuildInfo& query)
 {
@@ -138,6 +152,12 @@ void WorldSession::HandleGuildSetMemberNote(WorldPackets::Guild::GuildSetMemberN
 
     if (Guild* guild = GetPlayer()->GetGuild())
         guild->HandleSetMemberNote(this, packet.Note, packet.NoteeGUID, packet.IsPublic);
+}
+
+void WorldSession::HandleGuildShiftRank(WorldPackets::Guild::GuildShiftRank& packet)
+{
+    if (Guild* guild = _GetPlayerGuild(this, true))
+        guild->HandleShiftRank(this, packet.RankOrder, packet.ShiftUp);
 }
 
 void WorldSession::HandleGuildGetRanks(WorldPackets::Guild::GuildGetRanks& packet)
@@ -522,6 +542,28 @@ void WorldSession::HandleGuildChallengeUpdateRequest(WorldPackets::Guild::GuildC
 {
     if (Guild* guild = _player->GetGuild())
         guild->HandleGuildRequestChallengeUpdate(this);
+}
+
+void WorldSession::HandleGuildChangeNameRequest(WorldPackets::Guild::GuildChangeNameRequest& packet)
+{
+    if (Guild* guild = _GetPlayerGuild(this))
+    {
+        if (guild->GetLeaderGUID() != _player->GetGUID())
+            return;
+
+        bool success = true;
+        if (guild->GetName() == packet.NewName)
+            success = false;
+
+        WorldPackets::Guild::GuildChangeNameResult result;
+        result.Success = success;
+        SendPacket(result.Write());
+
+        if (success) {
+            guild->SetName(packet.NewName);
+            guild->SetRename(false);
+        }
+    }
 }
 
 void WorldSession::HandleDeclineGuildInvites(WorldPackets::Guild::DeclineGuildInvites& packet)

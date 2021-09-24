@@ -426,6 +426,23 @@ namespace WorldPackets
             void Read() override { }
         };
 
+
+        struct RatedInfo
+        {
+            uint32 ArenaPersonalRating;
+            uint32 BestRatingOfWeek;
+            uint32 BestRatingOfSeason;
+            uint32 ArenaMatchMakerRating;
+            uint32 WeekWins;
+            uint32 WeekGames;
+            uint32 PrevWeekWins;
+            uint32 PrevWeekGames;
+            uint32 SeasonWins;
+            uint32 SeasonGames;
+            uint32 ProjectedConquestCap;
+            uint32 Ranking;
+        };
+
         class RatedPvpInfo final : public ServerPacket
         {
         public:
@@ -451,6 +468,45 @@ namespace WorldPackets
                 int32 WeeklyBestWinPvpTierID = 0;
                 bool Disqualified = false;
             } Bracket[6];
+        };
+
+        class StartWargame final : public ClientPacket
+        {
+        public:
+            StartWargame(WorldPacket&& packet) : ClientPacket(CMSG_START_WAR_GAME, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid OpposingPartyMember;
+            uint64 QueueID = 0;
+            uint32 OpposingPartyMemberVirtualRealmAddress = 0;
+            uint16 UnkShort = 0;
+            bool TournamentRules = false;
+        };
+
+        class CheckWargameEntry final : public ServerPacket
+        {
+        public:
+            CheckWargameEntry() : ServerPacket(SMSG_CHECK_WARGAME_ENTRY, 16 + 8 + 8 + 4 + 1 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid OpposingPartyBnetAccountID;
+            ObjectGuid OpposingPartyMember;
+            uint64 QueueID = 0;
+            uint32 TimeoutSeconds = 0;
+            uint32 RealmID = 0;
+            uint16 UnkShort = 0;
+            uint8 OpposingPartyUserServer = 0;
+            bool TournamentRules = false;
+        };
+
+        class RequestScheduledPVPInfo final : public ClientPacket
+        {
+        public:
+            RequestScheduledPVPInfo(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_SCHEDULED_PVP_INFO, std::move(packet)) { }
+
+            void Read() override { }
         };
 
         class PVPMatchInitialize final : public ServerPacket

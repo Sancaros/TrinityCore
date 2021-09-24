@@ -616,6 +616,9 @@ void WorldSession::HandleReportPvPAFK(WorldPackets::Battleground::ReportPvPPlaye
     reportedPlayer->ReportedAfkBy(_player);
 }
 
+
+void WorldSession::HandleRequestScheduledPVPInfo(WorldPackets::Battleground::RequestScheduledPVPInfo& packet) {}
+
 void WorldSession::HandleRequestRatedPvpInfo(WorldPackets::Battleground::RequestRatedPvpInfo& /*packet*/)
 {
     WorldPackets::Battleground::RatedPvpInfo ratedPvpInfo;
@@ -624,14 +627,13 @@ void WorldSession::HandleRequestRatedPvpInfo(WorldPackets::Battleground::Request
 
 void WorldSession::HandleGetPVPOptionsEnabled(WorldPackets::Battleground::GetPVPOptionsEnabled& /*getPvPOptionsEnabled*/)
 {
-    // This packet is completely irrelevant, it triggers PVP_TYPES_ENABLED lua event but that is not handled in interface code as of 6.1.2
     WorldPackets::Battleground::PVPOptionsEnabled pvpOptionsEnabled;
-    pvpOptionsEnabled.WargameArenas = false;
-    pvpOptionsEnabled.RatedArenas = false;
-    pvpOptionsEnabled.WargameBattlegrounds = false;
-    pvpOptionsEnabled.ArenaSkirmish = false;
+    pvpOptionsEnabled.WargameArenas = true;
+    pvpOptionsEnabled.RatedArenas = true;
+    pvpOptionsEnabled.WargameBattlegrounds = true;
+    pvpOptionsEnabled.ArenaSkirmish = true;
     pvpOptionsEnabled.PugBattlegrounds = true;
-    pvpOptionsEnabled.RatedBattlegrounds = false;
+    pvpOptionsEnabled.RatedBattlegrounds = true;
     SendPacket(pvpOptionsEnabled.Write());
 }
 
@@ -783,6 +785,44 @@ void WorldSession::JoinBracket(uint8 slot, uint8 rolesMask /*= ROLES_DEFAULT*/)
 
 void WorldSession::HandleAcceptWargameInvite(WorldPackets::Battleground::AcceptWargameInvite& packet)
 {
+}
+
+void WorldSession::HandleStartWarGame(WorldPackets::Battleground::StartWargame& packet)
+{
+    if (!_player->GetGroup())
+        return;
+
+    if (_player->GetGroup()->GetLeaderGUID() != _player->GetGUID())
+        return;
+
+    Player* opposingPartyLeader = ObjectAccessor::FindPlayer(packet.OpposingPartyMember);
+    if (!opposingPartyLeader)
+        return;
+
+    if (!opposingPartyLeader->GetGroup())
+        return;
+
+    if (opposingPartyLeader->GetGroup()->GetLeaderGUID() != opposingPartyLeader->GetGUID())
+        return;
+
+    if (_player->HasWargameRequest())
+        return;
+
+    auto request = new WargameRequest();
+    request->OpposingPartyMemberGUID = packet.OpposingPartyMember;
+    request->TournamentRules = packet.TournamentRules;
+    request->CreationDate = time(nullptr);
+    request->QueueID = packet.QueueID;
+
+    _player->SetWargameRequest(request);
+
+    WorldPackets::Battleground::CheckWargameEntry response;
+    response.OpposingPartyBnetAccountID = _player->GetSession()->GetBattlenetAccountGUID();
+    response.OpposingPartyMember = _player->GetGUID();
+    response.QueueID = packet.QueueID;
+    response.TimeoutSeconds = 60;
+    response.TournamentRules = packet.TournamentRules;
+    opposingPartyLeader->SendDirectMessage(response.Write());
 }
 
 void WorldSession::HandleBattlemasterJoinArenaSkirmish(WorldPackets::Battleground::BattlemasterJoinArenaSkirmish& /*packet*/)

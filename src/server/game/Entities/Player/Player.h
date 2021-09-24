@@ -18,6 +18,8 @@
 #ifndef _PLAYER_H
 #define _PLAYER_H
 
+#include "Arena.h"
+#include "Battleground.h"
 #include "Unit.h"
 #include "CUFProfile.h"
 #include "DatabaseEnvFwd.h"
@@ -28,12 +30,14 @@
 #include "ItemDefines.h"
 #include "ItemEnchantmentMgr.h"
 #include "MapReference.h"
+#include "Optional.h"
 #include "PetDefines.h"
 #include "PlayerTaxi.h"
 #include "QuestDef.h"
 #include "SceneMgr.h"
 #include "VignetteMgr.h"
 #include <queue>
+#include "GarrisonMgr.h"
 
 struct AccessRequirement;
 struct AchievementEntry;
@@ -1062,6 +1066,16 @@ enum TalentLearnResult
 };
 
 typedef std::map<ObjectGuid, std::shared_ptr<BattlePet>> BattlePetMap;
+
+struct WargameRequest
+{
+    WargameRequest() : QueueID(0), CreationDate(0), TournamentRules(false) { }
+
+    ObjectGuid OpposingPartyMemberGUID;
+    uint64 QueueID;
+    time_t CreationDate;
+    bool TournamentRules;
+};
 
 struct TC_GAME_API SpecializationInfo
 {
@@ -2832,6 +2846,11 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void ResetChallengeKey();
         void ChallengeKeyCharded(Item* item, uint32 challengeLevel);
 
+        void SetWargameRequest(WargameRequest* p_Request) { _wargameRequest = p_Request; };
+        bool HasWargameRequest() const { return _wargameRequest != nullptr; }
+        WargameRequest* GetWargameRequest() const { return _wargameRequest; }
+        void ApplyWargameItemModifications();
+
         Vignette::Manager& GetVignetteMgr() { return _vignetteMgr; }
 
     protected:
@@ -3185,6 +3204,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         uint32 m_timeSyncTimer;
         uint32 m_timeSyncClient;
         uint32 m_timeSyncServer;
+
+        WargameRequest* _wargameRequest;
 
         InstanceTimeMap _instanceResetTimes;
         uint32 _pendingBindId;
