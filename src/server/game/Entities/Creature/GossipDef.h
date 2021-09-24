@@ -22,13 +22,14 @@
 #include "ObjectGuid.h"
 #include "NPCHandler.h"
 #include <map>
+#include "QuestDef.h"
 
 class Object;
 class Quest;
 class WorldSession;
 enum class QuestGiverStatus : uint32;
 
-#define GOSSIP_MAX_MENU_ITEMS               32
+#define GOSSIP_MAX_MENU_ITEMS               64
 #define DEFAULT_GOSSIP_MESSAGE              0xffffff
 
 enum Gossip_Option
@@ -59,10 +60,11 @@ enum Gossip_Option
     GOSSIP_OPTION_GARRISON_TRADESKILL   = 23,                   //UNIT_NPC_FLAG2_TRADESKILL_NPC
     GOSSIP_OPTION_SHIPMENT_CRAFTER      = 24,                   //UNIT_NPC_FLAG2_SHIPMENT_CRAFTER
     GOSSIP_OPTION_CLASS_HALL_UPGRADE    = 25,                   //UNIT_NPC_FLAG2_CLASS_HALL_UPGRADE
-    GOSSIP_OPTION_CHOICE                = 26,                   //UNIT_NPC_FLAG_GOSSIP
-    GOSSIP_OPTION_ARTIFACT_RESPEC       = 27,                   //UNIT_NPC_FLAG_ARTIFACT_POWER_RESPEC
-    GOSSIP_OPTION_ALLIED_RACE_DETAILS   = 28,                   // SMSG_OPEN_ALLIED_RACE_DETAILS
-    GOSSIP_OPTION_SCENARIO              = 29,                   //UNIT_NPC_FLAG_GOSSIP
+    GOSSIP_OPTION_MAILBOX               = 26,                   //UNIT_NPC_FLAG_MAILBOX
+    GOSSIP_OPTION_CHOICE                = 27,                   //UNIT_NPC_FLAG_GOSSIP
+    GOSSIP_OPTION_ARTIFACT_RESPEC       = 28,                   //UNIT_NPC_FLAG_ARTIFACT_POWER_RESPEC
+    GOSSIP_OPTION_ALLIED_RACE_DETAILS   = 29,                   // SMSG_OPEN_ALLIED_RACE_DETAILS
+    GOSSIP_OPTION_SCENARIO              = 30,                   //UNIT_NPC_FLAG_GOSSIP
     GOSSIP_OPTION_MAX
 };
 

@@ -832,9 +832,23 @@ enum OpcodeClient : uint16
     CMSG_WORLD_PORT_RESPONSE                          = 0x35F9,
     CMSG_WRAP_ITEM                                    = 0x3994,
 
+    /* Trinity */
+    // Here only to allow compile.
     CMSG_BF_MGR_ENTRY_INVITE_RESPONSE                 = 0xBADD,
     CMSG_BF_MGR_QUEUE_INVITE_RESPONSE                 = 0xBADD,
     CMSG_BF_MGR_QUEUE_EXIT_REQUEST                    = 0xBADD,
+
+    /* MISSING OPCODES */
+    // For some of these we have the packets, but the opcode names have changed.
+    // And for some, we dont have the opcodes.
+    // TODO: Find new opcode names, and opcodes. - Varjgard
+    CMSG_GUILD_BANK_MOVE_ITEMS_BANK_PLAYER_AUTO       = 0xBADD,
+    CMSG_GUILD_BANK_MERGE_ITEMS_BANK_BANK             = 0xBADD,
+    CMSG_GUILD_BANK_SWAP_ITEMS_BANK_PLAYER            = 0xBADD,
+    CMSG_GUILD_BANK_SWAP_ITEMS_BANK_BANK              = 0xBADD,
+    CMSG_GET_CHALLENGE_MODE_REWARDS                   = 0xBADD,
+    CMSG_GARRISON_REQUEST_CLASS_SPEC_CATEGORY_INFO    = 0xBADD,
+    CMSG_BATTLE_PAY_PURCHASE_PRODUCT                  = 0xBADD,
 };
 
 enum OpcodeServer : uint16

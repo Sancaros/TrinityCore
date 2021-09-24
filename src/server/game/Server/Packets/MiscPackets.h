@@ -993,6 +993,16 @@ namespace WorldPackets
             uint32 FactionChoice = 0;
         };
 
+        class QueryCountdownTimer final : public ClientPacket
+        {
+        public:
+            QueryCountdownTimer(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_COUNTDOWN_TIMER, std::move(packet)) { }
+
+            void Read() override;
+
+            TimerType Type = WORLD_TIMER_TYPE_PVP;
+        };
+
         class StartTimer final : public ServerPacket
         {
         public:
@@ -1009,6 +1019,24 @@ namespace WorldPackets
             int32 Type = 0;
             Duration<Seconds> TimeLeft;
             Duration<Seconds> TotalTime;
+        };
+
+        class ResetChallengeModeCheat final : public ClientPacket
+        {
+        public:
+            ResetChallengeModeCheat(WorldPacket&& packet) : ClientPacket(CMSG_RESET_CHALLENGE_MODE_CHEAT, std::move(packet)) { }
+
+            void Read() override { };
+        };
+
+        class SetWarMode final : public ClientPacket
+        {
+        public:
+            SetWarMode(WorldPacket&& packet) : ClientPacket(CMSG_SET_WAR_MODE, std::move(packet)) { }
+
+            void Read() override;
+
+            bool Enabled = false;
         };
 
         class DiscardedTimeSyncAcks final : public ClientPacket

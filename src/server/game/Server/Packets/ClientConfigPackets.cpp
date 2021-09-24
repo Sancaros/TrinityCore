@@ -94,3 +94,7 @@ WorldPacket const* WorldPackets::ClientConfig::TwitterStatus::Write()
     return &_worldPacket;
 }
 
+void WorldPackets::ClientConfig::GetRemainingGameTime::Read()
+{
+    _worldPacket >> Time;
+}

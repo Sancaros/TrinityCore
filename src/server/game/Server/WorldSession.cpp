@@ -42,6 +42,7 @@
 #include "ObjectMgr.h"
 #include "OutdoorPvPMgr.h"
 #include "PacketUtilities.h"
+#include "PetBattle.h"
 #include "Player.h"
 #include "QueryHolder.h"
 #include "Random.h"
@@ -104,7 +105,8 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 
 /// WorldSession constructor
 WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time,
-    std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter, std::string&& battlenetAccountName):
+    std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter, AuthFlags flag, std::string&& battlenetAccountName):
+
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
@@ -133,6 +135,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     _filterAddonMessages(false),
     recruiterId(recruiter),
     isRecruiter(isARecruiter),
+    atAuthFlag(flag),
     _RBACData(nullptr),
     expireTime(60000), // 1 min after socket loss, session is deleted
     forceExit(false),
@@ -914,6 +917,26 @@ void WorldSession::ProcessQueryCallbacks()
         HandleCharEnum(static_cast<CharacterDatabaseQueryHolder*>(_charEnumCallback.get()));
 }
 
+void WorldSession::RemoveAuthFlag(AuthFlags f)
+{
+    atAuthFlag = AuthFlags(atAuthFlag & ~f);
+    SaveAuthFlag();
+}
+
+void WorldSession::AddAuthFlag(AuthFlags f)
+{
+    atAuthFlag = AuthFlags(atAuthFlag | f);
+    SaveAuthFlag();
+}
+
+void WorldSession::SaveAuthFlag()
+{
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_AT_AUTH_FLAG);
+    stmt->setUInt16(0, atAuthFlag);
+    stmt->setUInt32(1, GetAccountId());
+    LoginDatabase.Execute(stmt);
+}
+
 TransactionCallback& WorldSession::AddTransactionCallback(TransactionCallback&& callback)
 {
     return _transactionCallbacks.AddCallback(std::move(callback));
@@ -1302,8 +1325,9 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_WHO:                                  //   0               7
         case CMSG_RIDE_VEHICLE_INTERACT:                //   0               8
         case CMSG_MOVE_HEARTBEAT:
+        case CMSG_OBJECT_UPDATE_FAILED:
         {
-            maxPacketCounterAllowed = 200;
+            maxPacketCounterAllowed = 300;
             break;
         }
 
@@ -1428,4 +1452,117 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
 
 WorldSession::DosProtection::DosProtection(WorldSession* s) : Session(s), _policy((Policy)sWorld->getIntConfig(CONFIG_PACKET_SPOOF_POLICY))
 {
+}
+
+
+struct ItemRecovery
+{
+    uint32 itemId;
+    uint32 context;
+};
+
+void WorldSession::LoadRecoveries()
+{
+    if (AccountMgr::GetCharactersCount(GetAccountId()) >= sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM))
+        return;
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_RECOVERY);
+    stmt->setUInt32(0, GetAccountId());
+
+    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+    if (!result)
+        return;
+
+    do
+    {
+        Field* fields = result->Fetch();
+
+        uint32 recoveryId       = fields[0].GetUInt32();
+        uint32 race             = fields[1].GetUInt32();
+        uint32 cclass           = fields[2].GetUInt32();
+        uint32 level            = fields[3].GetUInt32();
+        uint32 skill1           = fields[4].GetUInt32();
+        uint32 skill1_value     = fields[5].GetUInt32();
+        uint32 skill2           = fields[6].GetUInt32();
+        uint32 skill2_value     = fields[7].GetUInt32();
+        std::string items       = fields[8].GetString();
+        std::string spells      = fields[9].GetString();
+        uint32 at_login         = fields[10].GetUInt32();
+
+        Player newChar(this);
+        newChar.SetAtLoginFlag(AT_LOGIN_FIRST);
+        newChar.SetAtLoginFlag(AT_LOGIN_RENAME);
+        newChar.SetAtLoginFlag(AT_LOGIN_CUSTOMIZE);
+        newChar.SetAtLoginFlag((AtLoginFlags)at_login);
+
+        newChar.SetLevel(level);
+        newChar.SetMoney(10000 * GOLD);
+
+        if (newChar.GetTeamId() == TEAM_ALLIANCE)
+            newChar.CompletedAchievement(8921); // Welcome in Draenor (A)
+        else
+            newChar.CompletedAchievement(8922); // Welcome in Draenor (H)
+
+        // On split les items dans une liste
+        std::vector<ItemRecovery> itemList;
+        Tokenizer itemsTokens(items, ' ');
+        itemList.resize(itemsTokens.size());
+
+        for (uint32 i = 0; i < itemsTokens.size(); ++i)
+        {
+            Tokenizer itemAndBonusTokens(itemsTokens[i], ':');
+
+            itemList[i].itemId  = atoi(itemAndBonusTokens[0]);
+
+            if (itemAndBonusTokens.size() > 1)
+                itemList[i].context = atoi(itemAndBonusTokens[1]);
+            else
+                itemList[i].context = 0;
+        }
+
+        Tokenizer spellsTokens(spells, ' ');
+        for (auto spellChr : spellsTokens)
+            newChar.LearnSpell(atoi(spellChr), false);
+
+        // Give 4 bag with 16 emplacements
+        newChar.StoreNewItemInBestSlots(21841, 4);
+
+        // Et on donne tous les items
+        for (ItemRecovery itemRecovery : itemList)
+        {
+            if (ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemRecovery.itemId))
+            {
+                if ((proto->GetAllowableRace().RawValue & newChar.getRaceMask()) == 0)
+                    continue;
+
+                newChar.StoreNewItemInBestSlots(itemRecovery.itemId, 1, (ItemContext)itemRecovery.context);
+            }
+        }
+
+        newChar.SaveToDB(true);
+
+        WorldLocation loc;
+
+        if (newChar.GetTeamId() == TEAM_ALLIANCE)
+            loc.WorldRelocate(0, -8837.51f, 617.54f, 93.5f, 0.696735f);
+        else
+            loc.WorldRelocate(1, 1569.96f, -4397.41f, 16.05f, 0.543025f);
+
+        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+        Player::SavePositionInDB(loc, 0, newChar.GetGUID(), trans);
+
+        newChar.CleanupsBeforeDelete();
+
+        if (skill1 != 0 && skill1_value != 0)
+            CharacterDatabase.PExecute("INSERT INTO character_shop (guid, type, itemId, itemCount) VALUES (%u, 5, %u, %u)", newChar.GetGUID().GetCounter(), skill1, skill1_value);
+
+        if (skill2 != 0 && skill2_value != 0)
+            CharacterDatabase.PExecute("INSERT INTO character_shop (guid, type, itemId, itemCount) VALUES (%u, 5, %u, %u)", newChar.GetGUID().GetCounter(), skill2, skill2_value);
+
+        stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_RECOVERY_DELIVERED);
+        stmt->setUInt32(0, recoveryId);
+        trans->Append(stmt);
+
+        CharacterDatabase.CommitTransaction(trans);
+    } while (result->NextRow());
 }

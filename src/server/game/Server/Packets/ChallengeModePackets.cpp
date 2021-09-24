@@ -38,6 +38,36 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::ChallengeMode::ModeAttemp
     return data;
 }
 
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::ChallengeMode::ItemReward const& itemReward)
+{
+    data << itemReward.ItemID;
+    data << itemReward.ItemDisplayID;
+    data << itemReward.Quantity;
+
+    return data;
+}
+
+ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::ChallengeMode::MapChallengeModeReward const& mapChallengeModeReward)
+{
+    data << static_cast<uint32>(mapChallengeModeReward.Rewards.size());
+    for (auto const& map : mapChallengeModeReward.Rewards)
+    {
+        data << static_cast<uint32>(map.ItemRewards.size());
+        data << static_cast<uint32>(map.CurrencyRewards.size());
+        data << map.Money;
+
+        for (auto const& item : map.ItemRewards)
+            data << item;
+
+        for (auto const& currency : map.CurrencyRewards)
+        {
+            data << currency.CurrencyID;
+            data << currency.Quantity;
+        }
+    }
+
+    return data;
+}
 
 void WorldPackets::ChallengeMode::StartChallengeMode::Read()
 {
@@ -201,3 +231,16 @@ WorldPacket const* WorldPackets::ChallengeMode::ChallengeModeUpdateDeathCount::W
     return &_worldPacket;
 }
 
+WorldPacket const* WorldPackets::ChallengeMode::Rewards::Write()
+{
+    _worldPacket << static_cast<uint32>(MapChallengeModeRewards.size());
+    _worldPacket << static_cast<uint32>(ItemRewards.size());
+
+    for (auto const& map : MapChallengeModeRewards)
+        _worldPacket << map;
+
+    for (auto const& item : ItemRewards)
+        _worldPacket << item;
+
+    return &_worldPacket;
+}

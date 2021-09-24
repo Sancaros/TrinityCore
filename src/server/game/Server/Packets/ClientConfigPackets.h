@@ -122,6 +122,16 @@ namespace WorldPackets
 
             uint32 StatusInt = 0;
         };
+
+        class GetRemainingGameTime  final : public ClientPacket
+        {
+        public:
+            GetRemainingGameTime(WorldPacket&& packet) : ClientPacket(CMSG_GET_REMAINING_GAME_TIME, std::move(packet)) { }
+
+            void Read() override;
+
+            uint32 Time = 0;
+        };
     }
 }
 

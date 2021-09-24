@@ -19,6 +19,7 @@
 #include "AuthenticationPackets.h"
 #include "BattlenetRpcErrorCodes.h"
 #include "CharacterPackets.h"
+#include "Config.h"
 #include "CryptoHash.h"
 #include "CryptoRandom.h"
 #include "DatabaseEnv.h"
@@ -622,6 +623,7 @@ struct AccountInfo
         uint8 Expansion;
         int64 MuteTime;
         uint32 Recruiter;
+        uint16 AtAuthFlag;
         std::string OS;
         bool IsRectuiter;
         AccountTypes Security;
@@ -650,10 +652,12 @@ struct AccountInfo
         Game.Recruiter = fields[8].GetUInt32();
         Game.OS = fields[9].GetString();
         BattleNet.Id = fields[10].GetUInt32();
-        Game.Security = AccountTypes(fields[11].GetUInt8());
-        BattleNet.IsBanned = fields[12].GetUInt32() != 0;
-        Game.IsBanned = fields[13].GetUInt32() != 0;
-        Game.IsRectuiter = fields[14].GetUInt32() != 0;
+        BattleNet.Name = fields[11].GetString();
+        Game.Security = AccountTypes(fields[12].GetUInt8());
+        Game.AtAuthFlag = AuthFlags(fields[13].GetUInt16()) != 0;
+        BattleNet.IsBanned = fields[14].GetUInt32() != 0;
+        Game.IsBanned = fields[15].GetUInt32() != 0;
+        Game.IsRectuiter = fields[16].GetUInt32() != 0;
 
         if (BattleNet.Locale >= TOTAL_LOCALES)
             BattleNet.Locale = LOCALE_enUS;
@@ -713,9 +717,16 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
     // Check that Key and account name are the same on client and server
     if (memcmp(hmac.GetDigest().data(), authSession->Digest.data(), authSession->Digest.size()) != 0)
     {
-        TC_LOG_ERROR("network", "WorldSocket::HandleAuthSession: Authentication failed for account: %u ('%s') address: %s", account.Game.Id, authSession->RealmJoinTicket.c_str(), address.c_str());
-        DelayedCloseSocket();
-        return;
+        if(sConfigMgr->GetBoolDefault("AuthSeedVerification", 1))
+        {
+            TC_LOG_ERROR("network", "WorldSocket::HandleAuthSession: Authentication failed for account: %u ('%s') address: %s", account.Game.Id, authSession->RealmJoinTicket.c_str(), address.c_str());
+            DelayedCloseSocket();
+            return;
+        }
+        else
+        {
+            TC_LOG_ERROR("network", "WorldSocket::HandleAuthSession: Authentication failed for account: %u ('%s') address: %s (AuthSeedVerification is disabled - ignoring error)", account.Game.Id, authSession->RealmJoinTicket.c_str(), address.c_str());
+        }
     }
 
     Trinity::Crypto::SHA256 keyData;
@@ -857,7 +868,10 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<WorldPackets::Auth::
 
     _authed = true;
     _worldSession = new WorldSession(account.Game.Id, std::move(authSession->RealmJoinTicket), account.BattleNet.Id, shared_from_this(), account.Game.Security,
-        account.Game.Expansion, mutetime, account.Game.OS, account.BattleNet.Locale, account.Game.Recruiter, account.Game.IsRectuiter, std::move(account.BattleNet.Name));
+        account.Game.Expansion, mutetime, account.Game.OS, account.BattleNet.Locale, account.Game.Recruiter, account.Game.IsRectuiter, AuthFlags(account.Game.AtAuthFlag), std::move(account.BattleNet.Name));
+
+
+    _worldSession->LoadRecoveries();
 
     // Initialize Warden system only if it is enabled by config
     if (wardenActive)

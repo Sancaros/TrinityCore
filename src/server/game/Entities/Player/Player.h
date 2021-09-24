@@ -113,6 +113,11 @@ namespace WorldPackets
         struct CharacterCreateInfo;
     }
 
+    namespace Battleground
+    {
+        struct RatedInfo;
+    }
+	
     namespace Movement
     {
         enum class UpdateCollisionHeightReason : uint8;
@@ -121,6 +126,25 @@ namespace WorldPackets
 
 TC_GAME_API uint32 GetBagSize(Bag const* bag);
 TC_GAME_API Item* GetItemInBag(Bag const* bag, uint8 slot);
+
+struct ChallengeKeyInfo
+{
+    ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
+
+    bool IsActive() { return ID != 0; }
+
+    MapChallengeModeEntry const* challengeEntry = nullptr;
+    uint32 InstanceID;
+    uint32 timeReset;
+    uint16 ID;
+    uint8 Level;
+    uint8 Affix;
+    uint8 Affix1;
+    uint8 Affix2;
+    uint8 KeyIsCharded;
+    bool needSave;
+    bool needUpdate;
+};
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -186,24 +210,6 @@ struct WorldQuestInfo
     uint32 QuestID;
     uint32 resetTime;
     bool needSave = false;
-};
-
-struct ChallengeKeyInfo
-{
-    ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
-
-    bool IsActive() { return ID != 0; }
-
-    uint32 InstanceID;
-    uint32 timeReset;
-    uint16 ID;
-    uint8 Level;
-    uint8 Affix;
-    uint8 Affix1;
-    uint8 Affix2;
-    uint8 KeyIsCharded;
-    bool needSave;
-    bool needUpdate;
 };
 
 struct PlayerSpell
@@ -312,6 +318,14 @@ typedef std::unordered_set<SpellModifier*> SpellModContainer;
 typedef std::unordered_map<uint32, PlayerCurrency> PlayerCurrenciesMap;
 
 typedef std::unordered_map<uint32 /*instanceId*/, time_t/*releaseTime*/> InstanceTimeMap;
+
+enum TrainerSpellState
+{
+    TRAINER_SPELL_GRAY = 0,
+    TRAINER_SPELL_GREEN = 1,
+    TRAINER_SPELL_RED = 2,
+    TRAINER_SPELL_GREEN_DISABLED = 10                       // custom value, not send to client: formally green but learn not allowed
+};
 
 enum ActionButtonUpdateState
 {
@@ -1395,10 +1409,13 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void AutoUnequipOffhandIfNeed(bool force = false);
         void EquipChildItem(uint8 parentBag, uint8 parentSlot, Item* parentItem);
         void AutoUnequipChildItem(Item* parentItem);
-        bool StoreNewItemInBestSlots(uint32 item_id, uint32 item_count);
+        bool StoreNewItemInBestSlots(uint32 item_id, uint32 item_count, ItemContext context = ItemContext(0));
         void AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool specOnly = false, DisplayToastMethod toastMethod = DisplayToastMethod::DISPLAY_TOAST_DEFAULT);
         void AutoStoreLoot(uint32 loot_id, LootStore const& store, ItemContext context = ItemContext::NONE, bool broadcast = false, bool specOnly = false, DisplayToastMethod toastMethod = DisplayToastMethod::DISPLAY_TOAST_DEFAULT) { AutoStoreLoot(NULL_BAG, NULL_SLOT, loot_id, store, context, broadcast, specOnly, toastMethod); }
         void StoreLootItem(uint8 lootSlot, Loot* loot, AELootResult* aeResult = nullptr);
+        
+        /* "Clean up bags" function on backbag */
+        //void ApplyOnItems(uint8 type, std::function<bool(Player*, Item*, uint8, uint8)>&& function);
 
         InventoryResult CanTakeMoreSimilarItems(uint32 entry, uint32 count, Item* pItem, uint32* no_space_count = nullptr, uint32* offendingItemId = nullptr) const;
         InventoryResult CanStoreItem(uint8 bag, uint8 slot, ItemPosCountVec& dest, uint32 entry, uint32 count, Item* pItem = nullptr, bool swap = false, uint32* no_space_count = nullptr) const;
@@ -1509,8 +1526,16 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void SendItemDurations();
         void LoadCorpse(PreparedQueryResult result);
         void LoadPet();
+        void LoadPetsFromDB(PreparedQueryResult result);
 
         bool AddItem(uint32 itemId, uint32 count);
+        bool AddChallengeKey(uint32 challengeId, uint32 challengeLevel = 2);
+        void UpdateChallengeKey(Item* item);
+		bool InitChallengeKey(Item* item);
+		void CreateChallengeKey(Item* item);
+        void ChallengeKeyCharded(Item* item, uint32 challengeLevel, bool runRand = true);
+        void ResetChallengeKey();
+        ChallengeKeyInfo m_challengeKeyInfo;
 
         uint32 m_stableSlots;
 
@@ -1678,6 +1703,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         }
 
         bool HasPvPForcingQuest() const;
+
+        Item* GetArtifactWeapon();
 
         /*********************************************************/
         /***                   LOAD SYSTEM                     ***/
@@ -2591,6 +2618,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void UpdateCriteria(CriteriaType type, uint64 miscValue1 = 0, uint64 miscValue2 = 0, uint64 miscValue3 = 0, WorldObject* ref = nullptr);
         void StartCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry, uint32 timeLost = 0);
         void RemoveCriteriaTimer(CriteriaStartEvent startEvent, uint32 entry);
+        void CompletedAchievement(uint32 achievementId);
         void CompletedAchievement(AchievementEntry const* entry);
         bool ModifierTreeSatisfied(uint32 modifierTreeId) const;
 
@@ -2838,13 +2866,6 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         UF::UpdateField<UF::PlayerData, 0, TYPEID_PLAYER> m_playerData;
         UF::UpdateField<UF::ActivePlayerData, 0, TYPEID_ACTIVE_PLAYER> m_activePlayerData;
-
-        ChallengeKeyInfo m_challengeKeyInfo;
-        bool InitChallengeKey(Item* item);
-        void UpdateChallengeKey(Item* item);
-        void CreateChallengeKey(Item* item);
-        void ResetChallengeKey();
-        void ChallengeKeyCharded(Item* item, uint32 challengeLevel);
 
         void SetWargameRequest(WargameRequest* p_Request) { _wargameRequest = p_Request; };
         bool HasWargameRequest() const { return _wargameRequest != nullptr; }

@@ -42,6 +42,35 @@ namespace WorldPackets
             uint32 MedalEarned = 0;
             std::vector<Member> Members;
         };
+
+ struct ItemReward
+ {
+     uint32 ItemID = 0;
+     uint32 ItemDisplayID = 0;
+     uint32 Quantity = 0;
+ };
+
+ struct CurrencyReward
+ {
+     CurrencyReward(uint32 ID, uint32 count) : CurrencyID(ID), Quantity(count) { }
+
+     uint32 CurrencyID = 0;
+     uint32 Quantity = 0;
+ };
+
+ struct MapChallengeModeReward
+ {
+     struct ChallengeModeReward
+     {
+         std::vector<ItemReward> ItemRewards;
+         uint32 Money = 0;
+         std::vector<CurrencyReward> CurrencyRewards;
+     };
+
+     uint32 MapId = 0;
+     std::vector<ChallengeModeReward> Rewards;
+ };
+
        struct ChallengeModeMap
         {
             uint32 MapId = 0;
@@ -102,17 +131,16 @@ namespace WorldPackets
             std::vector<ModeAttempt> RealmLeaders;
         };
 		
-	   // class Rewards final : public ServerPacket
-       //{
-       //public:
-       //    Rewards() : ServerPacket(SMSG_MYTHIC_PLUS_WEEKLY_REWARD_RESPONSE, 8) { }
-       //
-       //    WorldPacket const* Write() override;
-       //
-       //    std::vector<MapChallengeModeReward> MapChallengeModeRewards;
-       //    std::vector<ItemReward> ItemRewards;
-       //};
-
+	    class Rewards final : public ServerPacket
+        {
+        public:
+            Rewards() : ServerPacket(SMSG_MYTHIC_PLUS_WEEKLY_REWARD_RESPONSE, 8) { }
+       
+            WorldPacket const* Write() override;
+       
+            std::vector<MapChallengeModeReward> MapChallengeModeRewards;
+            std::vector<ItemReward> ItemRewards;
+        };
 
         class ChangePlayerDifficultyResult final : public ServerPacket
         {

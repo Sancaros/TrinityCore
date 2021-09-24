@@ -627,7 +627,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     return true;
 }
 
-bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount)
+bool Player::StoreNewItemInBestSlots(uint32 titem_id, uint32 titem_amount, ItemContext /*context*/)
 {
     TC_LOG_DEBUG("entities.player.items", "Player::StoreNewItemInBestSlots: Player '%s' (%s) creates initial item (ItemID: %u, Count: %u)",
         GetName().c_str(), GetGUID().ToString().c_str(), titem_id, titem_amount);
@@ -14848,6 +14848,13 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
                     if (!sOutdoorPvPMgr->CanTalkTo(this, creature, itr->second))
                         canTalk = false;
                     break;
+                case GOSSIP_OPTION_CLASS_HALL_UPGRADE:
+                    canTalk = false;
+                    break;
+                case GOSSIP_OPTION_ARTIFACT_RESPEC:
+                    if (GetArtifactWeapon())
+                        canTalk = true;
+                    break;
                 case GOSSIP_OPTION_CHOICE:
                 case GOSSIP_OPTION_SHIPMENT_CRAFTER:
                 case GOSSIP_OPTION_ALLIED_RACE_DETAILS:
@@ -14864,6 +14871,7 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId /*= 0*/, bool 
             switch (itr->second.OptionType)
             {
                 case GOSSIP_OPTION_GOSSIP:
+                case GOSSIP_OPTION_SCENARIO:
                     if (go->GetGoType() != GAMEOBJECT_TYPE_QUESTGIVER && go->GetGoType() != GAMEOBJECT_TYPE_GOOBER)
                         canTalk = false;
                     break;
@@ -14987,7 +14995,8 @@ void Player::OnGossipSelect(WorldObject* source, uint32 optionIndex, uint32 menu
                 PrepareGossipMenu(source, menuItemData->GossipActionMenuId);
                 SendPreparedGossip(source);
             }
-
+            else
+                PlayerTalkClass->SendCloseGossip();
             break;
         }
         case GOSSIP_OPTION_OUTDOORPVP:
@@ -15070,12 +15079,15 @@ void Player::OnGossipSelect(WorldObject* source, uint32 optionIndex, uint32 menu
         SendDirectMessage(WorldPackets::Garrison::ShowAdventureMap(source->GetGUID(), uiMapId).Write());
         break;
     }
-    case GOSSIP_OPTION_CHOICE:
-        SendPlayerChoice(source->GetGUID(), cost);
-        return;
-    case GOSSIP_OPTION_ALLIED_RACE_DETAILS:
-        GetSession()->SendOpenAlliedRaceDetails(guid, cost);
-        return;
+        case GOSSIP_OPTION_MAILBOX:
+            GetSession()->SendShowMailBox(guid);
+            break;
+        case GOSSIP_OPTION_CHOICE:
+            SendPlayerChoice(source->GetGUID(), cost);
+            return;
+        case GOSSIP_OPTION_ALLIED_RACE_DETAILS:
+            GetSession()->SendOpenAlliedRaceDetails(guid, cost);
+            return;
     }
     ModifyMoney(-cost);
 }
@@ -27091,6 +27103,12 @@ void Player::UpdateCriteria(CriteriaType type, uint64 miscValue1 /*= 0*/, uint64
         guild->UpdateCriteria(type, miscValue1, miscValue2, miscValue3, ref, this);
 }
 
+void Player::CompletedAchievement(uint32 achievementId)
+{
+    if (AchievementEntry const* entry = sAchievementStore.LookupEntry(achievementId))
+        CompletedAchievement(entry);
+}
+
 void Player::CompletedAchievement(AchievementEntry const* entry)
 {
     m_achievementMgr->CompletedAchievement(entry, this);
@@ -29696,7 +29714,7 @@ void Player::_LoadWorldQuestStatus(PreparedQueryResult result)
     }
 }
 
-void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel)
+void Player::ChallengeKeyCharded(Item* item, uint32 challengeLevel, bool runRand)
 {
     if (challengeLevel > 2)
         challengeLevel -= 1;
@@ -29852,6 +29870,17 @@ void Player::SaveBattlePets(CharacterDatabaseTransaction& trans)
     for (BattlePetMap::iterator itr = _battlePets.begin(); itr != _battlePets.end(); ++itr)
         if (std::shared_ptr<BattlePet> pet = itr->second)
             pet->Save(trans);
+}
+
+Item* Player::GetArtifactWeapon()
+{
+    Item* artifact = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_MAINHAND);
+    if (!artifact || !artifact->GetTemplate() || !artifact->GetTemplate()->GetArtifactID())
+        artifact = GetItemByPos(INVENTORY_SLOT_BAG_0, EQUIPMENT_SLOT_OFFHAND);
+    if (artifact && artifact->GetTemplate() && artifact->GetTemplate()->GetArtifactID())
+        return artifact;
+
+    return nullptr;
 }
 
 void Player::UnsummonCurrentBattlePetIfAny(bool p_Unvolontary)

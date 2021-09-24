@@ -18,6 +18,7 @@
 #include "Common.h"
 #include "ObjectMgr.h"
 #include "BattlePayMgr.h"
+#include "BattlePet.h"
 #include "WorldSession.h"
 #include "Player.h"
 #include "BattlePayData.h"

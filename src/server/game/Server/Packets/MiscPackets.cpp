@@ -757,6 +757,12 @@ void WorldPackets::Misc::FactionSelect::Read()
     _worldPacket >> FactionChoice;
 }
 
+
+void WorldPackets::Misc::QueryCountdownTimer::Read()
+{
+    uint32(Type) = _worldPacket.read<uint32>();
+}
+
 WorldPacket const* WorldPackets::Misc::StartTimer::Write()
 {
     _worldPacket << TimeLeft;
@@ -769,6 +775,11 @@ WorldPacket const* WorldPackets::Misc::StartTimer::Write()
 void WorldPackets::Misc::DiscardedTimeSyncAcks::Read()
 {
     _worldPacket >> MaxSequenceIndex;
+}
+
+void WorldPackets::Misc::SetWarMode::Read()
+{
+    Enabled = _worldPacket.ReadBit();
 }
 
 WorldPacket const* WorldPackets::Misc::VignetteUpdate::Write()

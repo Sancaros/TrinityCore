@@ -1300,3 +1300,14 @@ void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& 
         _player->CastSpell(_player, 113245, true);  // Faction Choice Trigger Spell: Horde
     }
 }
+
+
+void WorldSession::HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer& packet)
+{
+    Player* player = GetPlayer();
+    if (Battleground* bg = player->GetBattleground())
+        bg->SendStartTimer(packet.Type);
+}
+
+void WorldSession::HandleGetRemainingGameTime(WorldPackets::ClientConfig::GetRemainingGameTime& packet)
+{ }

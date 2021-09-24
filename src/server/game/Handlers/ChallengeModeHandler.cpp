@@ -85,11 +85,11 @@ void WorldSession::HandleRequestLeaders(WorldPackets::ChallengeMode::RequestLead
     SendPacket(result.Write());
 }
 
-//void WorldSession::HandleGetChallengeModeRewards(WorldPackets::ChallengeMode::Misc& /*packet*/)
-//{
-//   // WorldPackets::ChallengeMode::Rewards rewards;
-//    //SendPacket(rewards.Write());
-//}
+void WorldSession::HandleGetChallengeModeRewards(WorldPackets::ChallengeMode::Misc& /*packet*/)
+{
+    WorldPackets::ChallengeMode::Rewards rewards;
+    SendPacket(rewards.Write());
+}
 //
 //void WorldSession::HandleMythicPlusRequestMapStats(WorldPackets::ChallengeMode::Misc& /*packet*/)
 //{

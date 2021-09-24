@@ -1968,3 +1968,22 @@ uint32 Battleground::GetMinPlayersPerTeam() const
 {
     return _battlegroundTemplate->GetMinPlayersPerTeam();
 }
+
+void Battleground::SendStartTimer(TimerType type)
+{
+    if (type != WORLD_TIMER_TYPE_PVP)
+        return;
+
+    Seconds countdownMaxForBGType = Seconds(isArena() ? ARENA_COUNTDOWN_MAX : BATTLEGROUND_COUNTDOWN_MAX);
+
+    if (Seconds(GetElapsedTime()) >= countdownMaxForBGType)
+        return;
+
+    m_PrematureCountDownTimer = 0;
+
+    WorldPackets::Misc::StartTimer startTimer;
+    startTimer.Type = type;
+    startTimer.TimeLeft = countdownMaxForBGType - Seconds(GetElapsedTime() / 1000);
+    startTimer.TotalTime = countdownMaxForBGType;
+    SendPacketToAll(startTimer.Write());
+}

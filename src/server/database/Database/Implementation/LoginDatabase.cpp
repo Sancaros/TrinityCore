@@ -178,6 +178,8 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_INS_BNET_ITEM_FAVORITE_APPEARANCE, "INSERT INTO battlenet_item_favorite_appearances (battlenetAccountId, itemModifiedAppearanceId) VALUES (?, ?)", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_BNET_ITEM_FAVORITE_APPEARANCE, "DELETE FROM battlenet_item_favorite_appearances WHERE battlenetAccountId = ? AND itemModifiedAppearanceId = ?", CONNECTION_ASYNC);
 
+    PrepareStatement(LOGIN_UPD_AT_AUTH_FLAG, "UPDATE account SET AtAuthFlag = ? WHERE id = ?", CONNECTION_ASYNC);
+
     // Account Battle pay Points
     PrepareStatement(LOGIN_SEL_BATTLE_PAY_ACCOUNT_CREDITS, "SELECT `battlePayCredits` from battlenet_accounts WHERE id = ?;", CONNECTION_SYNCH);
     PrepareStatement(LOGIN_UPD_BATTLE_PAY_ACCOUNT_CREDITS, "UPDATE battlenet_accounts SET battlePayCredits = ? WHERE id = ?;", CONNECTION_ASYNC);
