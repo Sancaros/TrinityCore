@@ -833,7 +833,7 @@ namespace WorldPackets
         class DepositGuildBankItem final : public ClientPacket
         {
         public:
-            DepositGuildBankItem(WorldPacket&& packet) : ClientPacket(CMSG_DEPOSIT_GUILD_BANK_ITEM, std::move(packet)) { }
+            DepositGuildBankItem(WorldPacket&& packet) : ClientPacket(CMSG_AUTO_GUILD_BANK_ITEM, std::move(packet)) { }
 
             void Read() override;
 
