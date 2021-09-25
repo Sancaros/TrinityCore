@@ -64,12 +64,12 @@ enum LFGMgrEnum
 
 enum LfgFlags
 {
-    LFG_FLAG_UNK1                                = 0x1,
-    LFG_FLAG_UNK2                                = 0x2,
-    LFG_FLAG_SEASONAL                            = 0x4,
-    LFG_FLAG_USER_TELEPORT_NOT_ALLOWED           = 0x8,
-    LFG_FLAG_NON_BACKFILLABLE                    = 0x10,
-    LFG_FLAG_TIMEWALKER                          = 0x20,
+    LFG_FLAG_UNK1                           = 0x0001,
+    LFG_FLAG_UNK2                           = 0x0002,
+    LFG_FLAG_SEASONAL                       = 0x0004,
+    LFG_FLAG_USER_TELEPORT_NOT_ALLOWED      = 0x0800,
+    LFG_FLAG_NON_BACKFILLABLE               = 0x1000,
+    LFG_FLAG_TIMEWALKER                     = 0x2000,
 };
 
 /// Determines the type of instance
