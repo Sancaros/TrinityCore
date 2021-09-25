@@ -15,16 +15,15 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Banner.h"
-#include "GitRevision.h"
-#include "StringFormat.h"
+#ifndef TRINITY_G3DPOSITION_HPP
+#define TRINITY_G3DPOSITION_HPP
 
-void Trinity::Banner::Show(char const* applicationName, void(*log)(char const* text), void(*logExtraInfo)())
-{
-    log(Trinity::StringFormat("%s (%s)", GitRevision::GetFullVersion(), applicationName).c_str());
-    log("<Ctrl-C> to stop.\n");
-    log("http://wow.sanc.top:88                    ");
+#include "Position.h"
+#include <G3D/Vector3.h>
+#include "Errors.h"
 
-    if (logExtraInfo)
-        logExtraInfo();
-}
+inline G3D::Vector3 PositionToVector3(Position p) { return { p.m_positionX, p.m_positionY, p.m_positionZ }; }
+inline G3D::Vector3 PositionToVector3(Position const* p) { return { ASSERT_NOTNULL(p)->m_positionX, p->m_positionY, p->m_positionZ }; }
+inline Position Vector3ToPosition(G3D::Vector3 v) { return { v.x, v.y, v.z }; }
+
+#endif

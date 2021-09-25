@@ -16,6 +16,7 @@
  */
 
 #include "Unit.h"
+#include "AbstractFollower.h"
 #include "Battlefield.h"
 #include "BattlefieldMgr.h"
 #include "Battleground.h"
@@ -561,14 +562,14 @@ bool Unit::IsWithinCombatRange(Unit const* obj, float dist2compare) const
     return distsq < maxdist * maxdist;
 }
 
-bool Unit::IsWithinMeleeRange(Unit const* obj) const
+bool Unit::IsWithinMeleeRangeAt(Position const& pos, Unit const* obj) const
 {
     if (!obj || !IsInMap(obj) || !IsInPhase(obj))
         return false;
 
-    float dx = GetPositionX() - obj->GetPositionX();
-    float dy = GetPositionY() - obj->GetPositionY();
-    float dz = GetPositionZ() - obj->GetPositionZ();
+    float dx = pos.GetPositionX() - obj->GetPositionX();
+    float dy = pos.GetPositionY() - obj->GetPositionY();
+    float dz = pos.GetPositionZ() - obj->GetPositionZ();
     float distsq = dx*dx + dy*dy + dz*dz;
 
     float maxdist = GetMeleeRange(obj) + GetTotalAuraModifier(SPELL_AURA_MOD_AUTOATTACK_RANGE);
@@ -8935,11 +8936,27 @@ void Unit::UpdateSpeed(UnitMoveType mtype)
             break;
     }
 
-    // for creature case, we check explicit if mob searched for assistance
-    if (GetTypeId() == TYPEID_UNIT)
+    if (Creature* creature = ToCreature())
     {
-        if (ToCreature()->HasSearchedAssistance())
+        // for creature case, we check explicit if mob searched for assistance
+        if (creature->HasSearchedAssistance())
             speed *= 0.66f;                                 // best guessed value, so this will be 33% reduction. Based off initial speed, mob can then "run", "walk fast" or "walk".
+
+        if (creature->HasUnitTypeMask(UNIT_MASK_MINION) && !creature->IsInCombat())
+        {
+            MovementGenerator* top = creature->GetMotionMaster()->topOrNull();
+            if (top && top->GetMovementGeneratorType() == FOLLOW_MOTION_TYPE)
+            {
+                Unit* followed = ASSERT_NOTNULL(dynamic_cast<AbstractFollower*>(top))->GetTarget();
+                if (followed && followed->GetGUID() == GetOwnerGUID() && !followed->IsInCombat())
+                {
+                    float ownerSpeed = followed->GetSpeedRate(mtype);
+                    if (speed < ownerSpeed || creature->IsWithinDist3d(followed, 10.0f))
+                        speed = ownerSpeed;
+                    speed *= std::min(std::max(1.0f, 0.75f + (GetDistance(followed) - PET_FOLLOW_DIST) * 0.05f), 1.3f);
+                }
+            }
+        }
     }
 
     // Apply strongest slow aura mod to speed
@@ -9030,6 +9047,12 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate)
         packet.Speed = GetSpeed(mtype);
         SendMessageToSet(packet.Write(), true);
     }
+}
+
+void Unit::RemoveAllFollowers()
+{
+    while (!m_followingMe.empty())
+        (*m_followingMe.begin())->SetTarget(nullptr);
 }
 
 void Unit::setDeathState(DeathState s)
@@ -10000,6 +10023,8 @@ void Unit::RemoveFromWorld()
         RemoveAllControlled();
 
         RemoveAreaAurasDueToLeaveWorld();
+
+        RemoveAllFollowers();
 
         if (!GetCharmerGUID().IsEmpty())
         {

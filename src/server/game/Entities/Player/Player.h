@@ -2813,7 +2813,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         ObjectGuid GetSummonedBattlePetGUID() const { return m_activePlayerData->SummonedBattlePetGUID; }
         void SetSummonedBattlePetGUID(ObjectGuid guid) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::SummonedBattlePetGUID), guid); }
 
-        //BPAY THORDEKK
+        //add battlepay function
         uint32 GetBattlePayCredits() const;
         bool HasBattlePayCredits(uint32 count) const;
         bool UpdateBattlePayCredits(uint64 price) const;

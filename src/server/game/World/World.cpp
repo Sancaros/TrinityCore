@@ -2422,6 +2422,7 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading battlepay data...");
     sBattlePayDataStore->Initialize();
 
+    // load faction balance
     TC_LOG_INFO("server.loading", "Initializing faction balance query");
     InitFactionBalanceQuery();
 
