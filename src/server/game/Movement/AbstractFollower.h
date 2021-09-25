@@ -15,19 +15,22 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _FOLLOWERREFERENCE_H
-#define _FOLLOWERREFERENCE_H
+#ifndef TRINITY_ABSTRACTFOLLOWER_H
+#define TRINITY_ABSTRACTFOLLOWER_H
 
-#include "Reference.h"
-
-class TargetedMovementGeneratorBase;
 class Unit;
 
-class FollowerReference : public Reference<Unit, TargetedMovementGeneratorBase>
+struct AbstractFollower
 {
-    protected:
-        void targetObjectBuildLink() override;
-        void targetObjectDestroyLink() override;
-        void sourceObjectDestroyLink() override;
+    public:
+        AbstractFollower(Unit* target = nullptr) { SetTarget(target); }
+        ~AbstractFollower() { SetTarget(nullptr); }
+
+        void SetTarget(Unit* unit);
+        Unit* GetTarget() const { return _target; }
+
+    private:
+        Unit* _target = nullptr;
 };
+
 #endif
