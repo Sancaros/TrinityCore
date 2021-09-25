@@ -25,6 +25,7 @@
 #include "DatabaseEnv.h"
 #include "ScriptMgr.h"
 #include "AccountMgr.h"
+#include "CharacterService.h"
 #include "CollectionMgr.h"
 #include <sstream>
 

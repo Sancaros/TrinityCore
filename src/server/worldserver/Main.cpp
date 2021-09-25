@@ -72,8 +72,8 @@ namespace fs = boost::filesystem;
 #ifdef _WIN32
 #include "ServiceWin32.h"
 char serviceName[] = "worldserver";
-char serviceLongName[] = "TrinityCore world service";
-char serviceDescription[] = "TrinityCore World of Warcraft emulator world service";
+char serviceLongName[] = "SanCore world service";
+char serviceDescription[] = "SanCore World of Warcraft emulator world service";
 /*
  * -1 - not in service mode
  *  0 - stopped
@@ -335,14 +335,21 @@ extern int main(int argc, char** argv)
     std::shared_ptr<FreezeDetector> freezeDetector;
     if (int coreStuckTime = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 0))
     {
+        if (coreStuckTime < 180)
+        {
+            TC_LOG_ERROR("server.worldserver", "MaxCoreStuckTime IS %u BUT IT MUST BE OVER 180 (3 minutes) TO AVOID CRASHES ON SLOW COMPUTERS! Change \"MaxCoreStuckTime = 180\" on worldserver.conf. MaxCoreStuckTime set to 180.", coreStuckTime);
+            coreStuckTime = 180;
+        }
+
         freezeDetector = std::make_shared<FreezeDetector>(*ioContext, coreStuckTime * 1000);
         FreezeDetector::Start(freezeDetector);
         TC_LOG_INFO("server.worldserver", "Starting up anti-freeze thread (%u seconds max stuck time)...", coreStuckTime);
     }
 
-    sScriptMgr->OnStartup();
-
+    TC_LOG_INFO("server.worldserver", "SanCore official website: http://wow.sanc.top:88  email:sancaros@msn.cn");
     TC_LOG_INFO("server.worldserver", "%s (worldserver-daemon) ready...", GitRevision::GetFullVersion());
+    
+    sScriptMgr->OnStartup();
 
     WorldUpdateLoop();
 
