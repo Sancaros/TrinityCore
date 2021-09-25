@@ -752,20 +752,15 @@ struct ActivePlayerData : public IsUpdateFieldStructureTag, public HasChangesMas
     UpdateField<uint64, 98, 101> GuildClubMemberID;
     UpdateField<int32, 98, 102> Honor;
     UpdateField<int32, 98, 103> HonorNextLevel;
-    UpdateField<int64, 98, 104> PvpRewardAchieved;
-    UpdateField<int32, 98, 105> PvpTierMaxFromWins;
-    UpdateField<int64, 98, 106> PvpLastWeeksRewardAchieved;
-    UpdateField<int32, 98, 107> PvpLastWeeksTierMaxFromWins;
-    UpdateField<int64, 98, 108> PvpLastWeeksRewardClaimed;
-    UpdateField<uint8, 98, 109> NumBankSlots;
-    UpdateField<UF::ActivePlayerUnk901, 98, 111> Field_1410;
-    OptionalUpdateField<UF::QuestSession, 98, 110> QuestSession;
-    UpdateField<int32, 98, 112> UiChromieTimeExpansionID;
-    UpdateField<int32, 98, 113> TransportServerTime;
-    UpdateField<uint32, 98, 114> WeeklyRewardsPeriodSinceOrigin;                // week count since Cfg_RegionsEntry::ChallengeOrigin
-    UpdateField<int16, 98, 115> DEBUGSoulbindConduitRank;
+    UpdateField<uint8, 98, 104> NumBankSlots;
+    UpdateField<UF::ActivePlayerUnk901, 98, 106> Field_1410;
+    OptionalUpdateField<UF::QuestSession, 98, 105> QuestSession;
+    UpdateField<int32, 98, 107> UiChromieTimeExpansionID;
+    UpdateField<int32, 98, 108> TransportServerTime;
+    UpdateField<uint32, 98, 109> WeeklyRewardsPeriodSinceOrigin;                // week count since Cfg_RegionsEntry::ChallengeOrigin
+    UpdateField<int16, 98, 110> DEBUGSoulbindConduitRank;
     UpdateField<WorldPackets::MythicPlus::DungeonScoreData, 98, 111> DungeonScore;
-    UpdateFieldArray<ObjectGuid, 199, 124, 125> InvSlots;
+    UpdateFieldArray<ObjectGuid, 199, 112, 113> InvSlots;
     UpdateFieldArray<uint32, 2, 312, 313> TrackResourceMask;
     UpdateFieldArray<uint64, 240, 315, 316> ExploredZones;
     UpdateFieldArray<UF::RestInfo, 2, 556, 557> RestInfo;

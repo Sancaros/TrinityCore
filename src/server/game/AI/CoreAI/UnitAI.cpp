@@ -226,7 +226,6 @@ void UnitAI::FillAISpellInfo()
         {
             for (SpellEffectInfo const& effect : spellInfo->GetEffects())
             {
-
                 uint32 targetType = effect.TargetA.GetTarget();
 
                 if (targetType == TARGET_UNIT_TARGET_ENEMY

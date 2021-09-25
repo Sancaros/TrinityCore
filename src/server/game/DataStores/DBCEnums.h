@@ -1673,10 +1673,10 @@ enum VehicleSeatFlagsB
     VEHICLE_SEAT_FLAG_B_VEHICLE_PLAYERFRAME_UI   = 0x80000000            // Lua_UnitHasVehiclePlayerFrameUI - actually checked for flagsb &~ 0x80000000
 };
 
-// CurrencyTypes.dbc
+// CurrencyTypes.dbc (9.0.2)
 enum CurrencyTypes
 {
-   CURRENCY_NONE                                   = 0,
+    CURRENCY_NONE                                   = 0,
     CURRENCY_TYPE_BADGE_OF_JUSTICE                  = 42,
     CURRENCY_TYPE_DALARAN_JEWEL                     = 61,
     CURRENCY_TYPE_EPICUREAN                         = 81,
