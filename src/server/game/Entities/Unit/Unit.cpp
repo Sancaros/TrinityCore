@@ -2117,7 +2117,7 @@ void Unit::AttackerStateUpdate(Unit* victim, WeaponAttackType attType, bool extr
     if (attType != BASE_ATTACK && attType != OFF_ATTACK)
         return;                                             // ignore ranged case
 
-    if (GetTypeId() == TYPEID_UNIT && !HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && !HasUnitFlag2(UNIT_FLAG2_DISABLE_TURN))
+    if (GetTypeId() == TYPEID_UNIT && !HasUnitFlag(UNIT_FLAG_POSSESSED) && !HasUnitFlag2(UNIT_FLAG2_DISABLE_TURN))
         SetFacingToObject(victim, false); // update client side facing to face the target (prevents visual glitches when casting untargeted spells)
 
     // melee attack spell cast at main hand attack only - no normal melee dmg dealt
@@ -2201,7 +2201,7 @@ void Unit::FakeAttackerStateUpdate(Unit* victim, WeaponAttackType attType /*= BA
     if (attType != BASE_ATTACK && attType != OFF_ATTACK)
         return;                                             // ignore ranged case
 
-    if (GetTypeId() == TYPEID_UNIT && !HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && !HasUnitFlag2(UNIT_FLAG2_DISABLE_TURN))
+    if (GetTypeId() == TYPEID_UNIT && !HasUnitFlag(UNIT_FLAG_POSSESSED) && !HasUnitFlag2(UNIT_FLAG2_DISABLE_TURN))
         SetFacingToObject(victim, false); // update client side facing to face the target (prevents visual glitches when casting untargeted spells)
 
     CalcDamageInfo damageInfo;
@@ -4808,36 +4808,35 @@ bool Unit::HasAuraType(AuraType auraType) const
     return (!m_modAuras[auraType].empty());
 }
 
-bool Unit::HasAuraTypeWithCaster(AuraType auratype, ObjectGuid caster) const
+bool Unit::HasAuraTypeWithCaster(AuraType auraType, ObjectGuid caster) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
-    for (AuraEffectList::const_iterator i = mTotalAuraList.begin(); i != mTotalAuraList.end(); ++i)
-        if (caster == (*i)->GetCasterGUID())
+    for (AuraEffect const* eff : GetAuraEffectsByType(auraType))
+        if (caster == eff->GetCasterGUID())
             return true;
     return false;
 }
 
-bool Unit::HasAuraTypeWithMiscvalue(AuraType auratype, int32 miscvalue) const
+bool Unit::HasAuraTypeWithMiscvalue(AuraType auraType, int32 miscvalue) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     for (AuraEffectList::const_iterator i = mTotalAuraList.begin(); i != mTotalAuraList.end(); ++i)
         if (miscvalue == (*i)->GetMiscValue())
             return true;
     return false;
 }
 
-bool Unit::HasAuraTypeWithAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const
+bool Unit::HasAuraTypeWithAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     for (AuraEffectList::const_iterator i = mTotalAuraList.begin(); i != mTotalAuraList.end(); ++i)
         if ((*i)->IsAffectingSpell(affectedSpell))
             return true;
     return false;
 }
 
-bool Unit::HasAuraTypeWithValue(AuraType auratype, int32 value) const
+bool Unit::HasAuraTypeWithValue(AuraType auraType, int32 value) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     for (AuraEffectList::const_iterator i = mTotalAuraList.begin(); i != mTotalAuraList.end(); ++i)
         if (value == (*i)->GetAmount())
             return true;
@@ -4965,9 +4964,9 @@ uint32 Unit::GetDoTsByCaster(ObjectGuid casterGUID) const
     return dots;
 }
 
-int32 Unit::GetTotalAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const
+int32 Unit::GetTotalAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     if (mTotalAuraList.empty())
         return 0;
 
@@ -4980,7 +4979,7 @@ int32 Unit::GetTotalAuraModifier(AuraType auratype, std::function<bool(AuraEffec
         {
             // Check if the Aura Effect has a the Same Effect Stack Rule and if so, use the highest amount of that SpellGroup
             // If the Aura Effect does not have this Stack Rule, it returns false so we can add to the multiplier as usual
-            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auratype), aurEff->GetAmount(), sameEffectSpellGroup))
+            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auraType), aurEff->GetAmount(), sameEffectSpellGroup))
                 modifier += aurEff->GetAmount();
         }
     }
@@ -4992,9 +4991,9 @@ int32 Unit::GetTotalAuraModifier(AuraType auratype, std::function<bool(AuraEffec
     return modifier;
 }
 
-float Unit::GetTotalAuraMultiplier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const
+float Unit::GetTotalAuraMultiplier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     if (mTotalAuraList.empty())
         return 1.0f;
 
@@ -5007,7 +5006,7 @@ float Unit::GetTotalAuraMultiplier(AuraType auratype, std::function<bool(AuraEff
         {
             // Check if the Aura Effect has a the Same Effect Stack Rule and if so, use the highest amount of that SpellGroup
             // If the Aura Effect does not have this Stack Rule, it returns false so we can add to the multiplier as usual
-            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auratype), aurEff->GetAmount(), sameEffectSpellGroup))
+            if (!sSpellMgr->AddSameEffectStackRuleSpellGroups(aurEff->GetSpellInfo(), static_cast<uint32>(auraType), aurEff->GetAmount(), sameEffectSpellGroup))
                 AddPct(multiplier, aurEff->GetAmount());
         }
     }
@@ -5019,9 +5018,9 @@ float Unit::GetTotalAuraMultiplier(AuraType auratype, std::function<bool(AuraEff
     return multiplier;
 }
 
-int32 Unit::GetMaxPositiveAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const
+int32 Unit::GetMaxPositiveAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     if (mTotalAuraList.empty())
         return 0;
 
@@ -5035,9 +5034,9 @@ int32 Unit::GetMaxPositiveAuraModifier(AuraType auratype, std::function<bool(Aur
     return modifier;
 }
 
-int32 Unit::GetMaxNegativeAuraModifier(AuraType auratype, std::function<bool(AuraEffect const*)> const& predicate) const
+int32 Unit::GetMaxNegativeAuraModifier(AuraType auraType, std::function<bool(AuraEffect const*)> const& predicate) const
 {
-    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auratype);
+    AuraEffectList const& mTotalAuraList = GetAuraEffectsByType(auraType);
     if (mTotalAuraList.empty())
         return 0;
 
@@ -5051,29 +5050,29 @@ int32 Unit::GetMaxNegativeAuraModifier(AuraType auratype, std::function<bool(Aur
     return modifier;
 }
 
-int32 Unit::GetTotalAuraModifier(AuraType auratype) const
+int32 Unit::GetTotalAuraModifier(AuraType auraType) const
 {
-    return GetTotalAuraModifier(auratype, [](AuraEffect const* /*aurEff*/) { return true; });
+    return GetTotalAuraModifier(auraType, [](AuraEffect const* /*aurEff*/) { return true; });
 }
 
-float Unit::GetTotalAuraMultiplier(AuraType auratype) const
+float Unit::GetTotalAuraMultiplier(AuraType auraType) const
 {
-    return GetTotalAuraMultiplier(auratype, [](AuraEffect const* /*aurEff*/) { return true; });
+    return GetTotalAuraMultiplier(auraType, [](AuraEffect const* /*aurEff*/) { return true; });
 }
 
-int32 Unit::GetMaxPositiveAuraModifier(AuraType auratype) const
+int32 Unit::GetMaxPositiveAuraModifier(AuraType auraType) const
 {
-    return GetMaxPositiveAuraModifier(auratype, [](AuraEffect const* /*aurEff*/) { return true; });
+    return GetMaxPositiveAuraModifier(auraType, [](AuraEffect const* /*aurEff*/) { return true; });
 }
 
-int32 Unit::GetMaxNegativeAuraModifier(AuraType auratype) const
+int32 Unit::GetMaxNegativeAuraModifier(AuraType auraType) const
 {
-    return GetMaxNegativeAuraModifier(auratype, [](AuraEffect const* /*aurEff*/) { return true; });
+    return GetMaxNegativeAuraModifier(auraType, [](AuraEffect const* /*aurEff*/) { return true; });
 }
 
-int32 Unit::GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 miscMask) const
+int32 Unit::GetTotalAuraModifierByMiscMask(AuraType auraType, uint32 miscMask) const
 {
-    return GetTotalAuraModifier(auratype, [miscMask](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraModifier(auraType, [miscMask](AuraEffect const* aurEff) -> bool
     {
         if ((aurEff->GetMiscValue() & miscMask) != 0)
             return true;
@@ -5081,9 +5080,9 @@ int32 Unit::GetTotalAuraModifierByMiscMask(AuraType auratype, uint32 miscMask) c
     });
 }
 
-float Unit::GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 miscMask) const
+float Unit::GetTotalAuraMultiplierByMiscMask(AuraType auraType, uint32 miscMask) const
 {
-    return GetTotalAuraMultiplier(auratype, [miscMask](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraMultiplier(auraType, [miscMask](AuraEffect const* aurEff) -> bool
     {
         if ((aurEff->GetMiscValue() & miscMask) != 0)
             return true;
@@ -5091,9 +5090,9 @@ float Unit::GetTotalAuraMultiplierByMiscMask(AuraType auratype, uint32 miscMask)
     });
 }
 
-int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 miscMask, AuraEffect const* except /*= nullptr*/) const
+int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auraType, uint32 miscMask, AuraEffect const* except /*= nullptr*/) const
 {
-    return GetMaxPositiveAuraModifier(auratype, [miscMask, except](AuraEffect const* aurEff) -> bool
+    return GetMaxPositiveAuraModifier(auraType, [miscMask, except](AuraEffect const* aurEff) -> bool
     {
         if (except != aurEff && (aurEff->GetMiscValue() & miscMask) != 0)
             return true;
@@ -5101,9 +5100,9 @@ int32 Unit::GetMaxPositiveAuraModifierByMiscMask(AuraType auratype, uint32 miscM
     });
 }
 
-int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 miscMask) const
+int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auraType, uint32 miscMask) const
 {
-    return GetMaxNegativeAuraModifier(auratype, [miscMask](AuraEffect const* aurEff) -> bool
+    return GetMaxNegativeAuraModifier(auraType, [miscMask](AuraEffect const* aurEff) -> bool
     {
         if ((aurEff->GetMiscValue() & miscMask) != 0)
             return true;
@@ -5111,9 +5110,9 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscMask(AuraType auratype, uint32 miscM
     });
 }
 
-int32 Unit::GetTotalAuraModifierByMiscValue(AuraType auratype, int32 miscValue) const
+int32 Unit::GetTotalAuraModifierByMiscValue(AuraType auraType, int32 miscValue) const
 {
-    return GetTotalAuraModifier(auratype, [miscValue](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraModifier(auraType, [miscValue](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->GetMiscValue() == miscValue)
             return true;
@@ -5121,9 +5120,9 @@ int32 Unit::GetTotalAuraModifierByMiscValue(AuraType auratype, int32 miscValue) 
     });
 }
 
-float Unit::GetTotalAuraMultiplierByMiscValue(AuraType auratype, int32 miscValue) const
+float Unit::GetTotalAuraMultiplierByMiscValue(AuraType auraType, int32 miscValue) const
 {
-    return GetTotalAuraMultiplier(auratype, [miscValue](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraMultiplier(auraType, [miscValue](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->GetMiscValue() == miscValue)
             return true;
@@ -5131,9 +5130,9 @@ float Unit::GetTotalAuraMultiplierByMiscValue(AuraType auratype, int32 miscValue
     });
 }
 
-int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 miscValue) const
+int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auraType, int32 miscValue) const
 {
-    return GetMaxPositiveAuraModifier(auratype, [miscValue](AuraEffect const* aurEff) -> bool
+    return GetMaxPositiveAuraModifier(auraType, [miscValue](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->GetMiscValue() == miscValue)
             return true;
@@ -5141,9 +5140,9 @@ int32 Unit::GetMaxPositiveAuraModifierByMiscValue(AuraType auratype, int32 miscV
     });
 }
 
-int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 miscValue) const
+int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auraType, int32 miscValue) const
 {
-    return GetMaxNegativeAuraModifier(auratype, [miscValue](AuraEffect const* aurEff) -> bool
+    return GetMaxNegativeAuraModifier(auraType, [miscValue](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->GetMiscValue() == miscValue)
             return true;
@@ -5151,9 +5150,9 @@ int32 Unit::GetMaxNegativeAuraModifierByMiscValue(AuraType auratype, int32 miscV
     });
 }
 
-int32 Unit::GetTotalAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const
+int32 Unit::GetTotalAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const
 {
-    return GetTotalAuraModifier(auratype, [affectedSpell](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraModifier(auraType, [affectedSpell](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->IsAffectingSpell(affectedSpell))
             return true;
@@ -5161,9 +5160,9 @@ int32 Unit::GetTotalAuraModifierByAffectMask(AuraType auratype, SpellInfo const*
     });
 }
 
-float Unit::GetTotalAuraMultiplierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const
+float Unit::GetTotalAuraMultiplierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const
 {
-    return GetTotalAuraMultiplier(auratype, [affectedSpell](AuraEffect const* aurEff) -> bool
+    return GetTotalAuraMultiplier(auraType, [affectedSpell](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->IsAffectingSpell(affectedSpell))
             return true;
@@ -5171,9 +5170,9 @@ float Unit::GetTotalAuraMultiplierByAffectMask(AuraType auratype, SpellInfo cons
     });
 }
 
-int32 Unit::GetMaxPositiveAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const
+int32 Unit::GetMaxPositiveAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const
 {
-    return GetMaxPositiveAuraModifier(auratype, [affectedSpell](AuraEffect const* aurEff) -> bool
+    return GetMaxPositiveAuraModifier(auraType, [affectedSpell](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->IsAffectingSpell(affectedSpell))
             return true;
@@ -5181,9 +5180,9 @@ int32 Unit::GetMaxPositiveAuraModifierByAffectMask(AuraType auratype, SpellInfo 
     });
 }
 
-int32 Unit::GetMaxNegativeAuraModifierByAffectMask(AuraType auratype, SpellInfo const* affectedSpell) const
+int32 Unit::GetMaxNegativeAuraModifierByAffectMask(AuraType auraType, SpellInfo const* affectedSpell) const
 {
-    return GetMaxNegativeAuraModifier(auratype, [affectedSpell](AuraEffect const* aurEff) -> bool
+    return GetMaxNegativeAuraModifier(auraType, [affectedSpell](AuraEffect const* aurEff) -> bool
     {
         if (aurEff->IsAffectingSpell(affectedSpell))
             return true;
@@ -6194,7 +6193,7 @@ void Unit::SetMinion(Minion *minion, bool apply)
         if (GetTypeId() == TYPEID_PLAYER)
         {
             minion->m_ControlledByPlayer = true;
-            minion->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            minion->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
         }
 
         // Can only have one pet. If a new one is summoned, dismiss the old one.
@@ -6364,7 +6363,7 @@ void Unit::SetCharm(Unit* charm, bool apply)
 
             charm->m_ControlledByPlayer = true;
             /// @todo maybe we can use this flag to check if controlled by player
-            charm->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            charm->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
         }
         else
             charm->m_ControlledByPlayer = false;
@@ -6403,19 +6402,19 @@ void Unit::SetCharm(Unit* charm, bool apply)
         if (charm->GetTypeId() == TYPEID_PLAYER)
         {
             charm->m_ControlledByPlayer = true;
-            charm->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            charm->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
             charm->ToPlayer()->UpdatePvPState();
         }
         else if (Player* player = charm->GetCharmerOrOwnerPlayerOrPlayerItself())
         {
             charm->m_ControlledByPlayer = true;
-            charm->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            charm->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
             charm->SetPvpFlags(player->GetPvpFlags());
         }
         else
         {
             charm->m_ControlledByPlayer = false;
-            charm->RemoveUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+            charm->RemoveUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
             charm->SetPvpFlags(UNIT_BYTE2_FLAG_NONE);
         }
 
@@ -8361,10 +8360,10 @@ void Unit::SetImmuneToPC(bool apply, bool keepCombat)
         {
             std::list<CombatReference*> toEnd;
             for (auto const& pair : m_combatManager.GetPvECombatRefs())
-                if (pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+                if (pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
                     toEnd.push_back(pair.second);
             for (auto const& pair : m_combatManager.GetPvPCombatRefs())
-                if (pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+                if (pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
                     toEnd.push_back(pair.second);
             for (CombatReference* ref : toEnd)
                 ref->EndCombat();
@@ -8389,10 +8388,10 @@ void Unit::SetImmuneToNPC(bool apply, bool keepCombat)
         {
             std::list<CombatReference*> toEnd;
             for (auto const& pair : m_combatManager.GetPvECombatRefs())
-                if (!pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+                if (!pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
                     toEnd.push_back(pair.second);
             for (auto const& pair : m_combatManager.GetPvPCombatRefs())
-                if (!pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+                if (!pair.second->GetOther(this)->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
                     toEnd.push_back(pair.second);
             for (CombatReference* ref : toEnd)
                 ref->EndCombat();
@@ -8481,18 +8480,18 @@ bool Unit::_IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, Wo
 
     // check flags
     if (target->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_UNK_16))
-        || (!HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && target->IsImmuneToNPC())
-        || (!target->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && IsImmuneToNPC()))
+        || (!HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && target->IsImmuneToNPC())
+        || (!target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && IsImmuneToNPC()))
         return false;
 
     if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR8_ATTACK_IGNORE_IMMUNE_TO_PC_FLAG))
-        && (HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && target->IsImmuneToPC())
+        && (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && target->IsImmuneToPC())
         // check if this is a world trigger cast - GOs are using world triggers to cast their spells, so we need to ignore their immunity flag here, this is a temp workaround, needs removal when go cast is implemented properly
         && GetEntry() != WORLD_TRIGGER)
         return false;
 
     // CvC case - can attack each other only when one of them is hostile
-    if (!HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && !target->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+    if (!HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && !target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
         return GetReactionTo(target) <= REP_HOSTILE || target->GetReactionTo(this) <= REP_HOSTILE;
 
     // PvP, PvC, CvP case
@@ -8501,8 +8500,8 @@ bool Unit::_IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, Wo
         || target->GetReactionTo(this) > REP_NEUTRAL)
         return false;
 
-    Player const* playerAffectingAttacker = HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) ? GetAffectingPlayer() : nullptr;
-    Player const* playerAffectingTarget = target->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) ? target->GetAffectingPlayer() : nullptr;
+    Player const* playerAffectingAttacker = HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) ? GetAffectingPlayer() : nullptr;
+    Player const* playerAffectingTarget = target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) ? target->GetAffectingPlayer() : nullptr;
 
     // Not all neutral creatures can be attacked (even some unfriendly faction does not react aggresive to you, like Sporaggar)
     if ((playerAffectingAttacker && !playerAffectingTarget) ||
@@ -8536,7 +8535,7 @@ bool Unit::_IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, Wo
 
     // PvP case - can't attack when attacker or target are in sanctuary
     // however, 13850 client doesn't allow to attack when one of the unit's has sanctuary flag and is pvp
-    if (target->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE) && (target->IsInSanctuary() || IsInSanctuary()))
+    if (target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && (target->IsInSanctuary() || IsInSanctuary()))
         return false;
 
     // additional checks - only PvP case
@@ -8593,7 +8592,7 @@ bool Unit::_IsValidAssistTarget(Unit const* target, SpellInfo const* bySpell) co
 
     if (!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_ASSIST_IGNORE_IMMUNE_FLAG))
     {
-        if (HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+        if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
         {
             if (target->IsImmuneToPC())
                 return false;
@@ -8615,10 +8614,10 @@ bool Unit::_IsValidAssistTarget(Unit const* target, SpellInfo const* bySpell) co
     if (GetTypeId() == TYPEID_PLAYER && IsCharmed() && GetCharmerGUID().IsCreature())
         return true;
     // PvP case
-    else if (target->HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+    else if (target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
     {
         Player const* targetPlayerOwner = target->GetAffectingPlayer();
-        if (HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE))
+        if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED))
         {
             Player const* selfPlayerOwner = GetAffectingPlayer();
             if (selfPlayerOwner && targetPlayerOwner)
@@ -8639,8 +8638,8 @@ bool Unit::_IsValidAssistTarget(Unit const* target, SpellInfo const* bySpell) co
         }
     }
     // PvC case - player can assist creature only if has specific type flags
-    // !target->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE) &&
-    else if (HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE)
+    // !target->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED) &&
+    else if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED)
         && (!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_ASSIST_IGNORE_IMMUNE_FLAG))
         && !target->HasPvpFlag(UNIT_BYTE2_FLAG_PVP))
     {
@@ -10728,7 +10727,7 @@ void Unit::StopMoving()
 
 void Unit::PauseMovement(uint32 timer/* = 0*/, uint8 slot/* = 0*/, bool forced/* = true*/)
 {
-    if (slot >= MAX_MOTION_SLOT)
+    if (IsInvalidMovementSlot(slot))
         return;
 
     if (MovementGenerator* movementGenerator = GetMotionMaster()->GetMotionSlot(MovementSlot(slot)))
@@ -10740,7 +10739,7 @@ void Unit::PauseMovement(uint32 timer/* = 0*/, uint8 slot/* = 0*/, bool forced/*
 
 void Unit::ResumeMovement(uint32 timer/* = 0*/, uint8 slot/* = 0*/)
 {
-    if (slot >= MAX_MOTION_SLOT)
+    if (IsInvalidMovementSlot(slot))
         return;
 
     if (MovementGenerator* movementGenerator = GetMotionMaster()->GetMotionSlot(MovementSlot(slot)))
@@ -11165,7 +11164,7 @@ bool Unit::InitTamedPet(Pet* pet, uint8 level, uint32 spell_id)
     pet->SetCreatedBySpell(spell_id);
 
     if (GetTypeId() == TYPEID_PLAYER)
-        pet->AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+        pet->AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
 
     if (!pet->InitStatsForLevel(level))
     {
@@ -11885,12 +11884,12 @@ bool Unit::SetCharmedBy(Unit* charmer, CharmType type, AuraApplication const* au
         switch (type)
         {
             case CHARM_TYPE_VEHICLE:
-                AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                AddUnitFlag(UNIT_FLAG_POSSESSED);
                 playerCharmer->SetClientControl(this, true);
                 playerCharmer->VehicleSpellInitialize();
                 break;
             case CHARM_TYPE_POSSESS:
-                AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                AddUnitFlag(UNIT_FLAG_POSSESSED);
                 charmer->AddUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
                 playerCharmer->SetClientControl(this, true);
                 playerCharmer->PossessSpellInitialize();
@@ -11990,14 +11989,14 @@ void Unit::RemoveCharmedBy(Unit* charmer)
             case CHARM_TYPE_VEHICLE:
                 playerCharmer->SetClientControl(this, false);
                 playerCharmer->SetClientControl(charmer, true);
-                RemoveUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                RemoveUnitFlag(UNIT_FLAG_POSSESSED);
                 break;
             case CHARM_TYPE_POSSESS:
                 ClearUnitState(UNIT_STATE_POSSESSED);
                 playerCharmer->SetClientControl(this, false);
                 playerCharmer->SetClientControl(charmer, true);
                 charmer->RemoveUnitFlag(UNIT_FLAG_REMOVE_CLIENT_CONTROL);
-                RemoveUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
+                RemoveUnitFlag(UNIT_FLAG_POSSESSED);
                 break;
             case CHARM_TYPE_CHARM:
                 if (GetTypeId() == TYPEID_UNIT && charmer->getClass() == CLASS_WARLOCK)
@@ -12913,7 +12912,7 @@ bool Unit::CanSwim() const
     // Mirror client behavior, if this method returns false then client will not use swimming animation and for players will apply gravity as if there was no water
     if (HasUnitFlag(UNIT_FLAG_CANNOT_SWIM))
         return false;
-    if (HasUnitFlag(UNIT_FLAG_PVP_ATTACKABLE)) // is player
+    if (HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED)) // is player
         return true;
     if (HasUnitFlag2(UnitFlags2(0x1000000)))
         return false;
@@ -13258,7 +13257,9 @@ void Unit::SetFacingTo(float ori, bool force)
     if (GetTransport())
         init.DisableTransportPathTransformations(); // It makes no sense to target global orientation
     init.SetFacing(ori);
-    GetMotionMaster()->LaunchMoveSpline(std::move(init), EVENT_FACE, MOTION_SLOT_CONTROLLED);
+
+    //GetMotionMaster()->LaunchMoveSpline(std::move(init), EVENT_FACE, MOTION_SLOT_CONTROLLED);
+    init.Launch();
 }
 
 void Unit::SetFacingToObject(WorldObject const* object, bool force)
@@ -13271,7 +13272,9 @@ void Unit::SetFacingToObject(WorldObject const* object, bool force)
     Movement::MoveSplineInit init(this);
     init.MoveTo(GetPositionX(), GetPositionY(), GetPositionZ(), false);
     init.SetFacing(GetAbsoluteAngle(object));   // when on transport, GetAbsoluteAngle will still return global coordinates (and angle) that needs transforming
-    GetMotionMaster()->LaunchMoveSpline(std::move(init), EVENT_FACE, MOTION_SLOT_CONTROLLED);
+
+    //GetMotionMaster()->LaunchMoveSpline(std::move(init), EVENT_FACE, MOTION_SLOT_CONTROLLED);
+    init.Launch();
 }
 
 bool Unit::SetWalk(bool enable)

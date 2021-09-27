@@ -274,6 +274,12 @@ namespace WorldPackets
             bool AcceptedInvite = false;
         };
 
+        struct IgnorMapInfo
+        {
+            IgnorMapInfo() { map[0] = 0, map[1] = 0; }
+            uint32 map[2];
+        };
+
         class BattlefieldListRequest final : public ClientPacket
         {
         public:
@@ -426,7 +432,6 @@ namespace WorldPackets
             void Read() override { }
         };
 
-
         struct RatedInfo
         {
             uint32 ArenaPersonalRating;
@@ -507,6 +512,8 @@ namespace WorldPackets
             RequestScheduledPVPInfo(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_SCHEDULED_PVP_INFO, std::move(packet)) { }
 
             void Read() override { }
+
+            uint8 RolesMask = 0;
         };
 
         class PVPMatchInitialize final : public ServerPacket

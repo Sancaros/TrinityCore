@@ -595,12 +595,53 @@ void BattlegroundMgr::SendAreaSpiritHealerQueryOpcode(Player* player, Battlegrou
 
 bool BattlegroundMgr::IsArenaType(BattlegroundTypeId bgTypeId)
 {
-    return bgTypeId == BATTLEGROUND_AA
-            || bgTypeId == BATTLEGROUND_BE
-            || bgTypeId == BATTLEGROUND_NA
-            || bgTypeId == BATTLEGROUND_DS
-            || bgTypeId == BATTLEGROUND_RV
-            || bgTypeId == BATTLEGROUND_RL;
+    return (bgTypeId == BATTLEGROUND_AA ||
+        bgTypeId == BATTLEGROUND_BE ||
+        bgTypeId == BATTLEGROUND_NA ||
+        bgTypeId == BATTLEGROUND_DS ||
+        bgTypeId == BATTLEGROUND_RV ||
+        bgTypeId == BATTLEGROUND_RL ||
+        bgTypeId == BATTLEGROUND_TTP);
+}
+
+BracketType BattlegroundMgr::BracketByJoinType(uint8 joinType)
+{
+    switch (joinType)
+    {
+    case ARENA_TYPE_2v2:
+        return BRACKET_TYPE_ARENA_2;
+    case ARENA_TYPE_3v3:
+        return BRACKET_TYPE_ARENA_3;
+    case ARENA_TYPE_5v5:
+        return BRACKET_TYPE_ARENA_5;
+    case JOIN_TYPE_RATED_BG_10v10:
+    case JOIN_TYPE_RATED_BG_15v15:
+    case JOIN_TYPE_RATED_BG_25v25:
+        return BRACKET_TYPE_RATED_BG;
+    default:
+        break;
+    }
+
+    return BRACKET_TYPE_MAX;
+}
+
+uint8 BattlegroundMgr::GetJoinTypeByBracketSlot(uint8 slot)
+{
+    switch (slot)
+    {
+    case BRACKET_TYPE_ARENA_2:
+        return ARENA_TYPE_2v2;
+    case BRACKET_TYPE_ARENA_3:
+        return ARENA_TYPE_3v3;
+    case BRACKET_TYPE_ARENA_5:
+        return ARENA_TYPE_5v5;
+    case BRACKET_TYPE_RATED_BG:
+        return JOIN_TYPE_RATED_BG_10v10;
+    default:
+        break;
+    }
+    TC_LOG_ERROR("arena", "FATAL: Unknown arena slot %u", slot);
+    return 0xFF;
 }
 
 BattlegroundQueueTypeId BattlegroundMgr::BGQueueTypeId(uint16 battlemasterListId, BattlegroundQueueIdType type, bool rated, uint8 teamSize)

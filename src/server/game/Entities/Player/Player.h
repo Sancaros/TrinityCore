@@ -1008,11 +1008,13 @@ class Player;
 struct BGData
 {
     BGData() : bgInstanceID(0), bgTypeID(BATTLEGROUND_TYPE_NONE), bgAfkReportedCount(0), bgAfkReportedTimer(0),
-        bgTeam(0), mountSpell(0) { ClearTaxiPath(); }
+        bgTeam(0), mountSpell(0) { bgQueuesJoinedTime.clear(); ClearTaxiPath(); }
 
     uint32 bgInstanceID;                    ///< This variable is set to bg->m_InstanceID,
                                             ///  when player is teleported to BG - (it is battleground's GUID)
     BattlegroundTypeId bgTypeID;
+
+    std::map<uint32, uint32> bgQueuesJoinedTime;
 
     GuidSet            bgAfkReporter;
     uint8              bgAfkReportedCount;
@@ -2383,11 +2385,14 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         bool InBattleground()       const                { return m_bgData.bgInstanceID != 0; }
         bool InArena()              const;
+        bool InRatedBattleGround()  const;
         uint32 GetBattlegroundId()  const                { return m_bgData.bgInstanceID; }
         BattlegroundTypeId GetBattlegroundTypeId() const { return m_bgData.bgTypeID; }
         Battleground* GetBattleground() const;
 
         uint32 GetBattlegroundQueueJoinTime(BattlegroundQueueTypeId bgQueueTypeId) const;
+        void AddBattlegroundQueueJoinTime(uint32 bgTypeId, uint32 joinTime);
+        void RemoveBattlegroundQueueJoinTime(uint32 bgTypeId);
         bool InBattlegroundQueue(bool ignoreArena = false) const;
         BattlegroundQueueTypeId GetBattlegroundQueueTypeId(uint32 index) const;
         uint32 GetBattlegroundQueueIndex(BattlegroundQueueTypeId bgQueueTypeId) const;

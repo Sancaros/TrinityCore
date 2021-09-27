@@ -123,6 +123,8 @@ class TC_GAME_API BattlegroundMgr
         bool isArenaTesting() const { return m_ArenaTesting; }
         bool isTesting() const { return m_Testing; }
 
+        static BracketType BracketByJoinType(uint8 joinType);
+		static uint8 GetJoinTypeByBracketSlot(uint8 slot);
         static BattlegroundQueueTypeId BGQueueTypeId(uint16 battlemasterListId, BattlegroundQueueIdType type, bool rated, uint8 teamSize);
 
         static HolidayIds BGTypeToWeekendHolidayId(BattlegroundTypeId bgTypeId);

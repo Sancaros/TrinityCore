@@ -478,7 +478,7 @@ bool Player::Create(ObjectGuid::LowType guidlow, WorldPackets::Character::Charac
     if (sWorld->getIntConfig(CONFIG_GAME_TYPE) == REALM_TYPE_PVP || sWorld->getIntConfig(CONFIG_GAME_TYPE) == REALM_TYPE_RPPVP)
     {
         AddPvpFlag(UNIT_BYTE2_FLAG_PVP);
-        AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);
+        AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);
     }
 
     AddUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);
@@ -2737,7 +2737,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
         UNIT_FLAG_STUNNED        | UNIT_FLAG_IN_COMBAT    | UNIT_FLAG_DISARMED         |
         UNIT_FLAG_CONFUSED       | UNIT_FLAG_FLEEING      | UNIT_FLAG_NOT_SELECTABLE   |
         UNIT_FLAG_SKINNABLE      | UNIT_FLAG_MOUNT        | UNIT_FLAG_TAXI_FLIGHT      ));
-    AddUnitFlag(UNIT_FLAG_PVP_ATTACKABLE);   // must be set
+    AddUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED);   // must be set
 
     AddUnitFlag2(UNIT_FLAG2_REGENERATE_POWER);// must be set
 
@@ -16118,7 +16118,7 @@ void Player::RewardQuest(Quest const* quest, LootItemType rewardType, uint32 rew
     // cast spells after mark quest complete (some spells have quest completed state requirements in spell_area data)
     if (quest->GetRewSpell() > 0)
     {
-        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(quest->GetRewSpell(), GetMap()->GetDifficultyID());
+        SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(quest->GetRewSpell(), GetMap()->GetDifficultyID());
         Unit* caster = this;
         if (questGiver && questGiver->isType(TYPEMASK_UNIT) && !quest->HasFlag(QUEST_FLAGS_PLAYER_CAST_ON_COMPLETE) && !spellInfo->HasTargetType(TARGET_UNIT_CASTER))
             if (Unit* unit = questGiver->ToUnit())
@@ -16134,7 +16134,7 @@ void Player::RewardQuest(Quest const* quest, LootItemType rewardType, uint32 rew
                 if (!ConditionMgr::IsPlayerMeetingCondition(this, playerCondition))
                     continue;
 
-            SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(displaySpell.SpellId, GetMap()->GetDifficultyID());
+            SpellInfo const* spellInfo = sSpellMgr->AssertSpellInfo(displaySpell.SpellId, GetMap()->GetDifficultyID());
             Unit* caster = this;
             if (questGiver && questGiver->isType(TYPEMASK_UNIT) && !quest->HasFlag(QUEST_FLAGS_PLAYER_CAST_ON_COMPLETE) && !spellInfo->HasTargetType(TARGET_UNIT_CASTER))
                 if (Unit* unit = questGiver->ToUnit())
@@ -25289,6 +25289,17 @@ uint32 Player::GetBattlegroundQueueJoinTime(BattlegroundQueueTypeId bgQueueTypeI
         if (m_bgBattlegroundQueueID[i].bgQueueTypeId == bgQueueTypeId)
             return m_bgBattlegroundQueueID[i].joinTime;
     return 0;
+}
+
+void Player::AddBattlegroundQueueJoinTime(uint32 bgTypeId, uint32 joinTime)
+{
+    m_bgData.bgQueuesJoinedTime[bgTypeId] = joinTime;
+}
+
+void Player::RemoveBattlegroundQueueJoinTime(uint32 bgTypeId)
+{
+    if (m_bgData.bgQueuesJoinedTime.find(bgTypeId) != m_bgData.bgQueuesJoinedTime.end())
+        m_bgData.bgQueuesJoinedTime.erase(m_bgData.bgQueuesJoinedTime.find(bgTypeId)->second);
 }
 
 bool Player::InBattlegroundQueue(bool ignoreArena) const
