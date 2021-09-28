@@ -97,11 +97,11 @@ void ChallengeMgr::SaveChallengeToDB(ChallengeData const* challengeData)
     stmt->setUInt32(4, challengeData->Date);
     stmt->setUInt8(5, challengeData->ChallengeLevel);
     stmt->setUInt8(6, challengeData->TimerLevel);
-    /*std::ostringstream affixesListIDs;
+    std::ostringstream affixesListIDs;
     for (uint16 affixe : challengeData->Affixes)
         if (affixe)
             affixesListIDs << affixe << ' ';
-    stmt->setString(7, affixesListIDs.str());*/
+    stmt->setString(7, affixesListIDs.str());
     stmt->setUInt32(8, challengeData->ChestID);
     trans->Append(stmt);
 
@@ -337,11 +337,11 @@ void ChallengeMgr::SaveOploteLootToDB()
         {
             auto stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHALLENGE_OPLOTE_LOOT);
             stmt->setUInt32(0, v.second.guid.GetCounter());
-            /*std::ostringstream chestLists;
+            std::ostringstream chestLists;
             for (uint32 chestList : v.second.chestListID)
                 if (chestList)
                     chestLists << chestList << ' ';
-            stmt->setString(1, chestLists.str());*/
+            stmt->setString(1, chestLists.str());
             stmt->setUInt32(2, v.second.Date);
             stmt->setUInt32(3, v.second.ChallengeLevel);
             trans->Append(stmt);
