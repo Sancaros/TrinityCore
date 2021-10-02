@@ -18,6 +18,7 @@
 #ifndef LFGPackets_h__
 #define LFGPackets_h__
 
+#include "Battleground.h"
 #include "Packet.h"
 #include "PacketUtilities.h"
 #include "ItemPacketsCommon.h"

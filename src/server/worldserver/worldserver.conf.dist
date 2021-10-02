@@ -4515,3 +4515,35 @@ Metric.OverallStatusInterval = 1
 
 #
 ###################################################################################################
+
+###################################################################################################
+# Dungeon Finder
+#
+#   DungeonFinder.DebugJoin
+#       Description: Allow DungeonFinder usage with 1 player.
+#                    You can also use ".debug lfg on" in game.
+#       Default:     1 - (Enabled)
+#                    0 - (Disabled)
+
+DungeonFinder.DebugJoin = 1
+
+#   DungeonFinder.UnlockAll
+#       Description: Unlock all DungeonFinder dungeons and raids on dungeon finder.
+#       Default:     1 - (Enabled)
+#                    0 - (Disabled)
+
+DungeonFinder.UnlockAll = 1
+
+#
+#     DungeonFinder.OptionsMask
+#        Description: Dungeon and raid finder system.
+#        Value is a bitmask consisting of:
+#           LFG_OPTION_ENABLE_DUNGEON_FINDER = 1,     Enable the dungeon finder browser
+#           LFG_OPTION_ENABLE_RAID_BROWSER   = 2,     Enable the raid browser
+#        Default:     1
+
+DungeonFinder.OptionsMask = 1
+
+#
+###################################################################################################
+

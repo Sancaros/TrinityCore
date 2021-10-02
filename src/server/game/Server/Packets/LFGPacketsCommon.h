@@ -28,9 +28,13 @@ namespace WorldPackets
     {
         enum class RideType : uint32
         {
-            None = 0,
-            Battlegrounds = 1,
-            Lfg = 2
+            None                = 0,
+            Battlegrounds       = 1,
+            Lfg                 = 2,
+            PvPPetBattle        = 3,
+            LfgListApplication  = 4, // LFGListParty
+            PetBattle           = 5,
+            LfgListApplicant    = 6, // LFGListPlayer
         };
 
         struct RideTicket

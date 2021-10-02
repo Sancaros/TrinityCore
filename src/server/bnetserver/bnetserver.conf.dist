@@ -400,4 +400,13 @@ Logger.session.packets=3,Console Bnet
 Logger.sql.updates=3,Console Bnet
 
 #
+#    ConsoleErrorLogging
+#        Description: Show errors on console on/off.
+#                     If disabled, errors will still be saved to log files.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+
+ConsoleErrorLogging = 1
+
+#
 ###################################################################################################

@@ -1785,6 +1785,20 @@ class TC_GAME_API WorldSession
         void HandleResetInstancesOpcode(WorldPackets::Instance::ResetInstances& packet);
         void HandleInstanceLockResponse(WorldPackets::Instance::InstanceLockResponse& packet);
 
+        // LFG List
+
+        void HandleRequestLfgListBlackList(WorldPackets::LfgList::RequestLfgListBlacklist& packet);
+        void HandleLfgListSearch(WorldPackets::LfgList::LfgListSearch& packet);
+        void HandleLfgListJoin(WorldPackets::LfgList::LfgListJoin& packet);
+        void HandleLfgListLeave(WorldPackets::LfgList::LfgListLeave& packet);
+        void HandleLfgListInviteResponse(WorldPackets::LfgList::LfgListInviteResponse& packet);
+        void HandleLfgListGetStatus(WorldPackets::LfgList::LfgListGetStatus& packet);
+        void HandleLfgListApplyToGroup(WorldPackets::LfgList::LfgListApplyToGroup& packet);
+        void HandleLfgListCancelApplication(WorldPackets::LfgList::LfgListCancelApplication& packet);
+        void HandleLfgListDeclineApplicant(WorldPackets::LfgList::LfgListDeclineApplicant& packet);
+        void HandleLfgListInviteApplicant(WorldPackets::LfgList::LfgListInviteApplicant& packet);
+        void HandleLfgListUpdateRequest(WorldPackets::LfgList::LfgListUpdateRequest& packet);
+
         // Looking for Dungeon/Raid
         void SendLfgPlayerLockInfo();
         void SendLfgPartyLockInfo();
