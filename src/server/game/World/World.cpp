@@ -46,6 +46,7 @@
 #include "CreatureGroups.h"
 #include "CreatureTextMgr.h"
 #include "DatabaseEnv.h"
+#include "DB2Stores.h"
 #include "DisableMgr.h"
 #include "GameEventMgr.h"
 #include "GameObjectModel.h"
@@ -913,6 +914,7 @@ void World::LoadConfigSettings(bool reload)
     }
 
     m_int_configs[CONFIG_CHARACTER_CREATING_MIN_LEVEL_FOR_DEMON_HUNTER] = sConfigMgr->GetIntDefault("CharacterCreating.MinLevelForDemonHunter", 0);
+    m_bool_configs[CONFIG_CHARACTER_CREATING_DISABLE_ALLIED_RACE_ACHIEVEMENT_REQUIREMENT] = sConfigMgr->GetBoolDefault("CharacterCreating.DisableAlliedRaceAchievementRequirement", false);
 
     m_int_configs[CONFIG_SKIP_CINEMATICS] = sConfigMgr->GetIntDefault("SkipCinematics", 0);
     if (int32(m_int_configs[CONFIG_SKIP_CINEMATICS]) < 0 || m_int_configs[CONFIG_SKIP_CINEMATICS] > 2)
@@ -1842,6 +1844,9 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Transport animations and rotations...");
     sTransportMgr->LoadTransportAnimationAndRotation();
 
+    TC_LOG_INFO("server.loading", "Loading Transport spawns...");
+    sTransportMgr->LoadTransportSpawns();
+
     TC_LOG_INFO("server.loading", "Loading Spell Rank Data...");
     sSpellMgr->LoadSpellRanks();
 
@@ -1951,7 +1956,7 @@ void World::SetInitialWorldSettings()
     sObjectMgr->LoadSpawnGroups();
 
     TC_LOG_INFO("server.loading", "Loading GameObject Addon Data...");
-    sObjectMgr->LoadGameObjectAddons();                          // must be after LoadGameObjectTemplate() and LoadGameObjects()
+    sObjectMgr->LoadGameObjectAddons();                          // must be after LoadGameObjects()
 
     TC_LOG_INFO("server.loading", "Loading GameObject faction and flags overrides...");
     sObjectMgr->LoadGameObjectOverrides();                       // must be after LoadGameObjects()
@@ -2046,6 +2051,9 @@ void World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading linked spells...");
     sSpellMgr->LoadSpellLinked();
 
+    TC_LOG_INFO("server.loading", "Loading Scenes Templates..."); // must be before LoadPlayerInfo
+    sObjectMgr->LoadSceneTemplates();
+
     TC_LOG_INFO("server.loading", "Loading Player Create Data...");
     sObjectMgr->LoadPlayerInfo();
 
@@ -2063,9 +2071,6 @@ void World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Conversation Templates...");
     sConversationDataStore->LoadConversationTemplates();
-
-    TC_LOG_INFO("server.loading", "Loading Scenes Templates...");
-    sObjectMgr->LoadSceneTemplates();
 
     TC_LOG_INFO("server.loading", "Loading Player Choices...");
     sObjectMgr->LoadPlayerChoices();

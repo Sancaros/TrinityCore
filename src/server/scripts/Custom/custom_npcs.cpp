@@ -53,14 +53,14 @@ class npc_rate_xp_modifier : public CreatureScript
 
                 std::ostringstream gossipText;
                 gossipText << "Rate x" << i;
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, gossipText.str(), GOSSIP_SENDER_MAIN, i);
+                AddGossipItemFor(player, GossipOptionIcon::Vendor, gossipText.str(), GOSSIP_SENDER_MAIN, i);
             }
 
             if (player->GetPersonnalXpRate())
             {
                 std::ostringstream gossipText;
                 gossipText << "Default Rate - x" << sWorld->getRate(RATE_XP_KILL);
-                AddGossipItemFor(player, GOSSIP_ICON_CHAT, gossipText.str(), GOSSIP_SENDER_MAIN, 0);
+                AddGossipItemFor(player, GossipOptionIcon::Vendor, gossipText.str(), GOSSIP_SENDER_MAIN, 0);
             }
 
             SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
@@ -191,9 +191,9 @@ public:
             player->PrepareQuestMenu(creature->GetGUID());
 
         if (player->GetQuestStatus(29134) == QUEST_STATUS_INCOMPLETE)
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_A_WRINKIE_IN_TIME, GOSSIP_SENDER_MAIN, ACTION_A_WRINKIE_IN_TIME);
+            AddGossipItemFor(player, GossipOptionIcon::Vendor, GOSSIP_A_WRINKIE_IN_TIME, GOSSIP_SENDER_MAIN, ACTION_A_WRINKIE_IN_TIME);
         else if (player->GetQuestStatus(29193) == QUEST_STATUS_INCOMPLETE)
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, GOSSIP_ON_A_WING_AND_A_PRAYER, GOSSIP_SENDER_MAIN, ACTION_ON_A_WING_AND_A_PRAYER);
+            AddGossipItemFor(player, GossipOptionIcon::Vendor, GOSSIP_ON_A_WING_AND_A_PRAYER, GOSSIP_SENDER_MAIN, ACTION_ON_A_WING_AND_A_PRAYER);
             SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
         return ItemContext::NONE, true;
     }
@@ -451,8 +451,8 @@ public:
             player->GetSession()->SendNotification(sObjectMgr->GetTrinityStringForDBCLocale(789000));
             return false;
         } else {
-            AddGossipItemFor(player, GOSSIP_ICON_TRANSMOGRIFIER, "Random morph", GOSSIP_SENDER_MAIN, ACTION_RANDOM_MORPH);
-            AddGossipItemFor(player, GOSSIP_ICON_CHAT, "Demorph", GOSSIP_SENDER_MAIN, ACTION_DEMORPH);
+            AddGossipItemFor(player, GossipOptionIcon::Vendor, "Random morph", GOSSIP_SENDER_MAIN, ACTION_RANDOM_MORPH);
+            AddGossipItemFor(player, GossipOptionIcon::Vendor, "Demorph", GOSSIP_SENDER_MAIN, ACTION_DEMORPH);
 
             SendGossipMenuFor(player, player->GetGossipTextId(creature), creature->GetGUID());
             return ItemContext::NONE, true;
@@ -632,7 +632,7 @@ public:
                     }
                 if (check)
                     if (BroadcastTextEntry const* bct = sBroadcastTextStore.LookupEntry(62660))
-                        AddGossipItemFor(player, GOSSIP_ICON_CHAT, DB2Manager::GetBroadcastTextValue(bct, player->GetSession()->GetSessionDbLocaleIndex()), GOSSIP_SENDER_MAIN, PetBattleTrainerFightActionID);
+                        AddGossipItemFor(player, GossipOptionIcon::Vendor, DB2Manager::GetBroadcastTextValue(bct, player->GetSession()->GetSessionDbLocaleIndex()), GOSSIP_SENDER_MAIN, PetBattleTrainerFightActionID);
             }
 
             player->TalkedToCreature(me->GetEntry(), me->GetGUID());

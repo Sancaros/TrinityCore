@@ -127,6 +127,12 @@ namespace WorldPackets
 TC_GAME_API uint32 GetBagSize(Bag const* bag);
 TC_GAME_API Item* GetItemInBag(Bag const* bag, uint8 slot);
 
+enum class PlayerCreateMode : int8
+{
+    Normal  = 0,
+    NPE     = 1
+};
+
 struct ChallengeKeyInfo
 {
     ChallengeKeyInfo() : InstanceID(0), timeReset(0), ID(0), Level(2), Affix(0), Affix1(0), Affix2(0), KeyIsCharded(1), needSave(false), needUpdate(false) { }
@@ -1946,6 +1952,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         void ResurrectUsingRequestData();
         void ResurrectUsingRequestDataImpl();
 
+        PlayerCreateMode GetCreateMode() const { return m_createMode;  }
+
         uint8 getCinematic() const { return m_cinematic; }
         void setCinematic(uint8 cine) { m_cinematic = cine; }
 
@@ -2316,7 +2324,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         void ResetAllPowers();
 
-        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType attackType /*= BASE_ATTACK*/) const;
+        SpellSchoolMask GetMeleeDamageSchoolMask(WeaponAttackType attackType = BASE_ATTACK) const override;
 
         void CastAllObtainSpells();
         void ApplyItemObtainSpells(Item* item, bool apply);
@@ -2684,6 +2692,7 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
         PlayerAchievementMgr* GetAchievementMgr() { return m_achievementMgr; }
         QuestObjectiveCriteriaMgr* GetQuestObjectiveCriteriaMgr() const { return m_questObjectiveCriteriaMgr.get(); }
         SceneMgr& GetSceneMgr() { return m_sceneMgr; }
+        SceneMgr const& GetSceneMgr() const { return m_sceneMgr; }
         RestMgr& GetRestMgr() const { return *_restMgr; }
        
         std::vector<std::pair<uint32, std::function<void()>>> MovieDelayedActions;
@@ -3101,6 +3110,8 @@ class TC_GAME_API Player : public Unit, public GridObject<Player>
 
         JoinedChannelsList m_channels;
 
+        time_t m_createTime;
+        PlayerCreateMode m_createMode;
         uint8 m_cinematic;
 
         uint32 m_movie;

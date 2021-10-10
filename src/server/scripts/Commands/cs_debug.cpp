@@ -31,6 +31,7 @@ EndScriptData */
 #include "Chat.h"
 #include "ChatPackets.h"
 #include "Conversation.h"
+#include "DB2Stores.h"
 #include "GossipDef.h"
 #include "GridNotifiersImpl.h"
 #include "InstanceScript.h"
@@ -1632,7 +1633,7 @@ public:
             return false;
         }
 
-        return Conversation::CreateConversation(conversationEntry, target, *target, { target->GetGUID() }) != nullptr;
+        return Conversation::CreateConversation(conversationEntry, target, *target, target->GetGUID()) != nullptr;
     }
 
     static bool HandleDebugWorldStateCommand(ChatHandler* handler, char const* args)

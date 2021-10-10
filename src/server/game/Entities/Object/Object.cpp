@@ -24,6 +24,7 @@
 #include "CombatLogPackets.h"
 #include "Common.h"
 #include "Creature.h"
+#include "DB2Stores.h"
 #include "GameTime.h"
 #include "GridNotifiersImpl.h"
 #include "InstanceScenario.h"
@@ -732,21 +733,22 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
 
     if (flags.ActivePlayer)
     {
-        bool HasSceneInstanceIDs = false;
+        Player const* player = ToPlayer();
+
+        bool HasSceneInstanceIDs = !player->GetSceneMgr().GetSceneTemplateByInstanceMap().empty();
         bool HasRuneState = ToUnit()->GetPowerIndex(POWER_RUNES) != MAX_POWERS;
 
         data->WriteBit(HasSceneInstanceIDs);
         data->WriteBit(HasRuneState);
         data->FlushBits();
-        //if (HasSceneInstanceIDs)
-        //{
-        //    *data << uint32(SceneInstanceIDs.size());
-        //    for (std::size_t i = 0; i < SceneInstanceIDs.size(); ++i)
-        //        *data << uint32(SceneInstanceIDs[i]);
-        //}
+        if (HasSceneInstanceIDs)
+        {
+            *data << uint32(player->GetSceneMgr().GetSceneTemplateByInstanceMap().size());
+            for (auto const& itr : player->GetSceneMgr().GetSceneTemplateByInstanceMap())
+                *data << uint32(itr.first);
+        }
         if (HasRuneState)
         {
-            Player const* player = ToPlayer();
             float baseCd = float(player->GetRuneBaseCooldown());
             uint32 maxRunes = uint32(player->GetMaxPower(POWER_RUNES));
 
@@ -2782,7 +2784,7 @@ bool WorldObject::IsNeutralToAll() const
     return my_faction->IsNeutralToAll();
 }
 
-void WorldObject::CastSpell(SpellCastTargets const& targets, uint32 spellId, CastSpellExtraArgs const& args /*= { }*/)
+void WorldObject::CastSpell(CastSpellTargetArg const& targets, uint32 spellId, CastSpellExtraArgs const& args /*= { }*/)
 {
     SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId, args.CastDifficulty != DIFFICULTY_NONE ? args.CastDifficulty : GetMap()->GetDifficultyID());
     if (!info)
@@ -2791,37 +2793,18 @@ void WorldObject::CastSpell(SpellCastTargets const& targets, uint32 spellId, Cas
         return;
     }
 
-    Spell* spell = new Spell(this, info, args.TriggerFlags, args.OriginalCaster);
+    if (!targets.Targets)
+    {
+        TC_LOG_ERROR("entities.unit", "CastSpell: Invalid target passed to spell cast %u by %s", spellId, GetGUID().ToString().c_str());
+        return;
+    }
+
+    Spell* spell = new Spell(this, info, args.TriggerFlags, args.OriginalCaster, args.OriginalCastId);
     for (auto const& pair : args.SpellValueOverrides)
         spell->SetSpellValue(pair.first, pair.second);
 
     spell->m_CastItem = args.CastItem;
-    spell->prepare(targets, args.TriggeringAura);
-}
-
-void WorldObject::CastSpell(WorldObject* target, uint32 spellId, CastSpellExtraArgs const& args /*= { }*/)
-{
-    SpellCastTargets targets;
-    if (target)
-    {
-        if (Unit* unitTarget = target->ToUnit())
-            targets.SetUnitTarget(unitTarget);
-        else if (GameObject* goTarget = target->ToGameObject())
-            targets.SetGOTarget(goTarget);
-        else
-        {
-            TC_LOG_ERROR("entities.unit", "CastSpell: Invalid target %s passed to spell cast by %s", target->GetGUID().ToString().c_str(), GetGUID().ToString().c_str());
-            return;
-        }
-    }
-    CastSpell(targets, spellId, args);
-}
-
-void WorldObject::CastSpell(Position const& dest, uint32 spellId, CastSpellExtraArgs const& args /*= { }*/)
-{
-    SpellCastTargets targets;
-    targets.SetDst(dest);
-    CastSpell(targets, spellId, args);
+    spell->prepare(*targets.Targets, args.TriggeringAura);
 }
 
 // function based on function Unit::CanAttack from 13850 client
@@ -2872,7 +2855,7 @@ bool WorldObject::IsValidAttackTarget(WorldObject const* target, SpellInfo const
     }
 
     // check flags
-    if (unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_UNK_16)))
+    if (unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2)))
         return false;
 
     // ignore immunity flags when assisting
@@ -3002,7 +2985,7 @@ bool WorldObject::IsValidAssistTarget(WorldObject const* target, SpellInfo const
         return false;
 
     // check flags for negative spells
-    if (isNegativeSpell && unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_UNK_16)))
+    if (isNegativeSpell && unitTarget && unitTarget->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2)))
         return false;
 
     if (isNegativeSpell || !bySpell || !bySpell->HasAttribute(SPELL_ATTR6_ASSIST_IGNORE_IMMUNE_FLAG))

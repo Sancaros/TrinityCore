@@ -152,7 +152,7 @@ enum SpellRangeFlag
     SPELL_RANGE_MELEE               = 1,     //melee
     SPELL_RANGE_RANGED              = 2      //hunter range and ranged weapon
 };
-
+/*
 struct TC_GAME_API SpellDestination
 {
     SpellDestination();
@@ -167,7 +167,7 @@ struct TC_GAME_API SpellDestination
     ObjectGuid _transportGUID;
     Position _transportOffset;
 };
-
+*/
 
 struct SpellLogEffectPowerDrainParams
 {
@@ -216,7 +216,7 @@ struct SpellLogEffect
     Optional<std::vector<SpellLogEffectTradeSkillItemParams>> TradeSkillTargets;
     Optional<std::vector<SpellLogEffectFeedPetParams>> FeedPetTargets;
 };
-
+/*
 class TC_GAME_API SpellCastTargets
 {
     public:
@@ -312,7 +312,7 @@ class TC_GAME_API SpellCastTargets
 
         float m_pitch, m_speed;
         std::string m_strTarget;
-};
+};*/
 
 struct SpellValue
 {
@@ -324,6 +324,7 @@ struct SpellValue
     int32     AuraStackAmount;
     float     DurationMul;
     float     CriticalChance;
+    Optional<int32> Duration;
 };
 
 enum SpellState
@@ -513,7 +514,7 @@ class TC_GAME_API Spell
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 
-        Spell(WorldObject* caster, SpellInfo const* info, TriggerCastFlags triggerFlags, ObjectGuid originalCasterGUID = ObjectGuid::Empty);
+        Spell(WorldObject* caster, SpellInfo const* info, TriggerCastFlags triggerFlags, ObjectGuid originalCasterGUID = ObjectGuid::Empty, ObjectGuid originalCastId = ObjectGuid::Empty);
         ~Spell();
 
         void InitExplicitTargets(SpellCastTargets const& targets);

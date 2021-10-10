@@ -1070,6 +1070,8 @@ class TC_GAME_API Unit : public WorldObject
         bool IsMounted() const { return HasUnitFlag(UNIT_FLAG_MOUNT); }
         uint32 GetMountDisplayId() const { return m_unitData->MountDisplayID; }
         void SetMountDisplayId(uint32 mountDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::MountDisplayID), mountDisplayId); }
+        uint32 GetCosmeticMountDisplayId() const { return m_unitData->CosmeticMountDisplayID; }
+        void SetCosmeticMountDisplayId(uint32 mountDisplayId) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::CosmeticMountDisplayID), mountDisplayId); }
         void Mount(uint32 mount, uint32 vehicleId = 0, uint32 creatureEntry = 0);
         void Dismount();
         MountCapabilityEntry const* GetMountCapability(uint32 mountType) const;
@@ -1151,24 +1153,24 @@ class TC_GAME_API Unit : public WorldObject
         void AddNpcFlag2(NPCFlags2 flags) { SetUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
         void RemoveNpcFlag2(NPCFlags2 flags) { RemoveUpdateFieldFlagValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
         void SetNpcFlags2(NPCFlags2 flags) { SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::NpcFlags, 1), flags); }
-        bool IsVendor()       const { return HasNpcFlag(UNIT_NPC_FLAG_VENDOR); }
-        bool IsTrainer()      const { return HasNpcFlag(UNIT_NPC_FLAG_TRAINER); }
-        bool IsQuestGiver()   const { return HasNpcFlag(UNIT_NPC_FLAG_QUESTGIVER); }
-        bool IsGossip()       const { return HasNpcFlag(UNIT_NPC_FLAG_GOSSIP); }
-        bool IsTaxi()         const { return HasNpcFlag(UNIT_NPC_FLAG_FLIGHTMASTER); }
-        bool IsGuildMaster()  const { return HasNpcFlag(UNIT_NPC_FLAG_PETITIONER); }
-        bool IsBattleMaster() const { return HasNpcFlag(UNIT_NPC_FLAG_BATTLEMASTER); }
-        bool IsBanker()       const { return HasNpcFlag(UNIT_NPC_FLAG_BANKER); }
-        bool IsInnkeeper()    const { return HasNpcFlag(UNIT_NPC_FLAG_INNKEEPER); }
-        bool IsSpiritHealer() const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITHEALER); }
-        bool IsSpiritGuide()  const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITGUIDE); }
-        bool IsTabardDesigner()const{ return HasNpcFlag(UNIT_NPC_FLAG_TABARDDESIGNER); }
-        bool IsAuctioner()    const { return HasNpcFlag(UNIT_NPC_FLAG_AUCTIONEER); }
-        bool IsArmorer()      const { return HasNpcFlag(UNIT_NPC_FLAG_REPAIR); }
+        bool IsVendor()         const { return HasNpcFlag(UNIT_NPC_FLAG_VENDOR); }
+        bool IsTrainer()        const { return HasNpcFlag(UNIT_NPC_FLAG_TRAINER); }
+        bool IsQuestGiver()     const { return HasNpcFlag(UNIT_NPC_FLAG_QUESTGIVER); }
+        bool IsGossip()         const { return HasNpcFlag(UNIT_NPC_FLAG_GOSSIP); }
+        bool IsTaxi()           const { return HasNpcFlag(UNIT_NPC_FLAG_FLIGHTMASTER); }
+        bool IsGuildMaster()    const { return HasNpcFlag(UNIT_NPC_FLAG_PETITIONER); }
+        bool IsBattleMaster()   const { return HasNpcFlag(UNIT_NPC_FLAG_BATTLEMASTER); }
+        bool IsBanker()         const { return HasNpcFlag(UNIT_NPC_FLAG_BANKER); }
+        bool IsInnkeeper()      const { return HasNpcFlag(UNIT_NPC_FLAG_INNKEEPER); }
+        bool IsSpiritHealer()   const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITHEALER); }
+        bool IsSpiritGuide()    const { return HasNpcFlag(UNIT_NPC_FLAG_SPIRITGUIDE); }
+        bool IsTabardDesigner() const { return HasNpcFlag(UNIT_NPC_FLAG_TABARDDESIGNER); }
+        bool IsAuctioner()      const { return HasNpcFlag(UNIT_NPC_FLAG_AUCTIONEER); }
+        bool IsArmorer()        const { return HasNpcFlag(UNIT_NPC_FLAG_REPAIR); }
+        bool IsWildBattlePet()  const { return GetCreatureType() == CREATURE_TYPE_WILD_PET; }
         bool IsServiceProvider() const;
         bool IsSpiritService() const { return HasNpcFlag(NPCFlags(UNIT_NPC_FLAG_SPIRITHEALER | UNIT_NPC_FLAG_SPIRITGUIDE)); }
         bool IsCritter() const { return GetCreatureType() == CREATURE_TYPE_CRITTER; }
-        bool IsWildBattlePet() const { return GetCreatureType() == CREATURE_TYPE_WILD_PET; }
 
         bool IsInFlight()  const { return HasUnitState(UNIT_STATE_IN_FLIGHT); }
 
@@ -1242,19 +1244,6 @@ class TC_GAME_API Unit : public WorldObject
         void SendEnergizeSpellLog(Unit* victim, uint32 spellId, int32 damage, int32 overEnergize, Powers powerType);
         void EnergizeBySpell(Unit* victim, SpellInfo const* spellInfo, int32 damage, Powers powerType);
 
-        // CastSpell's third arg can be a variety of things - check out CastSpellExtraArgs' constructors!
-        void CastSpell(SpellCastTargets const& targets, uint32 spellId, CastSpellExtraArgs const& args = {});
-        void CastSpell(Unit* victim, uint32 spellId, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster);
-        void CastSpell(Unit* victim, uint32 spellId, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster);
-        void CastSpell(Unit* victim, SpellInfo const* spellInfo, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster);
-        void CastSpell(WorldObject* target, uint32 spellId, CastSpellExtraArgs const& args = {});
-        void CastSpell(Position const& dest, uint32 spellId, CastSpellExtraArgs const& args = {});
-        void CastSpell(float x, float y, float z, uint32 spellId, bool triggered, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
-        void CastCustomSpell(Unit* victim, uint32 spellId, int32 const* bp0, int32 const* bp1, int32 const* bp2, bool triggered, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
-        void CastCustomSpell(uint32 spellId, SpellValueMod mod, int32 value, Unit* victim, bool triggered, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
-        void CastCustomSpell(uint32 spellId, SpellValueMod mod, int32 value, Unit* victim = nullptr, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
-        void CastCustomSpell(uint32 spellId, CustomSpellValues const& value, Unit* victim = nullptr, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
-        void CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags = TRIGGERED_NONE, Item* castItem = nullptr, AuraEffect const* triggeredByAura = nullptr, ObjectGuid originalCaster = ObjectGuid::Empty);
         Aura* AddAura(uint32 spellId, Unit* target);
         Aura* AddAura(SpellInfo const* spellInfo, uint32 effMask, Unit* target);
         void SetAuraStack(uint32 spellId, Unit* target, uint32 stack);

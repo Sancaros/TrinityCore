@@ -709,6 +709,8 @@ void WorldSession::SendListInventory(ObjectGuid vendorGuid)
     // Resize vector to real size (some items can be skipped due to checks)
     packet.Items.resize(count);
 
+    packet.Reason = AsUnderlyingType(count ? VendorInventoryReason::None : VendorInventoryReason::Empty);
+
     SendPacket(packet.Write());
 }
 

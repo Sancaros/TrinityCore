@@ -463,7 +463,6 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     //logout procedure should happen only in World::UpdateSessions() method!!!
     if (updater.ProcessUnsafe())
     {
-        time_t currentTime = time(nullptr);
         ///- If necessary, log the player out
         if (ShouldLogOut(currentTime) && m_playerLoading.IsEmpty())
             LogoutPlayer(true);

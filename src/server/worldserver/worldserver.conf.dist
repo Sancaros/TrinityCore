@@ -856,6 +856,14 @@ CharactersPerRealm = 50
 CharacterCreating.MinLevelForDemonHunter = 0
 
 #
+#    CharacterCreating.DisableAlliedRaceAchievementRequirement
+#        Description: Disable achievement requirements for allied race character creation
+#        Default:     0 (Keep requirements active)
+#                     1 (Disable requirements)
+
+CharacterCreating.DisableAlliedRaceAchievementRequirement = 0
+
+#
 #    SkipCinematics
 #        Description: Disable cinematic intro at first login after character creation.
 #                     Prevents buggy intros in case of custom start location coordinates.
@@ -1122,6 +1130,12 @@ Guild.BankEventLogRecordsCount = 25
 
 Guild.NewsLogRecordsCount = 250
 
+#    Guild.SaveInterval
+#    Description: Time (in min) for Guild save interval.
+#    Default: 15 - (15 min)
+
+Guild.SaveInterval = 15
+
 #
 #    MaxPrimaryTradeSkill
 #        Description: Maximum number of primary professions a character can learn.
@@ -1360,6 +1374,14 @@ FeatureSystem.CharacterUndelete.Enabled = 0
 #        Default:     2592000 (30 days)
 
 FeatureSystem.CharacterUndelete.Cooldown = 2592000
+
+#
+#   FeatureSystem.WarMode.Enabled
+#        Description: Controls Warmode and PvP talent feature in BFA.
+#        Default:     0 - (Disabled)
+#                     1 - (Enabled, Experimental)
+
+FeatureSystem.WarMode.Enabled = 1
 
 #
 ###################################################################################################
@@ -3172,6 +3194,8 @@ CharDelete.KeepDays = 30
 
 #
 ###################################################################################################
+
+###################################################################################################
 #    ConsoleErrorLogging
 #        Description: Show errors on console on/off.
 #                     If disabled, errors will still be saved to log files.
@@ -3179,6 +3203,8 @@ CharDelete.KeepDays = 30
 #                     0 - (Disabled)
 
 ConsoleErrorLogging = 0
+#
+###################################################################################################
 
 ###################################################################################################
 # CUSTOM SERVER OPTIONS
@@ -3438,7 +3464,7 @@ GameObject.CheckInvalidPosition = 0
 
 #
 ###################################################################################################
-FeatureSystem.WarMode.Enabled = 1
+
 ###################################################################################################
 #  ELUNA SETTINGS
 #
@@ -3465,6 +3491,7 @@ Eluna.ScriptPath = "lua_scripts"
 
 #
 ###################################################################################################
+
 ###################################################################################################
 # SOLOCRAFT #
 #############
@@ -3494,6 +3521,7 @@ Solocraft.Raid40 = 30
 
 #
 ###################################################################################################
+
 ###################################################################################################
 #FlexCraft  #
 #############
@@ -3649,7 +3677,7 @@ HastecraftRanged = 10000000
 HastecraftSpell = 10000000
 #
 ###################################################################################################
-#KyrianCORE discord : https://discord.gg/CZDUnEGK9a
+
 ###################################################################################################
 # AUCTION HOUSE BOT SETTINGS
 #
@@ -4171,6 +4199,7 @@ BlackMarket.UpdatePeriod = 24
 #
 #
 ###################################################################################################
+
 ###################################################################################################
 # Dynamic XP Rate #
 #
@@ -4190,7 +4219,6 @@ DynamicXP.Enable = 1
 BattlePay.Enabled = 1
 FeatureSystem.BattlePay.Available = 0
 ArgusWowEnable = 1
-Guild.SaveInterval = 15
 BattlePay.Currency = 1
 Pvp.FactionBalance.LevelCheckDiff = 0
 Pvp.FactionBalance.Pct2 = 0.800000
@@ -4210,6 +4238,7 @@ Group.Loot.Roll.Enabled = 0
 
 #
 ###################################################################################################
+
 ###################################################################################################
 # LOGGING SYSTEM SETTINGS
 #
@@ -4281,6 +4310,8 @@ Appender.Console=1,3,0
 Appender.Server=2,2,0,Server.log,w
 Appender.GM=2,2,15,gm/gm_%s.log
 Appender.DBErrors=2,2,0,DBErrors.log
+#Appender.SQLUpdateLog=2,1,16,SQLUpdate.log,w
+#Appender.GrayLog=4,3,0,"http://0.0.0.0:12201/gelf"
 
 #  Logger config values: Given a logger "name"
 #    Logger.name
@@ -4340,6 +4371,7 @@ Logger.mmaps=3,Server
 #Logger.loot=3,Console Server
 #Logger.maps.script=3,Console Server
 #Logger.maps=3,Console Server
+#Logger.metric=3,GrayLog
 #Logger.misc=3,Console Server
 #Logger.movement.flightpath=3,Console Server
 #Logger.movement.motionmaster=3,Console Server
@@ -4515,35 +4547,3 @@ Metric.OverallStatusInterval = 1
 
 #
 ###################################################################################################
-
-###################################################################################################
-# Dungeon Finder
-#
-#   DungeonFinder.DebugJoin
-#       Description: Allow DungeonFinder usage with 1 player.
-#                    You can also use ".debug lfg on" in game.
-#       Default:     1 - (Enabled)
-#                    0 - (Disabled)
-
-DungeonFinder.DebugJoin = 1
-
-#   DungeonFinder.UnlockAll
-#       Description: Unlock all DungeonFinder dungeons and raids on dungeon finder.
-#       Default:     1 - (Enabled)
-#                    0 - (Disabled)
-
-DungeonFinder.UnlockAll = 1
-
-#
-#     DungeonFinder.OptionsMask
-#        Description: Dungeon and raid finder system.
-#        Value is a bitmask consisting of:
-#           LFG_OPTION_ENABLE_DUNGEON_FINDER = 1,     Enable the dungeon finder browser
-#           LFG_OPTION_ENABLE_RAID_BROWSER   = 2,     Enable the raid browser
-#        Default:     1
-
-DungeonFinder.OptionsMask = 1
-
-#
-###################################################################################################
-

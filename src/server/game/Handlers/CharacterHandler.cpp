@@ -443,7 +443,9 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder* holder)
         WorldPackets::Character::EnumCharactersResult::RaceUnlock raceUnlock;
         raceUnlock.RaceID = requirement.first;
         raceUnlock.HasExpansion = GetAccountExpansion() >= requirement.second.Expansion;
-        raceUnlock.HasAchievement = requirement.second.AchievementId == 0;
+        raceUnlock.HasAchievement = requirement.second.AchievementId != 0
+            && (sWorld->getBoolConfig(CONFIG_CHARACTER_CREATING_DISABLE_ALLIED_RACE_ACHIEVEMENT_REQUIREMENT)
+                /* || HasAccountAchievement(requirement.second.AchievementId)*/);
         charEnum.RaceUnlockData.push_back(raceUnlock);
     }
 
@@ -1123,107 +1125,34 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     pCurrChar->SendInitialPacketsBeforeAddToMap();
 
     //Show cinematic at the first time that player login
-    ObjectGuid guidLow;
-    Transport* gobTransport;
     if (!pCurrChar->getCinematic())
     {
         pCurrChar->setCinematic(1);
 
-        if (pCurrChar->GetMapId() == 2175)
+        if (PlayerInfo const* playerInfo = sObjectMgr->GetPlayerInfo(pCurrChar->getRace(), pCurrChar->getClass()))
         {
-
-            if (pCurrChar->GetTeam() == ALLIANCE)
+            switch (pCurrChar->GetCreateMode())
             {
-                guidLow = ObjectGuid::Create<HighGuid::Transport>(30);
-                gobTransport = HashMapHolder<Transport>::Find(guidLow);
-                if (gobTransport)
-                {
-                    //pCurrChar->GetSceneMgr().PlayScene(2578);
-                    pCurrChar->GetScheduler().Schedule(Milliseconds(uint32(100)), [pCurrChar, gobTransport](TaskContext context)
-                        {
-                            float x, y, z, o;
-                            x = 10.20483f;
-                            y = 0.15744f;
-                            z = 5.2246f;
-                            o = 3.15951f;
-                            pCurrChar->GetSceneMgr().PlaySceneByPackageId(2578, SCENEFLAG_UNK16);
-
-                            pCurrChar->m_movementInfo.transport.pos.Relocate(x, y, z, o);
-                            gobTransport->CalculatePassengerPosition(x, y, z, &o);
-                            pCurrChar->Relocate(x, y, z, o);
-                            gobTransport->AddPassenger(pCurrChar);
-                            pCurrChar->TeleportTo(pCurrChar->GetMapId(), pCurrChar->GetPositionX(), pCurrChar->GetPositionY(), pCurrChar->GetPositionZ(), pCurrChar->GetOrientation(), TeleportToOptions::TELE_TO_SEAMLESS | TeleportToOptions::TELE_TO_NOT_LEAVE_TRANSPORT);
-
-                        });
-
-                }
-
+                case PlayerCreateMode::Normal:
+                    if (playerInfo->introMovieId)
+                        pCurrChar->SendMovieStart(playerInfo->introMovieId.get());
+                    else if (playerInfo->introSceneId)
+                        pCurrChar->GetSceneMgr().PlayScene(*playerInfo->introSceneId);
+                    else if (sChrClassesStore.AssertEntry(pCurrChar->getClass())->CinematicSequenceID)
+                        pCurrChar->SendCinematicStart(sChrClassesStore.AssertEntry(pCurrChar->getClass())->CinematicSequenceID);
+                    else if (sChrRacesStore.AssertEntry(pCurrChar->getRace())->CinematicSequenceID)
+                        pCurrChar->SendCinematicStart(sChrRacesStore.AssertEntry(pCurrChar->getRace())->CinematicSequenceID);
+                    break;
+                case PlayerCreateMode::NPE:
+                    if (playerInfo->introSceneIdNPE)
+                        pCurrChar->GetSceneMgr().PlayScene(*playerInfo->introSceneIdNPE);
+                    break;
+                default:
+                    break;
             }
-
-            else
-            {
-
-                guidLow = ObjectGuid::Create<HighGuid::Transport>(31);
-                gobTransport = HashMapHolder<Transport>::Find(guidLow);
-                if (gobTransport)
-                {
-                    //pCurrChar->GetSceneMgr().PlayScene(2578);
-                    pCurrChar->GetScheduler().Schedule(Milliseconds(uint32(100)), [pCurrChar, gobTransport](TaskContext context)
-                        {
-                            float x, y, z, o;
-                            x = -7.76472f;
-                            y = 0.235729f;
-                            z = 8.906436f;
-                            o = 3.120459f;
-                            pCurrChar->GetSceneMgr().PlaySceneByPackageId(2894, SCENEFLAG_UNK16);
-
-                            pCurrChar->m_movementInfo.transport.pos.Relocate(x, y, z, o);
-                            gobTransport->CalculatePassengerPosition(x, y, z, &o);
-                            pCurrChar->Relocate(x, y, z, o);
-                            gobTransport->AddPassenger(pCurrChar);
-                            pCurrChar->TeleportTo(pCurrChar->GetMapId(), pCurrChar->GetPositionX(), pCurrChar->GetPositionY(), pCurrChar->GetPositionZ(), pCurrChar->GetOrientation(), TeleportToOptions::TELE_TO_SEAMLESS | TeleportToOptions::TELE_TO_NOT_LEAVE_TRANSPORT);
-
-                        });
-                }
-            }
-
-        }
-        else if (ChrClassesEntry const* cEntry = sChrClassesStore.LookupEntry(pCurrChar->getClass()))
-        {
-            if (pCurrChar->getClass() == CLASS_DEMON_HUNTER) /// @todo: find a more generic solution
-                pCurrChar->SendMovieStart(469);
-            else if (cEntry->CinematicSequenceID)
-                pCurrChar->SendCinematicStart(cEntry->CinematicSequenceID);
-            else if (ChrRacesEntry const* rEntry = sChrRacesStore.LookupEntry(pCurrChar->getRace()))
-                pCurrChar->SendCinematicStart(rEntry->CinematicSequenceID);
-
-            // send new char string if not empty
-            if (!sWorld->GetNewCharString().empty())
-                chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
-        }
-    }
-
-    else if (!pCurrChar->getCinematic() && pCurrChar->GetMapId() == MAP_NPE) // Exile's Reach
-    {
-        pCurrChar->setCinematic(1);
-
-        switch (pCurrChar->GetTeam())
-        {
-        case ALLIANCE:
-            pCurrChar->GetScheduler().Schedule(1s, [pCurrChar](TaskContext /*context*/)
-            {
-                pCurrChar->GetSceneMgr().PlaySceneByPackageId(2578);
-            });
-            break;
-
-        case HORDE:
-            pCurrChar->GetScheduler().Schedule(1s, [pCurrChar](TaskContext /*context*/)
-            {
-                pCurrChar->GetSceneMgr().PlaySceneByPackageId(2894);
-            });
-            break;
         }
 
+        // send new char string if not empty
         if (!sWorld->GetNewCharString().empty())
             chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
     }
@@ -1507,10 +1436,9 @@ void WorldSession::SendFeatureSystemStatus()
     features.EuropaTicketSystemStatus->SuggestionsEnabled = sWorld->getBoolConfig(CONFIG_SUPPORT_SUGGESTIONS_ENABLED);
 
     features.CharUndeleteEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED);
-    features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
-    features.WarModeFeatureEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED);
     features.BpayStoreEnabled = GetBattlePayMgr()->IsAvailable();
     features.BpayStoreAvailable = GetBattlePayMgr()->IsAvailable();
+    features.WarModeFeatureEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_WAR_MODE_ENABLED);
     features.IsMuted = !CanSpeak();
 
     SendPacket(features.Write());

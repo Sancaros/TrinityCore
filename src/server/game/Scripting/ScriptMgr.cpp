@@ -24,6 +24,7 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "CreatureAIImpl.h"
+#include "DB2Stores.h"
 #include "Errors.h"
 #include "GameObject.h"
 #include "Garrison.h"

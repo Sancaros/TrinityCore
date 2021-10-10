@@ -27,6 +27,7 @@ EndScriptData */
 #include "CreatureAI.h"
 #include "CreatureGroups.h"
 #include "DatabaseEnv.h"
+#include "DB2Stores.h"
 #include "FollowMovementGenerator.h"
 #include "GameTime.h"
 #include "Language.h"
@@ -138,7 +139,7 @@ EnumName<UnitFlags> const unitFlags[MAX_UNIT_FLAGS] =
     CREATE_NAMED_ENUM(UNIT_FLAG_SILENCED),
     CREATE_NAMED_ENUM(UNIT_FLAG_CANNOT_SWIM),
     CREATE_NAMED_ENUM(UNIT_FLAG_UNK_15),
-    CREATE_NAMED_ENUM(UNIT_FLAG_UNK_16),
+    CREATE_NAMED_ENUM(UNIT_FLAG_NON_ATTACKABLE_2),
     CREATE_NAMED_ENUM(UNIT_FLAG_PACIFIED),
     CREATE_NAMED_ENUM(UNIT_FLAG_STUNNED),
     CREATE_NAMED_ENUM(UNIT_FLAG_IN_COMBAT),

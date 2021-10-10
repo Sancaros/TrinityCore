@@ -1062,7 +1062,7 @@ void InstanceScript::DoPlayScenePackageIdOnPlayers(uint32 scenePackageId)
 {
     DoOnPlayers([scenePackageId](Player* player)
     {
-        player->GetSceneMgr().PlaySceneByPackageId(scenePackageId);
+        player->GetSceneMgr().PlaySceneByPackageId(scenePackageId, SceneFlag::None);
     });
 }
 

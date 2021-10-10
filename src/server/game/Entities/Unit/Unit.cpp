@@ -22,6 +22,7 @@
 #include "Battleground.h"
 #include "BattlegroundPackets.h"
 #include "BattlegroundScore.h"
+#include "BattlePet.h"
 #include "CellImpl.h"
 #include "CharacterCache.h"
 #include "ChatPackets.h"
@@ -34,6 +35,7 @@
 #include "CreatureAI.h"
 #include "CreatureAIImpl.h"
 #include "CreatureGroups.h"
+#include "DB2Stores.h"
 #include "Formulas.h"
 #include "GameTime.h"
 #include "GridNotifiersImpl.h"
@@ -1016,144 +1018,6 @@ void Unit::CastStop(uint32 except_spellid)
             InterruptSpell(CurrentSpellTypes(i), false);
 }
 
-void Unit::CastSpell(SpellCastTargets const& targets, uint32 spellId, CastSpellExtraArgs const& args)
-{
-    SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId, args.CastDifficulty != DIFFICULTY_NONE ? args.CastDifficulty : GetMap()->GetDifficultyID());
-    if (!info)
-    {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell %u by caster %s", spellId, GetGUID().ToString().c_str());
-        return;
-    }
-
-    Spell* spell = new Spell(this, info, args.TriggerFlags, args.OriginalCaster);
-    //for (auto const& pair : args.SpellValueOverrides)
-      //  spell->SetSpellValue(pair.first, pair.second);
-
-    spell->m_CastItem = args.CastItem;
-    spell->prepare(targets, args.TriggeringAura);
-}
-
-void Unit::CastSpell(Unit* victim, uint32 spellId, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    return CastSpell(victim, spellId, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastSpell(Unit* victim, uint32 spellId, TriggerCastFlags triggerFlags /*= TRIGGER_NONE*/, Item* castItem /*= nullptr*/, AuraEffect const* triggeredByAura /*= nullptr*/, ObjectGuid originalCaster /*= ObjectGuid::Empty*/)
-{
-    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, GetMap()->GetDifficultyID());
-    if (!spellInfo)
-    {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell id %u by caster: %s", spellId, GetGUID().ToString().c_str());
-        return;
-    }
-
-    return CastSpell(victim, spellInfo, triggerFlags, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastCustomSpell(Unit* target, uint32 spellId, int32 const* bp0, int32 const* bp1, int32 const* bp2, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    CustomSpellValues values;
-    if (bp0)
-        values.AddSpellMod(SPELLVALUE_BASE_POINT0, *bp0);
-    if (bp1)
-        values.AddSpellMod(SPELLVALUE_BASE_POINT1, *bp1);
-    if (bp2)
-        values.AddSpellMod(SPELLVALUE_BASE_POINT2, *bp2);
-    CastCustomSpell(spellId, values, target, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastCustomSpell(uint32 spellId, SpellValueMod mod, int32 value, Unit* target, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    CustomSpellValues values;
-    values.AddSpellMod(mod, value);
-    CastCustomSpell(spellId, values, target, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastCustomSpell(uint32 spellId, SpellValueMod mod, int32 value, Unit* target, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    CustomSpellValues values;
-    values.AddSpellMod(mod, value);
-    CastCustomSpell(spellId, values, target, triggerFlags, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastCustomSpell(uint32 spellId, CustomSpellValues const& value, Unit* victim, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, GetMap()->GetDifficultyID());
-    if (!spellInfo)
-    {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell id %u by caster: %s", spellId, GetGUID().ToString().c_str());
-        return;
-    }
-    SpellCastTargets targets;
-    targets.SetUnitTarget(victim);
-
-    CastSpell(targets, spellInfo, &value, triggerFlags, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastSpell(SpellCastTargets const& targets, SpellInfo const* spellInfo, CustomSpellValues const* value, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    if (!spellInfo)
-    {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell by caster: %s", GetGUID().ToString().c_str());
-        return;
-    }
-
-    Spell* spell = new Spell(this, spellInfo, triggerFlags, originalCaster);
-
-    if (value)
-        for (CustomSpellValues::const_iterator itr = value->begin(); itr != value->end(); ++itr)
-            spell->SetSpellValue(itr->first, itr->second);
-
-    spell->m_CastItem = castItem;
-    //spell->prepare(&targets, triggeredByAura);
-}
-
-void Unit::CastSpell(float x, float y, float z, uint32 spellId, bool triggered, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spellId, GetMap()->GetDifficultyID());
-    if (!spellInfo)
-    {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell id %u by caster: %s", spellId, GetGUID().ToString().c_str());
-        return ;
-    }
-    SpellCastTargets targets;
-    targets.SetDst(x, y, z, GetOrientation());
-
-    return CastSpell(targets, spellInfo, nullptr, triggered ? TRIGGERED_FULL_MASK : TRIGGERED_NONE, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastSpell(Unit* victim, SpellInfo const* spellInfo, TriggerCastFlags triggerFlags, Item* castItem, AuraEffect const* triggeredByAura, ObjectGuid originalCaster)
-{
-    SpellCastTargets targets;
-    targets.SetUnitTarget(victim);
-    CastSpell(targets, spellInfo, nullptr, triggerFlags, castItem, triggeredByAura, originalCaster);
-}
-
-void Unit::CastSpell(WorldObject* target, uint32 spellId, CastSpellExtraArgs const& args)
-{
-    SpellCastTargets targets;
-    if (target)
-    {
-        if (Unit* unitTarget = target->ToUnit())
-            targets.SetUnitTarget(unitTarget);
-        else if (GameObject* goTarget = target->ToGameObject())
-            targets.SetGOTarget(goTarget);
-        else
-        {
-            TC_LOG_ERROR("entities.unit", "CastSpell: Invalid target %s passed to spell cast by %s", target->GetGUID().ToString().c_str(), GetGUID().ToString().c_str());
-            return;
-        }
-    }
-    CastSpell(targets, spellId, args);
-}
-
-void Unit::CastSpell(Position const& dest, uint32 spellId, CastSpellExtraArgs const& args)
-{
-    SpellCastTargets targets;
-    targets.SetDst(dest);
-    CastSpell(targets, spellId, args);
-}
-
 void Unit::CalculateSpellDamageTaken(SpellNonMeleeDamage* damageInfo, int32 damage, SpellInfo const* spellInfo, WeaponAttackType attackType, bool crit)
 {
     if (damage < 0)
@@ -2030,7 +1894,7 @@ void Unit::HandleEmoteCommand(uint32 anim_id, Trinity::IteratorPair<int32 const*
             uint32 split_absorb = 0;
             Unit::DealDamageMods(damageInfo.GetAttacker(), caster, splitDamage, &split_absorb);
 
-            SpellNonMeleeDamage log(damageInfo.GetAttacker(), caster, (*itr)->GetSpellInfo(), (*itr)->GetBase()->GetSpellVisual(), damageInfo.GetSchoolMask(), (*itr)->GetBase()->GetCastGUID());
+            SpellNonMeleeDamage log(damageInfo.GetAttacker(), caster, (*itr)->GetSpellInfo(), (*itr)->GetBase()->GetSpellVisual(), damageInfo.GetSchoolMask(), (*itr)->GetBase()->GetCastId());
             CleanDamage cleanDamage = CleanDamage(splitDamage, 0, BASE_ATTACK, MELEE_HIT_NORMAL);
             Unit::DealDamage(damageInfo.GetAttacker(), caster, splitDamage, &cleanDamage, DIRECT_DAMAGE, damageInfo.GetSchoolMask(), (*itr)->GetSpellInfo(), false);
             log.damage = splitDamage;
@@ -2170,10 +2034,7 @@ void Unit::AttackerStateUpdate(Unit* victim, WeaponAttackType attType, bool extr
         }
         else
         {
-            CastSpellExtraArgs args;
-            args.TriggerFlags = TRIGGERED_FULL_MASK;
-            args.TriggeringAura = meleeAttackAuraEffect;
-            CastSpell(victim, meleeAttackSpellId, args);
+            CastSpell(victim, meleeAttackSpellId, meleeAttackAuraEffect);
 
             uint32 hitInfo = HITINFO_AFFECTS_VICTIM | HITINFO_NO_ANIMATION;
             if (attType == OFF_ATTACK)
@@ -3712,7 +3573,7 @@ void Unit::_RemoveNoStackAurasDueToAura(Aura* aura)
         {
             Unit* caster = aura->GetCaster();
             if (caster && caster->GetTypeId() == TYPEID_PLAYER)
-                Spell::SendCastResult(caster->ToPlayer(), aura->GetSpellInfo(), aura->GetSpellVisual(), aura->GetCastGUID(), SPELL_FAILED_AURA_BOUNCED);
+                Spell::SendCastResult(caster->ToPlayer(), aura->GetSpellInfo(), aura->GetSpellVisual(), aura->GetCastId(), SPELL_FAILED_AURA_BOUNCED);
         }
 
         aura->Remove();
@@ -4124,7 +3985,7 @@ void Unit::RemoveAurasDueToSpellBySteal(uint32 spellId, ObjectGuid casterGUID, W
                     if (aura->IsSingleTarget())
                         aura->UnregisterSingleTarget();
 
-                    AuraCreateInfo createInfo(aura->GetCastGUID(), aura->GetSpellInfo(), aura->GetCastDifficulty(), effMask, unitStealer);
+                    AuraCreateInfo createInfo(aura->GetCastId(), aura->GetSpellInfo(), aura->GetCastDifficulty(), effMask, unitStealer);
                     createInfo
                         .SetCasterGUID(aura->GetCasterGUID())
                         .SetBaseAmount(baseDamage);
@@ -8106,6 +7967,7 @@ float Unit::GetPPMProcChance(uint32 WeaponSpeed, float PPM, SpellInfo const* spe
 
 void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
 {
+    RemoveAurasByType(SPELL_AURA_COSMETIC_MOUNTED);
     if (mount)
         SetMountDisplayId(mount);
 
@@ -8479,7 +8341,7 @@ bool Unit::_IsValidAttackTarget(Unit const* target, SpellInfo const* bySpell, Wo
     }
 
     // check flags
-    if (target->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_UNK_16))
+    if (target->HasUnitFlag(UnitFlags(UNIT_FLAG_NON_ATTACKABLE | UNIT_FLAG_TAXI_FLIGHT | UNIT_FLAG_NOT_ATTACKABLE_1 | UNIT_FLAG_NON_ATTACKABLE_2))
         || (!HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && target->IsImmuneToNPC())
         || (!target->HasUnitFlag(UNIT_FLAG_PLAYER_CONTROLLED) && IsImmuneToNPC()))
         return false;
@@ -10004,6 +9866,9 @@ void Unit::RemoveFromWorld()
     if (IsInWorld())
     {
         m_duringRemoveFromWorld = true;
+        if (IsAIEnabled)
+            GetAI()->LeavingWorld();
+
         if (IsVehicle())
             RemoveVehicleKit(true);
 
